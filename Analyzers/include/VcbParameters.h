@@ -63,7 +63,8 @@ static inline std::unordered_map<std::string, TString> FH_Trigger = {
     {"2016preVFP", "HLT_PFHT450_SixJet40_BTagCSV_p056"},
     {"2016postVFP", "HLT_PFHT450_SixJet40_BTagCSV_p056"},
     {"2017", "HLT_PFHT430_SixPFJet40_PFBTagCSV_1p5"},
-    {"2018", "HLT_PFHT450_SixPFJet36_PFBTagDeepCSV_1p59"}};
+    {"2018", "HLT_PFHT450_SixPFJet36_PFBTagDeepCSV_1p59"},
+    {"2022EE", "HLT_PFHT450_SixPFJet36_PFBTagDeepCSV_1p59"}};
 
 static inline std::unordered_map<std::string, TString> FH_Trigger_DoubleBTag = {
     {"2016preVFP", "HLT_PFHT400_SixJet30_DoubleBTagCSV_p056"},
@@ -90,7 +91,7 @@ static inline std::unordered_map<std::string, float> FH_HT_cut = {
     {"2016postVFP", 420.f},
     {"2017", 400.f},
     {"2018", 420.f},
-    {"2022EE", 420.f}
+    {"2022EE", 450.f}
 };
 
 static inline std::unordered_map<std::string, float> FH_Jet_Pt_cut = {
@@ -98,7 +99,7 @@ static inline std::unordered_map<std::string, float> FH_Jet_Pt_cut = {
     {"2016postVFP", 32.f},
     {"2017", 34.f},
     {"2018", 34.f},
-    {"2022EE", 34.f}
+    {"2022EE", 36.f}
     };
 
 static constexpr JetTagging::JetFlavTaggerWP FH_BTag_WP = JetTagging::JetFlavTaggerWP::Medium;
@@ -160,12 +161,12 @@ static inline std::unordered_map<std::string, TString> El_ID_SF_Key = {
 
 static constexpr JetTagging::JetFlavTaggerWP SL_BTag_WP = JetTagging::JetFlavTaggerWP::Medium;
 
-static constexpr float SL_Jet_Pt_cut = 30.f;
+static constexpr float SL_Jet_Pt_cut = 25.f;
 
 // DL part
 static constexpr JetTagging::JetFlavTaggerWP DL_BTag_WP = JetTagging::JetFlavTaggerWP::Medium;
 
-static constexpr float DL_Jet_Pt_cut = 30.f;
+static constexpr float DL_Jet_Pt_cut = 25.f;
 
 static inline std::unordered_map<std::string, std::string> Sample_Shorthand = {
     {"TTJJ_powheg", "TTJJ"},
@@ -236,6 +237,7 @@ static inline std::unordered_map<std::string, std::string> Sample_Shorthand = {
     {"QCD_HT1000to1200", "QCD"},
     {"QCD_HT1200to1500", "QCD"},
     {"QCD_HT1500to2000", "QCD"},
+    {"QCD_HT2000toInf", "QCD"}
 };
 
 #endif

@@ -103,7 +103,7 @@ RVec<RVec<unsigned int>> Vcb_FH::GetPermutations(const RVec<Jet> &jets)
 bool Vcb_FH::PassBaseLineSelection(bool remove_flavtagging_cut)
 {
     Clear();
-    if (!ev.PassTrigger(FH_Trigger_DoubleBTag[DataEra.Data()]))
+    if (!(ev.PassTrigger(FH_Trigger_DoubleBTag[DataEra.Data()]) || ev.PassTrigger(FH_Trigger[DataEra.Data()])))
         return false;
     if (!PassJetVetoMap(AllJets, AllMuons))
         return false;
@@ -111,7 +111,7 @@ bool Vcb_FH::PassBaseLineSelection(bool remove_flavtagging_cut)
         return false;
 
     // Set Objects
-    Jets = SelectJets(AllJets, Jet_ID, FH_Jet_Pt_cut[DataEra.Data()], Jet_Eta_cut);
+    Jets = SelectJets(AllJets, Jet_ID, SL_Jet_Pt_cut, Jet_Eta_cut);
     if (systHelper->getCurrentIterSysSource() == "Jet_En")
     {
         Jets = ScaleJets(AllJets, systHelper->getCurrentIterVariation());
@@ -126,7 +126,7 @@ bool Vcb_FH::PassBaseLineSelection(bool remove_flavtagging_cut)
     {
         MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::UE);
     }
-    Jets = SelectJets(Jets, Jet_ID, FH_Jet_Pt_cut[DataEra.Data()], Jet_Eta_cut);
+    Jets = SelectJets(Jets, Jet_ID, SL_Jet_Pt_cut, Jet_Eta_cut);
 
     MET = ev.GetMETVector(Event::MET_Type::PUPPI);
     Muons_Veto = SelectMuons(AllMuons, Muon_Veto_ID, Muon_Veto_Pt, Muon_Veto_Eta);
@@ -136,12 +136,14 @@ bool Vcb_FH::PassBaseLineSelection(bool remove_flavtagging_cut)
     Muons = SelectMuons(Muons, Muon_Tight_Iso, Muon_Tight_Pt[DataEra.Data()], Muon_Tight_Eta);
     Electrons = SelectElectrons(AllElectrons, Electron_Tight_ID, Electron_Tight_Pt[DataEra.Data()], Electron_Tight_Eta);
     Jets = JetsVetoLeptonInside(Jets, Electrons_Veto, Muons_Veto, Jet_Veto_DR);
-    Jets = SelectJets(Jets, Jet_PUID, FH_Jet_Pt_cut[DataEra.Data()], Jet_Eta_cut);
+    Jets = SelectJets(Jets, Jet_PUID, SL_Jet_Pt_cut, Jet_Eta_cut);
+    std::sort(Jets.begin(), Jets.end(), PtComparing);
     HT = GetHT(Jets);
     n_jets = Jets.size();
 
     if (n_jets < 6)
         return false;
+    if (Jets[5].Pt() < FH_Jet_Pt_cut[DataEra.Data()]) return false;
 
     for (const auto &jet : Jets)
     {
@@ -1013,7 +1015,7 @@ void Vcb_FH::InferONNX()
     // find which class has the highest score in class_score(find index)
     std::array<float, 3> class_score_temp = {class_score[0], class_score[1], class_score[2]};
     int max_class;
-    if(class_score_temp[2] > 0.007) max_class = 2;
+    if(class_score_temp[2] > 0.1) max_class = 2;
     else{
         if(class_score_temp[0] > 0.8) max_class = 0;
         else max_class = 1;
@@ -1034,9 +1036,24 @@ void Vcb_FH::InferONNX()
     }
 }
 
-void Vcb_FH::FillONNXRecoInfo(const TString &histPrefix, float weight)
+bool Vcb_FH::FillONNXRecoInfo(const TString &histPrefix, float weight)
 {
+    //reco cut
+    if (Jets[assignment[0]].Pt() < 40.f || Jets[assignment[1]].Pt() < 40.f) return false;
     ttbar_jet_indices = FindTTbarJetIndices();
+    std::vector<float> QCD_CUT;
+    for(size_t i = 0; i < 100; i++) QCD_CUT.push_back(0.002+(0.1-0.002)/100*i);
+    for(const auto &cut: QCD_CUT){
+        if(systHelper->getCurrentSysName() != "Central") break;
+        std::string sample_postfix = Sample_Shorthand[MCSample.Data()];
+        if(MCSample.Contains("TT") && !MCSample.Contains("Vcb")) sample_postfix = sample_postfix + GetTTHFPostFix();
+        if(IsDATA){
+            if(class_score[2] <= cut) FillHist("FH/QCDCUT/Central/data_obs/CUT_" + std::to_string(cut) + "/Norm", 0.f, 1.f, 1, 0., 1.);
+        }
+        else{
+            if(class_score[2] <= cut) FillHist("FH/QCDCUT/Central/" + sample_postfix + "/CUT_" + std::to_string(cut) + "/Norm", 0.f, weight, 1, 0., 1.);
+        }
+    }
     // if (find_all_jets)
     // {
     //     FillHist(histPrefix + "/" + "CorrectAssignment_Tot", n_jets, n_b_tagged_jets, 1., 6, 4., 10., 4, 2, 6);
@@ -1103,5 +1120,5 @@ void Vcb_FH::FillONNXRecoInfo(const TString &histPrefix, float weight)
     FillHist(histPrefix + "/" + "Class_Score0", static_cast<float>(class_score[0]), weight, class_score_bin.size() - 1 , class_score_bin.data());
     FillHist(histPrefix + "/" + "Class_Score1", static_cast<float>(class_score[1]), weight, class_score_bin.size() - 1 , class_score_bin.data());
     FillHist(histPrefix + "/" + "Class_Score2", static_cast<float>(class_score[2]), weight, class_score_bin.size() - 1 , class_score_bin.data());
-
+    return true;
 }

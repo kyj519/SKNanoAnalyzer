@@ -43,7 +43,7 @@ public:
     void virtual CreateTrainingTree() override;
     RVec<RVec<unsigned int>> GetPermutations(const RVec<Jet> &jets) override;
     void virtual InferONNX() override;
-    void virtual FillONNXRecoInfo(const TString &histPrefix, float weight) override;
+    bool virtual FillONNXRecoInfo(const TString &histPrefix, float weight) override;
 
     inline std::string GetRegionString() override
     {

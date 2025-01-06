@@ -120,7 +120,7 @@ public:
         return "";
     }
 
-    void virtual FillONNXRecoInfo(const TString &histPrefix, float weight);
+    bool virtual FillONNXRecoInfo(const TString &histPrefix, float weight);
     inline float GetJetEnergyFractionWithRadius(Jet &jet, float radius)
     {
         float sum = 0;

@@ -177,7 +177,7 @@ bool Vcb_SL::PassBaseLineSelection(bool remove_flavtagging_cut)
     }
     if (systHelper->getCurrentIterSysSource() == "Jet_Res")
     {
-        Jets = SmearJets(AllJets, AllGenJets, systHelper->getCurrentIterVariation());
+        Jets = s(AllJets, AllGenJets, systHelper->getCurrentIterVariation());
         MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::JER);
     }
     if (systHelper->getCurrentIterSysSource() == "UE")
@@ -1248,7 +1248,6 @@ void Vcb_SL::InferONNX()
         hb_assignment = current_ht_assignment[1];
         w1_assignment = current_ht_assignment[2];
         w2_assignment = current_ht_assignment[3];
-        cout << endl;
 
         std::set<int> unique_assignment = {lb_assignment, hb_assignment, w1_assignment, w2_assignment};
         if (unique_assignment.size() == 4)
@@ -1295,8 +1294,10 @@ void Vcb_SL::InferONNX()
     }
 }
 
-void Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
+bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
 {
+    //reco cut
+    if (Jets[assignment[0]].Pt() < 30. || Jets[assignment[1]].Pt() < 30. ) return false;
     ttbar_jet_indices = FindTTbarJetIndices();
     if (find_all_jets)
     {
@@ -1342,4 +1343,5 @@ void Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
     FillHist(histPrefix + "/" + "EnergyFrac0p8VsBvsC", W2_BvsC, GetJetEnergyFractionWithRadius(Jets[assignment[3]], 0.8), weight, 10, 0., 1., 50, 0. ,1.);
     FillHist(histPrefix + "/" + "EnergyFrac1p2VsBvsC", W2_BvsC, GetJetEnergyFractionWithRadius(Jets[assignment[3]], 1.2), weight, 10, 0., 1., 50, 0. ,1.);
     FillHist(histPrefix + "/" + "nConstituentsVsBvsC", W2_BvsC, Jets[assignment[3]].nConstituents(), weight, 10, 0., 1., 50, 0., 50.);
+    return true;
 }

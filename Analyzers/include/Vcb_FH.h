@@ -41,7 +41,7 @@ public:
     RVec<RVec<unsigned int>> GetPermutations(const RVec<Jet> &jets) override;
     void CreateTrainingTree() override;
     void virtual InferONNX() override;
-    void virtual FillONNXRecoInfo(const TString &histPrefix, float weight) override;
+    bool virtual FillONNXRecoInfo(const TString &histPrefix, float weight) override;
     inline std::string GetRegionString() override
     {
         if(class_label == classCategory::Signal) return "SR_FH";
