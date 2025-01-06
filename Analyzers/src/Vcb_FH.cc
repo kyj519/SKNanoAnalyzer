@@ -203,6 +203,7 @@ void Vcb_FH::FillTrainingTree()
     SetBranch("Training_Tree", "n_b_tagged_jets", n_b_tagged_jets);
     SetBranch("Training_Tree", "n_c_tagged_jets", n_c_tagged_jets);
     SetBranch("Training_Tree", "find_all_jets", find_all_jets);
+    SetBranch("Training_Tree", "weight", MCweight());
     if (find_all_jets)
     {
         Particle W1Cand = Jets[ttbar_jet_indices[2]] + Jets[ttbar_jet_indices[3]];
@@ -968,9 +969,9 @@ void Vcb_FH::InferONNX()
     size_t max_idx = FindNthMaxIndex(output_data["t1_assignment_log_probability"], 0);
     std::vector<int> current_t1_assignment = UnravelIndex(max_idx, t1_assignment_shape);
 
-    t1b_assignment = current_t1_assignment[1];
-    t1q1_assignment = current_t1_assignment[2];
-    t1q2_assignment = current_t1_assignment[3];
+    t1b_assignment = current_t1_assignment[3];
+    t1q1_assignment = current_t1_assignment[1];
+    t1q2_assignment = current_t1_assignment[2];
 
     bool checkUnique = false;
     int num_total_t2_assignments = output_data["t2_assignment_log_probability"].size();
@@ -980,9 +981,9 @@ void Vcb_FH::InferONNX()
         size_t current_max_idx = FindNthMaxIndex(output_data["t2_assignment_log_probability"], i);
         std::vector<int> current_t2_assignment = UnravelIndex(current_max_idx, t2_assignment_shape);
         
-        t2b_assignment = current_t2_assignment[1];
-        t2q1_assignment = current_t2_assignment[2];
-        t2q2_assignment = current_t2_assignment[3];
+        t2b_assignment = current_t2_assignment[3];
+        t2q1_assignment = current_t2_assignment[1];
+        t2q2_assignment = current_t2_assignment[2];
 
         std::set<int> unique_assignment = {t1b_assignment, t1q1_assignment, t1q2_assignment, t2b_assignment, t2q1_assignment, t2q2_assignment};
         if (unique_assignment.size() == 6)
