@@ -164,6 +164,9 @@ bool Vcb_SL::PassBaseLineSelection(bool remove_flavtagging_cut)
     FillCutFlow(1);
     if (!PassJetVetoMap(AllJets, AllMuons))
         return false;
+    RVec<Jet> eep_veto_jets = SelectJets(AllJets, Jet::JetID::NOCUT, 30., INFINITY);
+    if(DataEra == "2022EE" && !PassJetVetoMap(eep_veto_jets, AllElectrons,"jetvetomap_eep"))
+        
     FillCutFlow(2);
     if (!PassMetFilter(AllJets, ev))
         return false;
@@ -177,7 +180,7 @@ bool Vcb_SL::PassBaseLineSelection(bool remove_flavtagging_cut)
     }
     if (systHelper->getCurrentIterSysSource() == "Jet_Res")
     {
-        Jets = s(AllJets, AllGenJets, systHelper->getCurrentIterVariation());
+        Jets = SmearJets(AllJets, AllGenJets, systHelper->getCurrentIterVariation());
         MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::JER);
     }
     if (systHelper->getCurrentIterSysSource() == "UE")
@@ -1342,6 +1345,9 @@ bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
     FillHist(histPrefix + "/" + "EnergyFrac0p5VsBvsC", W2_BvsC, GetJetEnergyFractionWithRadius(Jets[assignment[3]], 0.5), weight, 10, 0., 1., 50, 0. ,1.);
     FillHist(histPrefix + "/" + "EnergyFrac0p8VsBvsC", W2_BvsC, GetJetEnergyFractionWithRadius(Jets[assignment[3]], 0.8), weight, 10, 0., 1., 50, 0. ,1.);
     FillHist(histPrefix + "/" + "EnergyFrac1p2VsBvsC", W2_BvsC, GetJetEnergyFractionWithRadius(Jets[assignment[3]], 1.2), weight, 10, 0., 1., 50, 0. ,1.);
+    FillHist(histPrefix + "/" + "W2BvsCvslbBvsC", W2_BvsC, Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 10, 0., 1., 50, 0., 1.);
+    FillHist(histPrefix + "/" + "W2BvsCvshbBvsC", W2_BvsC, Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 10, 0., 1., 50, 0., 1.);
+
     FillHist(histPrefix + "/" + "nConstituentsVsBvsC", W2_BvsC, Jets[assignment[3]].nConstituents(), weight, 10, 0., 1., 50, 0., 50.);
     return true;
 }

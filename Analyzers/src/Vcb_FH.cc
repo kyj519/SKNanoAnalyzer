@@ -127,6 +127,9 @@ bool Vcb_FH::PassBaseLineSelection(bool remove_flavtagging_cut)
         MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::UE);
     }
     Jets = SelectJets(Jets, Jet_ID, SL_Jet_Pt_cut, Jet_Eta_cut);
+    RVec<Jet> eep_veto_jets = SelectJets(AllJets, Jet::JetID::NOCUT, 30., INFINITY);
+    if(DataEra == "2022EE" && !PassJetVetoMap(eep_veto_jets, AllElectrons,"jetvetomap_eep"))
+        
 
     MET = ev.GetMETVector(Event::MET_Type::PUPPI);
     Muons_Veto = SelectMuons(AllMuons, Muon_Veto_ID, Muon_Veto_Pt, Muon_Veto_Eta);
