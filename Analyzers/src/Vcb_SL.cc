@@ -165,7 +165,7 @@ bool Vcb_SL::PassBaseLineSelection(bool remove_flavtagging_cut)
     if (!PassJetVetoMap(AllJets, AllMuons))
         return false;
     RVec<Jet> eep_veto_jets = SelectJets(AllJets, Jet::JetID::NOCUT, 30., INFINITY);
-    if(DataEra == "2022EE" && !PassJetVetoMap(eep_veto_jets, AllElectrons,"jetvetomap_eep"))
+    if(DataEra == "2022EE" && !PassJetVetoMap(eep_veto_jets, AllMuons,"jetvetomap_eep")) return false;
         
     FillCutFlow(2);
     if (!PassMetFilter(AllJets, ev))

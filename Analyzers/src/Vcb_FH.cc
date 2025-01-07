@@ -107,6 +107,8 @@ bool Vcb_FH::PassBaseLineSelection(bool remove_flavtagging_cut)
         return false;
     if (!PassJetVetoMap(AllJets, AllMuons))
         return false;
+    RVec<Jet> eep_veto_jets = SelectJets(AllJets, Jet::JetID::NOCUT, 30., INFINITY);
+    if(DataEra == "2022EE" && !PassJetVetoMap(eep_veto_jets, AllMuons,"jetvetomap_eep")) return false;
     if (!PassMetFilter(AllJets, ev))
         return false;
 
@@ -127,8 +129,6 @@ bool Vcb_FH::PassBaseLineSelection(bool remove_flavtagging_cut)
         MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::UE);
     }
     Jets = SelectJets(Jets, Jet_ID, SL_Jet_Pt_cut, Jet_Eta_cut);
-    RVec<Jet> eep_veto_jets = SelectJets(AllJets, Jet::JetID::NOCUT, 30., INFINITY);
-    if(DataEra == "2022EE" && !PassJetVetoMap(eep_veto_jets, AllElectrons,"jetvetomap_eep"))
         
 
     MET = ev.GetMETVector(Event::MET_Type::PUPPI);
@@ -163,8 +163,10 @@ bool Vcb_FH::PassBaseLineSelection(bool remove_flavtagging_cut)
                 n_partonFlav_c_jets++;
         }
     }
-    if (n_b_tagged_jets < 2 && !remove_flavtagging_cut)
+    if (n_b_tagged_jets < 3 && !remove_flavtagging_cut)
         return false;
+    if (n_c_tagged_jets < 2 && !remove_flavtagging_cut)
+         return false;
     if (Muons_Veto.size() != 0 || Electrons_Veto.size() != 0)
         return false;
     if (HT < FH_HT_cut[DataEra.Data()])
