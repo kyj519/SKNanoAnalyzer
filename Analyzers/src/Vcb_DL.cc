@@ -22,11 +22,11 @@ bool Vcb_DL::PassBaseLineSelection(bool remove_flavtagging_cut)
     switch (channel)
     {
     case Channel::MM:
-        if (!(passMuTrig || passElTrig))
+        if (!(passMuTrig))
             return false;
         break;
     case Channel::EE:
-        if (!(passElTrig || passMuTrig))
+        if (!(passElTrig))
             return false;
         break;
     case Channel::ME:

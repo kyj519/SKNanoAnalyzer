@@ -1048,15 +1048,16 @@ bool Vcb_FH::FillONNXRecoInfo(const TString &histPrefix, float weight)
     ttbar_jet_indices = FindTTbarJetIndices();
     std::vector<float> QCD_CUT;
     for(size_t i = 0; i < 100; i++) QCD_CUT.push_back(0.002+(0.1-0.002)/100*i);
-    for(const auto &cut: QCD_CUT){
-        if(systHelper->getCurrentSysName() != "Central") break;
+    for(int i = 0; i < 100; i++){
+        if(!histPrefix.Contains("Central")) break;
+        float cut = QCD_CUT[i];
         std::string sample_postfix = Sample_Shorthand[MCSample.Data()];
         if(MCSample.Contains("TT") && !MCSample.Contains("Vcb")) sample_postfix = sample_postfix + GetTTHFPostFix();
         if(IsDATA){
-            if(class_score[2] <= cut) FillHist("FH/QCDCUT/Central/data_obs/CUT_" + std::to_string(cut) + "/Norm", 0.f, 1.f, 1, 0., 1.);
+            if(class_score[2] <= cut) FillHist("FH/QCDCUT/Central/data_obs/CUT_" + std::to_string(i) , 0.f, 1.f, 1, 0., 1.);
         }
-        else{
-            if(class_score[2] <= cut) FillHist("FH/QCDCUT/Central/" + sample_postfix + "/CUT_" + std::to_string(cut) + "/Norm", 0.f, weight, 1, 0., 1.);
+        else if(systHelper->getCurrentSysName() == "Central"){
+            if(class_score[2] <= cut) FillHist("FH/QCDCUT/Central/" + sample_postfix + "/CUT_" + std::to_string(i), 0.f, weight, 1, 0., 1.);
         }
     }
     // if (find_all_jets)
