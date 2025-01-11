@@ -324,7 +324,7 @@ void Vcb::executeEventFromParameter()
     std::string channel_string = GetChannelString(channel).Data();
     if (IsDATA)
     {
-        if(!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + "Central/data_obs", 1.f)) return;
+        //if(!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + "Central/data_obs", 1.f)) return;
 
         FillHistogramsAtThisPoint(channel_string + "/" + region_string + "/" + "Central/data_obs" , 1.f);
         if(n_b_tagged_jets >=3){
@@ -347,7 +347,7 @@ void Vcb::executeEventFromParameter()
     default_weight *= MCNormalization();
     for (const auto &weight : weight_map)
     {
-        if(!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight)) return;
+        //if(!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight)) return;
         FillHistogramsAtThisPoint(channel_string + "/" + region_string + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
         if(n_b_tagged_jets >=3){
             FillHistogramsAtThisPoint(channel_string + "/" + "ThreeB" + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);

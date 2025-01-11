@@ -12,7 +12,7 @@
 // Vcb Global
 static constexpr Muon::MuonID Muon_Veto_ID = Muon::MuonID::POG_TIGHT;
 static constexpr Electron::ElectronID Electron_Veto_ID = Electron::ElectronID::POG_MVAISO_WP80;
-static constexpr Muon::MuonID Muon_Veto_Iso = Muon::MuonID::POG_PFISO_MEDIUM;
+static constexpr Muon::MuonID Muon_Veto_Iso = Muon::MuonID::POG_PFISO_TIGHT;
 static constexpr Muon::MuonID Muon_Tight_ID = Muon::MuonID::POG_TIGHT;
 static constexpr Muon::MuonID Muon_Tight_Iso = Muon::MuonID::POG_PFISO_TIGHT;
 static constexpr Electron::ElectronID Electron_Tight_ID = Electron::ElectronID::POG_MVAISO_WP90;
