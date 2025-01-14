@@ -33,6 +33,8 @@ protected:
     vector<float> vec_njetbin;
     vector<float> vec_jet_ptbin;
     vector<float> vec_jet_etabin;
+    vector<float> vec_jet_superfine_ptbin;
+    vector<float> vec_jet_superfine_etabin;
     
     int n_vec_htbins;
     int n_vec_nTrueIntbin;

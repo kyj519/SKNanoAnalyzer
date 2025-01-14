@@ -276,6 +276,7 @@ void Vcb_SL::FillTrainingTree()
     // GetKineMaticFitterResult(Jets, MET, lepton);
     float weight = MCNormalization();
     weight *= systHelper->calculateWeight()["Central"];
+    SetBranch("Training_Tree", "weight", weight);
 
     SetBranch("Training_Tree", "MET", MET.Pt());
     SetBranch("Training_Tree", "HT", HT);
@@ -1279,7 +1280,9 @@ void Vcb_SL::InferONNX()
 
     // find which class has the highest score in class_score(find index)
     std::array<float, 3> class_score_temp = {class_score[0], class_score[1], class_score[2]};
+    //0.1724137931034483 0.7241379310344828 0.10344827586206895
     class_score_temp[0] = 0.1724 * class_score_temp[0];
+    class_score_temp[1] = 0.7241 * class_score_temp[1];
     class_score_temp[2] = 0.1034 * class_score_temp[2];
     int max_class = std::distance(class_score_temp.begin(), std::max_element(class_score_temp.begin(), class_score_temp.end()));
     switch (max_class){
@@ -1324,17 +1327,17 @@ bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
     Particle ht = Jets[assignment[0]] + hw;
     float W1_BvsC = Jets[assignment[2]].GetBTaggerResult(FlavTagger[DataEra.Data()]);
     float W2_BvsC = Jets[assignment[3]].GetBTaggerResult(FlavTagger[DataEra.Data()]);
-    FillHist(histPrefix + "/" + "Reco_HadWMass", hw.M(), weight, 100, 30., 130.);
-    FillHist(histPrefix + "/" + "Reco_HadTopMass", ht.M(), weight, 100, 100., 300.);
-    FillHist(histPrefix + "/" + "Reco_W1JetPt", Jets[assignment[2]].Pt(), weight, 100, 0., 200.);
-    FillHist(histPrefix + "/" + "Reco_W2JetPt", Jets[assignment[3]].Pt(), weight, 100, 0., 200.);
-    FillHist(histPrefix + "/" + "Reco_W1BvsC", W1_BvsC, weight, 100, 0., 1.);
-    FillHist(histPrefix + "/" + "Reco_W2BvsC", W2_BvsC, weight, 100, 0., 1.);
-    FillHist(histPrefix + "/" + "Reco_hbJetPt", Jets[assignment[0]].Pt(), weight, 100, 0., 200.);
-    FillHist(histPrefix + "/" + "Reco_lbJetPt", Jets[assignment[1]].Pt(), weight, 100, 0., 200.);
-    FillHist(histPrefix + "/" + "Reco_lbBvsC", Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 100, 0., 1.);
-    FillHist(histPrefix + "/" + "Reco_hbBvsC", Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 100, 0., 1.);
-    FillHist(histPrefix + "/" + "Reco_BvsCAdded" , W1_BvsC + W2_BvsC, weight, 100, 0., 2.);
+    FillHist(histPrefix + "/" + "Reco_HadWMass", hw.M(), weight, 50, 30., 130.);
+    FillHist(histPrefix + "/" + "Reco_HadTopMass", ht.M(), weight, 50, 100., 300.);
+    FillHist(histPrefix + "/" + "Reco_W1JetPt", Jets[assignment[2]].Pt(), weight, 50, 0., 200.);
+    FillHist(histPrefix + "/" + "Reco_W2JetPt", Jets[assignment[3]].Pt(), weight, 50, 0., 200.);
+    FillHist(histPrefix + "/" + "Reco_W1BvsC", W1_BvsC, weight, 50, 0., 1.);
+    FillHist(histPrefix + "/" + "Reco_W2BvsC", W2_BvsC, weight, 50, 0., 1.);
+    FillHist(histPrefix + "/" + "Reco_hbJetPt", Jets[assignment[0]].Pt(), weight, 50, 0., 200.);
+    FillHist(histPrefix + "/" + "Reco_lbJetPt", Jets[assignment[1]].Pt(), weight, 50, 0., 200.);
+    FillHist(histPrefix + "/" + "Reco_lbBvsC", Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 50, 0., 1.);
+    FillHist(histPrefix + "/" + "Reco_hbBvsC", Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 50, 0., 1.);
+    FillHist(histPrefix + "/" + "Reco_BvsCAdded" , W1_BvsC + W2_BvsC, weight, 50, 0., 2.);
     int unrolledIdx = Unroller(Jets[assignment[2]], Jets[assignment[3]]);
     FillHist(histPrefix + "/" + "Reco_W1Bvsc_W2Bvsc_Unrolled", unrolledIdx, weight, 16, 0., 16.);
     std::vector<float> class_score_bin = {0.,0.5,0.6,0.7,0.8,0.85,0.9,0.95};

@@ -42,8 +42,8 @@ bool Vcb_DL::PassBaseLineSelection(bool remove_flavtagging_cut)
     FillCutFlow(1);
     if (!PassJetVetoMap(AllJets, AllMuons))
         return false;
-    //RVec<Jet> eep_veto_jets = SelectJets(AllJets, Jet::JetID::NOCUT, 30., INFINITY);
-    //if(DataEra == "2022EE" && !PassJetVetoMap(eep_veto_jets, AllMuons,"jetvetomap_eep")) return false;
+    RVec<Jet> eep_veto_jets = SelectJets(AllJets, Jet::JetID::NOCUT, 30., INFINITY);
+    if(DataEra == "2022EE" && !PassJetVetoMap(eep_veto_jets, AllMuons,"jetvetomap_eep")) return false;
         
     FillCutFlow(2);
     if (!PassMetFilter(AllJets, ev))
@@ -133,6 +133,13 @@ bool Vcb_DL::PassBaseLineSelection(bool remove_flavtagging_cut)
     FillCutFlow(6);
     if (n_b_tagged_jets < 2 && !remove_flavtagging_cut) return false;
     FillCutFlow(7);
+    //order Jets by btagging
+    std::sort(Jets.begin(), Jets.end(), [this](const Jet &a, const Jet &b) { return a.GetBTaggerResult(FlavTagger[DataEra.Data()]) > b.GetBTaggerResult(FlavTagger[DataEra.Data()]); });
+    if(Jets[0].Pt() < 30. && !remove_flavtagging_cut) return false;
+    if(Jets[1].Pt() < 30. && !remove_flavtagging_cut) return false;
+
+    //re-order Jets by Pt
+    std::sort(Jets.begin(), Jets.end(), PtComparing);
     SetSystematicLambda();
     SetTTbarId();
     return true;

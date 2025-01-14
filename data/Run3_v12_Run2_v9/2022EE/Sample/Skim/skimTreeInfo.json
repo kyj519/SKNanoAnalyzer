@@ -623,5 +623,40 @@
         "suffix": "Vcb_FH",
         "PD": "QCD_HT70to100",
         "isMC": 1
+    },
+    "Skim_Vcb_FH_QCD_HT2000toInf": {
+        "suffix": "Vcb_FH",
+        "PD": "QCD_HT2000toInf",
+        "isMC": 1
+    },
+    "Skim_Vcb_FH_JetMET": {
+        "suffix": "Vcb_FH",
+        "PD": "JetMET",
+        "isMC": 0,
+        "periods": [
+            "G",
+            "F",
+            "E"
+        ]
+    },
+    "Skim_Vcb_DL_WJets_MG": {
+        "suffix": "Vcb_DL",
+        "PD": "WJets_MG",
+        "isMC": 1
+    },
+    "Skim_Vcb_DL_DYJets_MG": {
+        "suffix": "Vcb_DL",
+        "PD": "DYJets_MG",
+        "isMC": 1
+    },
+    "Skim_Vcb_SL_WJets_MG": {
+        "suffix": "Vcb_SL",
+        "PD": "WJets_MG",
+        "isMC": 1
+    },
+    "Skim_Vcb_SL_DYJets_MG": {
+        "suffix": "Vcb_SL",
+        "PD": "DYJets_MG",
+        "isMC": 1
     }
 }

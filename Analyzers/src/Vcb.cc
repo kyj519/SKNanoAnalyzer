@@ -43,7 +43,6 @@ void Vcb::initializeAnalyzer()
 
     
     
-    systHelper = std::make_unique<SystematicHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/AnalyzerTools/VcbSystematic_BTag.yaml", MCSample);
     if (IsDATA)
     {
         systHelper = std::make_unique<SystematicHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/AnalyzerTools/noSyst.yaml", DataStream);
@@ -104,8 +103,8 @@ int Vcb::Unroller(Jet &jet1, Jet &jet2){
 
 void Vcb::FillHistogramsAtThisPoint(const TString &histPrefix, float weight)
 {
-    FillHist(histPrefix + "/" + "MET", MET.Pt(), weight, 100, 0., 200.);
-    FillHist(histPrefix + "/" + "HT", HT, weight, 200, 450., 2000.);
+    FillHist(histPrefix + "/" + "MET", MET.Pt(), weight, 50, 0., 200.);
+    FillHist(histPrefix + "/" + "HT", HT, weight, 100, 200., 2000.);
     FillHist(histPrefix + "/" + "n_jets", n_jets, weight, 12, 0., 12.);
     FillHist(histPrefix + "/" + "n_b_tagged_jets", n_b_tagged_jets, weight, 8, 0., 8.);
     FillHist(histPrefix + "/" + "n_c_tagged_jets", n_c_tagged_jets, weight, 8, 0., 8.);
@@ -115,26 +114,26 @@ void Vcb::FillHistogramsAtThisPoint(const TString &histPrefix, float weight)
     FillHist(histPrefix + "/" + "real_c_vs_tagged_c", n_partonFlav_c_jets, n_c_tagged_jets, weight, 8, 0., 8., 6, 2., 8.);
     for (size_t i = 0; i < Jets.size(); i++)
     {
-        FillHist(histPrefix + "/" + "Jet_Pt_" + std::to_string(i), Jets[i].Pt(), weight, 100, 0., 500.);
-        FillHist(histPrefix + "/" + "Jet_Eta_" + std::to_string(i), Jets[i].Eta(), weight, 100, -2.5, 2.5);
-        FillHist(histPrefix + "/" + "Jet_Phi_" + std::to_string(i), Jets[i].Phi(), weight, 100, -3.14, 3.14);
-        FillHist(histPrefix + "/" + "Jet_BvsC_" + std::to_string(i), Jets[i].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 100, 0., 1.);
-        FillHist(histPrefix + "/" + "Jet_CvsB_" + std::to_string(i), Jets[i].GetCTaggerResult(FlavTagger[DataEra.Data()]).first, weight, 100, 0., 1.);
-        FillHist(histPrefix + "/" + "Jet_CvsL_" + std::to_string(i), Jets[i].GetCTaggerResult(FlavTagger[DataEra.Data()]).second, weight, 100, 0., 1.);
-        FillHist(histPrefix + "/" + "Jet_QvsG_" + std::to_string(i), Jets[i].GetQvGTaggerResult(FlavTagger[DataEra.Data()]), weight, 100, 0., 1.);
+        FillHist(histPrefix + "/" + "Jet_Pt_" + std::to_string(i), Jets[i].Pt(), weight, 50, 0., 500.);
+        FillHist(histPrefix + "/" + "Jet_Eta_" + std::to_string(i), Jets[i].Eta(), weight, 50, -2.5, 2.5);
+        FillHist(histPrefix + "/" + "Jet_Phi_" + std::to_string(i), Jets[i].Phi(), weight, 50, -3.14, 3.14);
+        FillHist(histPrefix + "/" + "Jet_BvsC_" + std::to_string(i), Jets[i].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 50, 0., 1.);
+        FillHist(histPrefix + "/" + "Jet_CvsB_" + std::to_string(i), Jets[i].GetCTaggerResult(FlavTagger[DataEra.Data()]).first, weight, 50, 0., 1.);
+        FillHist(histPrefix + "/" + "Jet_CvsL_" + std::to_string(i), Jets[i].GetCTaggerResult(FlavTagger[DataEra.Data()]).second, weight, 50, 0., 1.);
+        FillHist(histPrefix + "/" + "Jet_QvsG_" + std::to_string(i), Jets[i].GetQvGTaggerResult(FlavTagger[DataEra.Data()]), weight, 50, 0., 1.);
     }
     for (size_t i = 0; i < leptons.size(); i++)
     {
-        FillHist(histPrefix + "/" + "Lepton_Pt_" + std::to_string(i), leptons[i].Pt(), weight, 100, 0., 500.);
-        FillHist(histPrefix + "/" + "Lepton_Eta_" + std::to_string(i), leptons[i].Eta(), weight, 100, -2.5, 2.5);
-        FillHist(histPrefix + "/" + "Lepton_Phi_" + std::to_string(i), leptons[i].Phi(), weight, 100, -3.14, 3.14);
+        FillHist(histPrefix + "/" + "Lepton_Pt_" + std::to_string(i), leptons[i].Pt(), weight, 50, 0., 500.);
+        FillHist(histPrefix + "/" + "Lepton_Eta_" + std::to_string(i), leptons[i].Eta(), weight, 50, -2.5, 2.5);
+        FillHist(histPrefix + "/" + "Lepton_Phi_" + std::to_string(i), leptons[i].Phi(), weight, 50, -3.14, 3.14);
     }
     if (leptons.size() == 2)
     {
         Particle ZCand = leptons[0] + leptons[1];
-        FillHist(histPrefix + "/" + "ZCand_Mass", ZCand.M(), weight, 100, 0., 200.);
-        FillHist(histPrefix + "/" + "ZCand_Pt", ZCand.Pt(), weight, 100, 0., 200.);
-        FillHist(histPrefix + "/" + "ZCand_Eta", ZCand.Eta(), weight, 100, -2.5, 2.5);
+        FillHist(histPrefix + "/" + "ZCand_Mass", ZCand.M(), weight, 50, 0., 200.);
+        FillHist(histPrefix + "/" + "ZCand_Pt", ZCand.Pt(), weight, 50, 0., 200.);
+        FillHist(histPrefix + "/" + "ZCand_Eta", ZCand.Eta(), weight, 50, -2.5, 2.5);
         FillHist(histPrefix + "/" + "BvsC_Unrolled", Unroller(Jets), weight, 16, 0., 16.);
     }
 }
@@ -324,7 +323,7 @@ void Vcb::executeEventFromParameter()
     std::string channel_string = GetChannelString(channel).Data();
     if (IsDATA)
     {
-        //if(!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + "Central/data_obs", 1.f)) return;
+        if(!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + "Central/data_obs", 1.f)) return;
 
         FillHistogramsAtThisPoint(channel_string + "/" + region_string + "/" + "Central/data_obs" , 1.f);
         if(n_b_tagged_jets >=3){
@@ -347,7 +346,7 @@ void Vcb::executeEventFromParameter()
     default_weight *= MCNormalization();
     for (const auto &weight : weight_map)
     {
-        //if(!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight)) return;
+        if(!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight)) return;
         FillHistogramsAtThisPoint(channel_string + "/" + region_string + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
         if(n_b_tagged_jets >=3){
             FillHistogramsAtThisPoint(channel_string + "/" + "ThreeB" + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
@@ -454,20 +453,23 @@ float Vcb::LeptonTriggerWeight(bool isEle, const Correction::variation syst, con
     }
     case Channel::Mu:
     {
+        if(isEle) return 1.f;
         return myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], lepton.Eta(), lepton.Pt(), muonVariation, muonSystSource);
     }
     case Channel::El:
     {
+        if(!isEle) return 1.f;
         return myCorr->GetElectronTriggerSF(El_Trigger_SF_Key[DataEra.Data()], lepton.Eta(), lepton.Pt(), electronVariation, electronSystSource);
     }
     case Channel::MM:
     {
+        if(isEle) return 1.f;
         float num = 1.f;
         float den = 1.f;
         for (const auto &mu : Muons)
         {
-            num *= (1.f - myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], mu.Eta(), mu.Pt(), muonVariation, muonSystSource));
-            den *= (1.f - 1.f); // hardcoded: let MCEff = 1, DataEff = SF, MUON POG PLEASE GIVE ME EFFICIENCY
+            num *= (1.f - 0.93*myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], mu.Eta(), mu.Pt(), muonVariation, muonSystSource));
+            den *= (1.f - 0.93); // hardcoded: let MCEff = 1, DataEff = SF, MUON POG PLEASE GIVE ME EFFICIENCY
         }
         return (1.f - num) / (1.f - den);
     }
@@ -475,14 +477,15 @@ float Vcb::LeptonTriggerWeight(bool isEle, const Correction::variation syst, con
     {
         float num = 1.f;
         float den = 1.f;
-        num *= (1.f - myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], Muons[0].Eta(), Muons[0].Pt(), muonVariation, muonSystSource));
-        den *= (1.f - 1.f); // hardcoded: let MCEff = 1, DataEff = SF, MUON POG PLEASE GIVE ME EFFICIENCY
+        num *= (1.f - 0.93*myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], Muons[0].Eta(), Muons[0].Pt(), muonVariation, muonSystSource));
+        den *= (1.f - 0.93); // hardcoded: let MCEff = 1, DataEff = SF, MUON POG PLEASE GIVE ME EFFICIENCY
         num *= (1.f - myCorr->GetElectronTriggerDataEff(El_Trigger_SF_Key[DataEra.Data()], Electrons[0].Eta(), Electrons[0].Pt(), electronVariation, electronSystSource));
         den *= (1.f - myCorr->GetElectronTriggerMCEff(El_Trigger_SF_Key[DataEra.Data()], Electrons[0].Eta(), Electrons[0].Pt(), electronVariation, electronSystSource));
         return (1.f - num) / (1.f - den);
     }
     case Channel::EE:
     {
+        if(!isEle) return 1.f;
         float num = 1.f;
         float den = 1.f;
         for (const auto &el : Electrons)

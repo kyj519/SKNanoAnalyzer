@@ -165,7 +165,7 @@ bool Vcb_FH::PassBaseLineSelection(bool remove_flavtagging_cut)
     }
     if (n_b_tagged_jets < 3 && !remove_flavtagging_cut)
         return false;
-    if (n_c_tagged_jets < 2 && !remove_flavtagging_cut)
+    if (n_c_tagged_jets < 1 && !remove_flavtagging_cut)
          return false;
     if (Muons_Veto.size() != 0 || Electrons_Veto.size() != 0)
         return false;
@@ -210,7 +210,10 @@ void Vcb_FH::FillTrainingTree()
     SetBranch("Training_Tree", "n_b_tagged_jets", n_b_tagged_jets);
     SetBranch("Training_Tree", "n_c_tagged_jets", n_c_tagged_jets);
     SetBranch("Training_Tree", "find_all_jets", find_all_jets);
-    SetBranch("Training_Tree", "weight", MCweight());
+    float weight = MCNormalization();
+    weight *= systHelper->calculateWeight()["Central"];
+    SetBranch("Training_Tree", "weight", weight);
+    
     if (find_all_jets)
     {
         Particle W1Cand = Jets[ttbar_jet_indices[2]] + Jets[ttbar_jet_indices[3]];

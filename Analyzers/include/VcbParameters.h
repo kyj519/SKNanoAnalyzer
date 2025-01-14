@@ -195,6 +195,8 @@ static inline std::unordered_map<std::string, std::string> Sample_Shorthand = {
     {"TTLL_powheg_CP5Down", "TTLL"},
     {"DYJets", "VJets"},
     {"WJets", "VJets"},
+    {"DYJets_MG", "VJets"},
+    {"WJets_MG", "VJets"},
     {"ST_tW_top_Semilep", "ST"},
     {"ST_tW_antitop_Semilep", "ST"},
     {"ST_tW_top_Lep", "ST"},

@@ -84,8 +84,23 @@ void MeasureJetTaggingR::initializeAnalyzer()
     vec_njetbin = {4, 5, 6, 7, 8, 10, 12, 14, 20};
     vec_htbins = {80, 180, 230, 280, 330, 400, 500, 1000};
     vec_nTrueIntbin = {0, 20, 25, 30, 35, 40, 50, 70};
-    vec_jet_ptbin = {20, 30, 50, 70, 90, 120, 150, 200, 300, 500};
+    vec_jet_ptbin = {25, 27, 30, 35, 40, 45, 50, 70, 90, 120, 150, 200, 300, 500};
     vec_jet_etabin = {0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.48, 1.80, 2.10, 2.40};
+    //superfine binning pt 25 to 1000 with 2GeV binning
+    float pt = 25;
+    while (pt < 1000)
+    {
+        vec_jet_superfine_ptbin.push_back(pt);
+        pt += 2;
+    }
+    float eta = 0;
+    while (eta < 2.4)
+    {
+        vec_jet_superfine_etabin.push_back(eta);
+        eta += 0.1;
+    }
+
+
 
     n_vec_njetbin = vec_njetbin.size() - 1;
     n_vec_htbins = vec_htbins.size() - 1;
@@ -267,6 +282,10 @@ void MeasureJetTaggingR::executeEventFromParameter()
                                 FillHist("parton_flav#" + std::to_string(this_jet_partonFlavour) + "##tagger#" + JetTagging::GetTaggerCorrectionLibStr(Taggers[i_tagger]).Data() +"_BvsC_" + this_syst, this_jet.GetBTaggerResult(Taggers[i_tagger]), weight, 100, 0.f, 1.f);
                                 FillHist("parton_flav#" + std::to_string(this_jet_partonFlavour) + "##tagger#" + JetTagging::GetTaggerCorrectionLibStr(Taggers[i_tagger]).Data() +"_CvsB_" + this_syst, this_jet.GetCTaggerResult(Taggers[i_tagger]).first, weight, 100, 0.f, 1.f);
                                 FillHist("parton_flav#" + std::to_string(this_jet_partonFlavour) + "##tagger#" + JetTagging::GetTaggerCorrectionLibStr(Taggers[i_tagger]).Data() +"_CvsL_" + this_syst, this_jet.GetCTaggerResult(Taggers[i_tagger]).second, weight, 100, 0.f, 1.f);
+
+                                //only for Central
+                                if(this_syst == "Central" && i_tagger == 0)
+                                FillHist("parton_flav#" + std::to_string(this_jet_partonFlavour) + "##sample#"+Sample_Shorthand[MCSample.Data()]  + "_superfine_pteta", this_jet.Pt(), abs(this_jet.Eta()), weight>0 ? 1 : -1, vec_jet_superfine_ptbin, vec_jet_superfine_etabin);
 
                                 FillHist(JetTagging::GetTaggerCorrectionLibStr(Taggers[i_tagger]) + "/BTaggingWeight_" + this_syst, BTagWeight, 1.f, 100, 0.f, 3.f);
                                 FillHist(JetTagging::GetTaggerCorrectionLibStr(Taggers[i_tagger]) + "/CTaggingWeight_" + this_syst, CTagWeight, 1.f, 100, 0.f, 3.f);
