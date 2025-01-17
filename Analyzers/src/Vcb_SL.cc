@@ -1281,9 +1281,12 @@ void Vcb_SL::InferONNX()
     // find which class has the highest score in class_score(find index)
     std::array<float, 3> class_score_temp = {class_score[0], class_score[1], class_score[2]};
     //0.1724137931034483 0.7241379310344828 0.10344827586206895
-    class_score_temp[0] = 0.1724 * class_score_temp[0];
-    class_score_temp[1] = 0.7241 * class_score_temp[1];
-    class_score_temp[2] = 0.1034 * class_score_temp[2];
+    //0.034482758620689655 0.7931034482758621 0.1724137931034483
+
+    class_score_temp[0] = 0.034482758620689655 * class_score[0];
+    class_score_temp[1] = 0.7931034482758621 * class_score[1];
+    class_score_temp[2] = 0.1724137931034483 * class_score[2];
+
     int max_class = std::distance(class_score_temp.begin(), std::max_element(class_score_temp.begin(), class_score_temp.end()));
     switch (max_class){
         case 0:
@@ -1323,6 +1326,25 @@ bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
         assignment[2] = assignment[3];
         assignment[3] = temp;
     }
+
+    unordered_map<string, vector<float>> template_binning;
+    vector<float> SR_bin = {0.,1.,1.05,1.1,1.2,1.3,1.4,1.5,2.0};
+    vector<float> tt_bin = {0.,0.2,0.4,0.5,0.6,0.7,1.0,2.0};
+    template_binning["SR"] = SR_bin;
+    template_binning["tt"] = tt_bin;
+    template_binning["ttHF"] = tt_bin;  
+    template_binning["TwoB"] = tt_bin;
+    template_binning["ThreeB"] = SR_bin;
+    string this_region;
+    if (class_label == classCategory::tt) this_region = "tt";
+    else if (class_label == classCategory::ttHF) this_region = "ttHF";
+    else if (class_label == classCategory::Signal) this_region = "SR";
+    else this_region = "tt";
+
+
+
+    
+
     Particle hw = Jets[assignment[2]] + Jets[assignment[3]];
     Particle ht = Jets[assignment[0]] + hw;
     float W1_BvsC = Jets[assignment[2]].GetBTaggerResult(FlavTagger[DataEra.Data()]);
@@ -1337,7 +1359,7 @@ bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
     FillHist(histPrefix + "/" + "Reco_lbJetPt", Jets[assignment[1]].Pt(), weight, 50, 0., 200.);
     FillHist(histPrefix + "/" + "Reco_lbBvsC", Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 50, 0., 1.);
     FillHist(histPrefix + "/" + "Reco_hbBvsC", Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 50, 0., 1.);
-    FillHist(histPrefix + "/" + "Reco_BvsCAdded" , W1_BvsC + W2_BvsC, weight, 50, 0., 2.);
+    FillHist(histPrefix + "/" + "Reco_BvsCAdded" , W1_BvsC + W2_BvsC, weight, template_binning[this_region].size() - 1, template_binning[this_region].data());
     int unrolledIdx = Unroller(Jets[assignment[2]], Jets[assignment[3]]);
     FillHist(histPrefix + "/" + "Reco_W1Bvsc_W2Bvsc_Unrolled", unrolledIdx, weight, 16, 0., 16.);
     std::vector<float> class_score_bin = {0.,0.5,0.6,0.7,0.8,0.85,0.9,0.95};

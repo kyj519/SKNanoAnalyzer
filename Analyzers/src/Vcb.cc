@@ -190,7 +190,7 @@ void Vcb::executeEvent()
     if (HasFlag("Training"))
     {
         Clear();
-        if (!PassBaseLineSelection())
+        if (!PassBaseLineSelection(true))// no flavtagging cut for training (temporarily)
             return;
         FillTrainingTree();
         return;

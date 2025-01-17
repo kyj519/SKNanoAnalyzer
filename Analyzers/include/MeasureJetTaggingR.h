@@ -54,6 +54,38 @@ protected:
     std::variant<Vcb_DL*, Vcb_FH*, Vcb_SL*> current_analyzer;
     
     TString current_channel;
+
+    unordered_map<string, vector<float>> Vcb_SL_pt_binning_flav_5;
+    unordered_map<string, vector<float>> Vcb_SL_pt_binning_flav_4;
+    unordered_map<string, vector<float>> Vcb_SL_pt_binning_flav_0;
+    unordered_map<string, vector<float>> Vcb_SL_eta_binning_flav_5;
+    unordered_map<string, vector<float>> Vcb_SL_eta_binning_flav_4;
+    unordered_map<string, vector<float>> Vcb_SL_eta_binning_flav_0;
+    unordered_map<string, vector<float>> Vcb_DL_pt_binning_flav_5;
+    unordered_map<string, vector<float>> Vcb_DL_pt_binning_flav_4;
+    unordered_map<string, vector<float>> Vcb_DL_pt_binning_flav_0;
+    unordered_map<string, vector<float>> Vcb_DL_eta_binning_flav_5;
+    unordered_map<string, vector<float>> Vcb_DL_eta_binning_flav_4;
+    unordered_map<string, vector<float>> Vcb_DL_eta_binning_flav_0;
+    unordered_map<string, vector<float>> Vcb_FH_pt_binning_flav_5;
+    unordered_map<string, vector<float>> Vcb_FH_pt_binning_flav_4;
+    unordered_map<string, vector<float>> Vcb_FH_pt_binning_flav_0;
+    unordered_map<string, vector<float>> Vcb_FH_eta_binning_flav_5;
+    unordered_map<string, vector<float>> Vcb_FH_eta_binning_flav_4;
+    unordered_map<string, vector<float>> Vcb_FH_eta_binning_flav_0;
+
+
+    unordered_map<int, unordered_map<string, vector<float>>> Vcb_SL_pt_binning;
+    unordered_map<int, unordered_map<string, vector<float>>> Vcb_DL_pt_binning;
+    unordered_map<int, unordered_map<string, vector<float>>> Vcb_FH_pt_binning;
+    unordered_map<int, unordered_map<string, vector<float>>> Vcb_SL_eta_binning;
+    unordered_map<int, unordered_map<string, vector<float>>> Vcb_DL_eta_binning;
+    unordered_map<int, unordered_map<string, vector<float>>> Vcb_FH_eta_binning;
+
+    unordered_map<string, unordered_map<int, unordered_map<string, vector<float>>>> Vcb_pt_binning;
+    unordered_map<string, unordered_map<int, unordered_map<string, vector<float>>>> Vcb_eta_binning;
+
+
 };
 
 #endif
