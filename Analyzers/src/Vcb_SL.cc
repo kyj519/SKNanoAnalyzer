@@ -487,11 +487,13 @@ void Vcb_SL::FillTrainingTree()
     if (MCSample.Contains("TT"))
     {
         if (MCSample.Contains("Vcb"))
-            answer = category_for_training_SL["Vcb"];
-        else if (ttLF)
-            answer = category_for_training_SL["TT"];
+            answer = category_for_training_SL.at("Vcb");
+        else if (ttcc)
+            answer = category_for_training_SL.at("TT+C");
+        else if (ttbb)
+            answer = category_for_training_SL.at("TT+B");
         else
-            answer = category_for_training_SL["TT_tthf"];
+            answer = category_for_training_SL.at("TT+LF");
     }
     else
         answer = category_for_training_SL["Others"];

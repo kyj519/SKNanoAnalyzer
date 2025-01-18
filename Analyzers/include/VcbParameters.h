@@ -107,9 +107,10 @@ static constexpr JetTagging::JetFlavTaggerWP FH_BTag_WP = JetTagging::JetFlavTag
 // SL part
 static inline std::unordered_map<std::string, int> category_for_training_SL = {
     {"Vcb", 0},
-    {"TT", 1},
-    {"TT_tthf", 2},
-    {"Others", 3}};
+    {"TT+LF", 1},
+    {"TT+C", 2},
+    {"TT+B", 3},
+    {"Others", 4}};
 static inline std::unordered_map<std::string, TString> Mu_Trigger = {
     {"2016preVFP", "HLT_IsoMu24"},
     {"2016postVFP", "HLT_IsoMu24"},
