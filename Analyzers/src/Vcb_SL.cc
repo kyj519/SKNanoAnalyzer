@@ -275,6 +275,7 @@ void Vcb_SL::FillTrainingTree()
 
     // GetKineMaticFitterResult(Jets, MET, lepton);
     float weight = MCNormalization();
+    cout << systHelper->getCurrentIterSysSource() << endl;
     weight *= systHelper->calculateWeight()["Central"];
     SetBranch("Training_Tree", "weight", weight);
 
