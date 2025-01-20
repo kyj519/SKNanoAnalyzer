@@ -1377,5 +1377,81 @@ bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
     FillHist(histPrefix + "/" + "W2BvsCvshbBvsC", W2_BvsC, Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 10, 0., 1., 50, 0., 1.);
 
     FillHist(histPrefix + "/" + "nConstituentsVsBvsC", W2_BvsC, Jets[assignment[3]].nConstituents(), weight, 10, 0., 1., 50, 0., 50.);
+    if(W2_BvsC > 0.95){
+        NewTree("Spurious_Tree", {"*"}, {""});
+        SetBranch("Spurious_Tree", "hb_Pt", Jets[assignment[0]].Pt());
+        SetBranch("Spurious_Tree", "lb_Pt", Jets[assignment[1]].Pt());
+        SetBranch("Spurious_Tree", "W1_Pt", Jets[assignment[2]].Pt());
+        SetBranch("Spurious_Tree", "W2_Pt", Jets[assignment[3]].Pt());
+        SetBranch("Spurious_Tree", "hb_BvsC", Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
+        SetBranch("Spurious_Tree", "lb_BvsC", Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
+        SetBranch("Spurious_Tree", "W1_BvsC", Jets[assignment[2]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
+        SetBranch("Spurious_Tree", "W2_BvsC", Jets[assignment[3]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
+        SetBranch("Spurious_Tree", "hb_Eta", Jets[assignment[0]].Eta());
+        SetBranch("Spurious_Tree", "lb_Eta", Jets[assignment[1]].Eta());
+        SetBranch("Spurious_Tree", "W1_Eta", Jets[assignment[2]].Eta());
+        SetBranch("Spurious_Tree", "W2_Eta", Jets[assignment[3]].Eta());
+        SetBranch("Spurious_Tree", "hb_Phi", Jets[assignment[0]].Phi());
+        SetBranch("Spurious_Tree", "lb_Phi", Jets[assignment[1]].Phi());
+        SetBranch("Spurious_Tree", "W1_Phi", Jets[assignment[2]].Phi());
+        SetBranch("Spurious_Tree", "W2_Phi", Jets[assignment[3]].Phi());
+        SetBranch("Spurious_Tree", "hb_M", Jets[assignment[0]].M());
+        SetBranch("Spurious_Tree", "lb_M", Jets[assignment[1]].M());
+        SetBranch("Spurious_Tree", "W1_M", Jets[assignment[2]].M());
+        SetBranch("Spurious_Tree", "W2_M", Jets[assignment[3]].M());
+        SetBranch("Spurious_Tree", "find_all_jets", find_all_jets);
+        SetBranch("Spurious_Tree", "GenMatchIdx0", ttbar_jet_indices[0]);
+        SetBranch("Spurious_Tree", "GenMatchIdx1", ttbar_jet_indices[1]);
+        SetBranch("Spurious_Tree", "GenMatchIdx2", ttbar_jet_indices[2]);
+        SetBranch("Spurious_Tree", "GenMatchIdx3", ttbar_jet_indices[3]);
+        SetBranch("Spurious_Tree", "hadTop_M", ht.M());
+        SetBranch("Spurious_Tree", "hadTop_Pt", ht.Pt());
+        SetBranch("Spurious_Tree", "hadTop_Eta", ht.Eta());
+        SetBranch("Spurious_Tree", "hadTop_Phi", ht.Phi());
+        SetBranch("Spurious_Tree", "hadW_M", hw.M());
+        SetBranch("Spurious_Tree", "hadW_Pt", hw.Pt());
+        SetBranch("Spurious_Tree", "hadW_Eta", hw.Eta());
+        SetBranch("Spurious_Tree", "hadW_Phi", hw.Phi());
+
+        FillTrees();
+    }
+
+    else if(W2_BvsC < 0.1){
+        NewTree("Good_Tree", {"*"}, {""});
+        SetBranch("Good_Tree", "hb_Pt", Jets[assignment[0]].Pt());
+        SetBranch("Good_Tree", "lb_Pt", Jets[assignment[1]].Pt());
+        SetBranch("Good_Tree", "W1_Pt", Jets[assignment[2]].Pt());
+        SetBranch("Good_Tree", "W2_Pt", Jets[assignment[3]].Pt());
+        SetBranch("Good_Tree", "hb_BvsC", Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
+        SetBranch("Good_Tree", "lb_BvsC", Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
+        SetBranch("Good_Tree", "W1_BvsC", Jets[assignment[2]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
+        SetBranch("Good_Tree", "W2_BvsC", Jets[assignment[3]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
+        SetBranch("Good_Tree", "hb_Eta", Jets[assignment[0]].Eta());
+        SetBranch("Good_Tree", "lb_Eta", Jets[assignment[1]].Eta());
+        SetBranch("Good_Tree", "W1_Eta", Jets[assignment[2]].Eta());
+        SetBranch("Good_Tree", "W2_Eta", Jets[assignment[3]].Eta());
+        SetBranch("Good_Tree", "hb_Phi", Jets[assignment[0]].Phi());
+        SetBranch("Good_Tree", "lb_Phi", Jets[assignment[1]].Phi());
+        SetBranch("Good_Tree", "W1_Phi", Jets[assignment[2]].Phi());
+        SetBranch("Good_Tree", "W2_Phi", Jets[assignment[3]].Phi());
+        SetBranch("Good_Tree", "hb_M", Jets[assignment[0]].M());
+        SetBranch("Good_Tree", "lb_M", Jets[assignment[1]].M());
+        SetBranch("Good_Tree", "W1_M", Jets[assignment[2]].M());
+        SetBranch("Good_Tree", "W2_M", Jets[assignment[3]].M());
+        SetBranch("Good_Tree", "find_all_jets", find_all_jets);
+        SetBranch("Good_Tree", "GenMatchIdx0", ttbar_jet_indices[0]);
+        SetBranch("Good_Tree", "GenMatchIdx1", ttbar_jet_indices[1]);
+        SetBranch("Good_Tree", "GenMatchIdx2", ttbar_jet_indices[2]);
+        SetBranch("Good_Tree", "GenMatchIdx3", ttbar_jet_indices[3]);
+        SetBranch("Good_Tree", "hadTop_M", ht.M());
+        SetBranch("Good_Tree", "hadTop_Pt", ht.Pt());
+        SetBranch("Good_Tree", "hadTop_Eta", ht.Eta());
+        SetBranch("Good_Tree", "hadTop_Phi", ht.Phi());
+        SetBranch("Good_Tree", "hadW_M", hw.M());
+        SetBranch("Good_Tree", "hadW_Pt", hw.Pt());
+        SetBranch("Good_Tree", "hadW_Eta", hw.Eta());
+        SetBranch("Good_Tree", "hadW_Phi", hw.Phi());
+        FillTrees();
+    }
     return true;
 }
