@@ -156,6 +156,7 @@ public:
     Event ev;
     Particle MET;
     RVec<int> ttbar_jet_indices;
+    RVec<int> ttbar_AllGenJets_indices;
     // event info
     float HT;
     short n_jets;
@@ -164,6 +165,7 @@ public:
     short n_partonFlav_b_jets;
     short n_partonFlav_c_jets;
     bool find_all_jets;
+    bool find_all_genjets;
     int tt_decay_code;
     bool ttbj;
     bool ttbb;

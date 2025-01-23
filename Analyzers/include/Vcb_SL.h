@@ -49,7 +49,8 @@ public:
     {
         if(class_label == classCategory::Signal) return "SR";
         else if(class_label == classCategory::tt) return "tt";
-        else if(class_label == classCategory::ttHF) return "ttHF";
+        else if(class_label == classCategory::ttC) return "ttC";
+        else if(class_label == classCategory::ttB) return "ttB";
         else throw std::runtime_error("Invalid class label");
     }
 
@@ -112,11 +113,12 @@ public:
     {
         Signal,
         tt,
-        ttHF
+        ttC,
+        ttB
     };
 
     std::array<int,4> assignment;
-    std::array<float, 3> class_score;
+    std::array<float, 4> class_score;
     classCategory class_label;
 };
 

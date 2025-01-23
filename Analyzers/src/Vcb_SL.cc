@@ -165,8 +165,9 @@ bool Vcb_SL::PassBaseLineSelection(bool remove_flavtagging_cut)
     if (!PassJetVetoMap(AllJets, AllMuons))
         return false;
     RVec<Jet> eep_veto_jets = SelectJets(AllJets, Jet::JetID::NOCUT, 30., INFINITY);
-    if(DataEra == "2022EE" && !PassJetVetoMap(eep_veto_jets, AllMuons,"jetvetomap_eep")) return false;
-        
+    if (DataEra == "2022EE" && !PassJetVetoMap(eep_veto_jets, AllMuons, "jetvetomap_eep"))
+        return false;
+
     FillCutFlow(2);
     if (!PassMetFilter(AllJets, ev))
         return false;
@@ -595,7 +596,7 @@ RVec<int> Vcb_SL::FindTTbarJetIndices()
             continue;
         if (!(isPIDLepton(pid) || isPIDNeutrino(pid) || isPIDUpTypeQuark(pid) || isPIDDownTypeQuark(pid)))
             continue;
-        if (!g.isPrompt() || !g.fromHardProcess()) //filter bremsstrahlung, semi-leptonic decay of b,c hadrons
+        if (!g.isPrompt() || !g.fromHardProcess()) // filter bremsstrahlung, semi-leptonic decay of b,c hadrons
             continue;
         // b from t
         if (!found_b_from_t_plus && pid == 5 && isDaughterOf(i, idx_t_plus) && !isDaughterOf(i, idx_w_plus))
@@ -609,8 +610,6 @@ RVec<int> Vcb_SL::FindTTbarJetIndices()
             idx_b_from_t_minus = i;
             found_b_from_t_minus = true;
         }
-
-
 
         // W+ daughters
         if (isDaughterOf(i, idx_w_plus))
@@ -653,30 +652,34 @@ RVec<int> Vcb_SL::FindTTbarJetIndices()
     bool wminus_has_lept = (isPIDLepton(pid_Wm1) || isPIDLepton(pid_Wm2));
     bool wminus_has_nu = (isPIDNeutrino(pid_Wm1) || isPIDNeutrino(pid_Wm2));
     w_minus_had = !(wminus_has_lept && wminus_has_nu);
-    
-    //sorting the found result to be
-    //dau1 = up quark or lepton
-    //dau2 = down quark or neutrino
+
+    // sorting the found result to be
+    // dau1 = up quark or lepton
+    // dau2 = down quark or neutrino
     if (w_plus_had)
     {
-        if (isPIDLepton(pid_Wm2)){
+        if (isPIDLepton(pid_Wm2))
+        {
             std::swap(idx_w_minus_dau1, idx_w_minus_dau2);
             std::swap(pid_Wm1, pid_Wm2);
         }
-        if (isPIDUpTypeQuark(pid_Wp2)){
+        if (isPIDUpTypeQuark(pid_Wp2))
+        {
             std::swap(idx_w_plus_dau1, idx_w_plus_dau2);
             std::swap(pid_Wp1, pid_Wp2);
         }
         tt_decay_code = abs(pid_Wp1) * 1000 + abs(pid_Wp2) * 100 + abs(pid_Wm1);
         gen_neutrino = AllGens[idx_w_minus_dau2];
     }
-    else if(w_minus_had)
+    else if (w_minus_had)
     {
-        if (isPIDLepton(pid_Wp2)){
+        if (isPIDLepton(pid_Wp2))
+        {
             std::swap(idx_w_plus_dau1, idx_w_plus_dau2);
             std::swap(pid_Wp1, pid_Wp2);
         }
-        if (isPIDUpTypeQuark(pid_Wm2)){
+        if (isPIDUpTypeQuark(pid_Wm2))
+        {
             std::swap(idx_w_minus_dau1, idx_w_minus_dau2);
             std::swap(pid_Wm1, pid_Wm2);
         }
@@ -761,7 +764,8 @@ RVec<int> Vcb_SL::FindTTbarJetIndices()
 
     // PartonFlavour array for all GenJets
     RVec<int> genjet_flavours(AllGenJets.size());
-    for (size_t i = 0; i < AllGenJets.size(); i++){
+    for (size_t i = 0; i < AllGenJets.size(); i++)
+    {
         int genJet_flavour = AllGenJets[i].partonFlavour();
         genjet_flavours[i] = genJet_flavour;
     }
@@ -779,7 +783,6 @@ RVec<int> Vcb_SL::FindTTbarJetIndices()
         auto &idxGenPairs = kv.second; // each element is { iG, GenObject }
 
         // Gather candidate GenJets that have the same partonFlavour == target_pid
-        // abs due to radiation
         RVec<GenJet> candidateGenJets;
         RVec<int> candidateGJIndices;
         for (size_t j = 0; j < genjet_flavours.size(); j++)
@@ -803,7 +806,8 @@ RVec<int> Vcb_SL::FindTTbarJetIndices()
         RVec<Gen> these_gens;
         RVec<size_t> these_genIndices;
         these_gens.reserve(idxGenPairs.size());
-        for (auto &p : idxGenPairs) these_gens.push_back(p.second);
+        for (auto &p : idxGenPairs)
+            these_gens.push_back(p.second);
 
         // Perform deltaR matching
         auto result_map = deltaRMatching(these_gens, candidateGenJets, 0.4);
@@ -832,13 +836,28 @@ RVec<int> Vcb_SL::FindTTbarJetIndices()
             break;
         }
     }
+
     if (matched_all_genJets)
         FillHist("FindTT_SemiLep_CutFlow", 1, 1.f, 10, 0., 10.);
 
+    find_all_genjets = matched_all_genJets;
+    ttbar_AllGenJets_indices.clear();
+    for (size_t iG = 0; iG < relevant_gens.size(); iG++)
+    {
+        if (map_genIndex_to_genJetIdx[iG] >= 0)
+        {
+            ttbar_AllGenJets_indices.push_back(map_genIndex_to_genJetIdx[iG]);
+        }
+        else
+        {
+            ttbar_AllGenJets_indices.push_back(-1);
+        }
+    }
     // Now match GenJets -> Reco Jets
     // Build the subset of GenJets that *were* matched
     RVec<GenJet> matchedGenJets;
     RVec<size_t> matchedGenIndices; // which of the 4 did it come from
+
     for (size_t iG = 0; iG < relevant_gens.size(); iG++)
     {
         if (map_genIndex_to_genJetIdx[iG] >= 0)
@@ -847,7 +866,6 @@ RVec<int> Vcb_SL::FindTTbarJetIndices()
             matchedGenIndices.push_back(iG);
         }
     }
-
 
     auto recoMatchMap = GenJetMatching(Jets, matchedGenJets, ev.GetRho(), 0.4, INFINITY);
 
@@ -887,13 +905,13 @@ RVec<int> Vcb_SL::FindTTbarJetIndices()
     // ------------------------------------------------------------------
     // 6) Optionally fill some Gen-level or GenJet-level histograms
     // ------------------------------------------------------------------
-    if(find_all_jets)
+    if (find_all_jets)
     {
         // Reconstruct hadronic top from (bHad + wq1 + wq2)
         Particle W_had = AllGens[idx_wq1] + AllGens[idx_wq2];
         Particle Top_had = W_had + AllGens[idx_bHad];
         Particle Top_lep;
-        if(w_plus_had)
+        if (w_plus_had)
             Top_lep = AllGens[idx_bLep] + AllGens[idx_w_minus_dau1] + AllGens[idx_w_minus_dau2];
         else
             Top_lep = AllGens[idx_bLep] + AllGens[idx_w_plus_dau1] + AllGens[idx_w_plus_dau2];
@@ -1214,14 +1232,13 @@ void Vcb_SL::InferONNX()
     input_data["Momenta_data"] = Momenta_data;
     input_data["Momenta_mask"] = Momenta_mask;
     input_data["Met_data"] = Met_data;
-    input_data["Met_mask"] = Met_mask; 
+    input_data["Met_mask"] = Met_mask;
 
     std::unordered_map<std::string, FloatArray> output_data = myMLHelper->Run_ONNX_Model(input_data, input_shape);
 
-
-    for(size_t i = 0; i < class_score.size(); i++)
+    for (size_t i = 0; i < class_score.size(); i++)
     {
-        
+
         class_score[i] = (std::exp((output_data.at("EVENT/signal").at(i))));
     }
 
@@ -1231,14 +1248,14 @@ void Vcb_SL::InferONNX()
     int hb_assignment = -999;
     int w1_assignment = -999;
     int w2_assignment = -999;
-    Particle lt; 
+    Particle lt;
     Particle ht;
     Particle hw;
 
     std::vector<int> lt_assignment_shape = {1, 9};
     std::vector<int> ht_assignment_shape = {1, 9, 9, 9};
 
-    //first find the most lt probable assignment
+    // first find the most lt probable assignment
 
     size_t max_idx = FindNthMaxIndex(output_data["lt_assignment_log_probability"], 0);
     std::vector<int> current_lt_assignment = UnravelIndex(max_idx, lt_assignment_shape);
@@ -1261,7 +1278,7 @@ void Vcb_SL::InferONNX()
         {
             checkUnique = true;
         }
-    
+
         if (checkUnique)
         {
             break;
@@ -1269,7 +1286,7 @@ void Vcb_SL::InferONNX()
     }
 
     Particle regressed_neutrino;
-    //regressed_neutrino.SetXYZM(MET.Px(), MET.Py(), output_data.at("EVENT/neutrino_pz")[0], 0.);
+    // regressed_neutrino.SetXYZM(MET.Px(), MET.Py(), output_data.at("EVENT/neutrino_pz")[0], 0.);
 
     lt = Jets[lb_assignment] + lepton + regressed_neutrino;
     hw = Jets[w1_assignment] + Jets[w2_assignment];
@@ -1280,73 +1297,90 @@ void Vcb_SL::InferONNX()
     assignment[2] = w1_assignment;
     assignment[3] = w2_assignment;
 
-
     // find which class has the highest score in class_score(find index)
-    std::array<float, 3> class_score_temp = {class_score[0], class_score[1], class_score[2]};
-    //0.1724137931034483 0.7241379310344828 0.10344827586206895
-    //0.034482758620689655 0.7931034482758621 0.1724137931034483
+    std::array<float, 4> class_score_temp = {class_score[0], class_score[1], class_score[2], class_score[3]};
+    // 0.1724137931034483 0.7241379310344828 0.10344827586206895
+    // 0.034482758620689655 0.7931034482758621 0.1724137931034483
+    // weights for Vcb: 0.027825594022071243, weights for TTLJ: 0.5994842503189408, weights for TTC: 0.3593813663804626, weights for TTB: 0.013308789278525301
 
-    class_score_temp[0] = 0.034482758620689655 * class_score[0];
-    class_score_temp[1] = 0.7931034482758621 * class_score[1];
-    class_score_temp[2] = 0.1724137931034483 * class_score[2];
+    class_score_temp[0] = class_score_temp[0] * 0.027825594022071243;
+    class_score_temp[1] = class_score_temp[1] * 0.5994842503189408;
+    class_score_temp[2] = class_score_temp[2] * 0.3593813663804626;
+    class_score_temp[3] = class_score_temp[3] * 0.013308789278525301;
 
     int max_class = std::distance(class_score_temp.begin(), std::max_element(class_score_temp.begin(), class_score_temp.end()));
-    switch (max_class){
-        case 0:
-            class_label  = classCategory::Signal;
-            break;
-        case 1:
-            class_label = classCategory::tt;
-            break;
-        case 2:
-            class_label = classCategory::ttHF;
-            break;
-        default:
-            break;
+    switch (max_class)
+    {
+    case 0:
+        class_label = classCategory::Signal;
+        break;
+    case 1:
+        class_label = classCategory::tt;
+        break;
+    case 2:
+        class_label = classCategory::ttC;
+        break;
+    case 3:
+        class_label = classCategory::ttB;
+        break;
+    default:
+        break;
     }
 }
 
 bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
 {
-    //reco cut
-    if (Jets[assignment[0]].Pt() < 30. || Jets[assignment[1]].Pt() < 30. ) return false;
+
+    // reco cut
+    if (Jets[assignment[0]].Pt() < 30. || Jets[assignment[1]].Pt() < 30.)
+        return false;
+    if (!HasFlag("spurious")){
+        if (Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]) < 0.8 || Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]) < 0.8)
+            return false;
+    }
     ttbar_jet_indices = FindTTbarJetIndices();
     if (find_all_jets)
     {
         FillHist(histPrefix + "/" + "CorrectAssignment_Tot", n_jets, n_b_tagged_jets, 1., 6, 4., 10., 4, 2, 6);
         bool isCorrect = true;
-        //check if the assignment is correct. w1 and w2 can be swapped
-        //if (assignment[0] != ttbar_jet_indices[0]) isCorrect = false;
-        //if (assignment[1] != ttbar_jet_indices[1]) isCorrect = false;
-        if ((assignment[2] != ttbar_jet_indices[2] || assignment[3] != ttbar_jet_indices[3]) && (assignment[2] != ttbar_jet_indices[3] || assignment[3] != ttbar_jet_indices[2])) isCorrect = false;
-        if (isCorrect) FillHist(histPrefix + "/" + "CorrectAssignment", n_jets, n_b_tagged_jets, 1., 6, 4., 10., 4, 2, 6);
-        else FillHist(histPrefix + "/" + "WrongAssignment", n_jets, n_b_tagged_jets, 1., 6, 4., 10., 4, 2, 6);
+        // check if the assignment is correct. w1 and w2 can be swapped
+        // if (assignment[0] != ttbar_jet_indices[0]) isCorrect = false;
+        // if (assignment[1] != ttbar_jet_indices[1]) isCorrect = false;
+        if ((assignment[2] != ttbar_jet_indices[2] || assignment[3] != ttbar_jet_indices[3]) && (assignment[2] != ttbar_jet_indices[3] || assignment[3] != ttbar_jet_indices[2]))
+            isCorrect = false;
+        if (isCorrect)
+            FillHist(histPrefix + "/" + "CorrectAssignment", n_jets, n_b_tagged_jets, 1., 6, 4., 10., 4, 2, 6);
+        else
+            FillHist(histPrefix + "/" + "WrongAssignment", n_jets, n_b_tagged_jets, 1., 6, 4., 10., 4, 2, 6);
     }
-    if(Jets[assignment[2]].GetBTaggerResult(FlavTagger[DataEra.Data()]) > Jets[assignment[3]].GetBTaggerResult(FlavTagger[DataEra.Data()]))
+    if (Jets[assignment[2]].GetBTaggerResult(FlavTagger[DataEra.Data()]) > Jets[assignment[3]].GetBTaggerResult(FlavTagger[DataEra.Data()]))
     {
-        //swap the assignment
+        // swap the assignment
         int temp = assignment[2];
         assignment[2] = assignment[3];
         assignment[3] = temp;
     }
 
     unordered_map<string, vector<float>> template_binning;
-    vector<float> SR_bin = {0.,1.,1.05,1.1,1.2,1.3,1.4,1.5,2.0};
-    vector<float> tt_bin = {0.,0.2,0.4,0.5,0.6,0.7,1.0,2.0};
+    vector<float> SR_bin = {0., 1., 1.05, 1.1, 1.2, 1.3, 1.4, 1.5, 2.0};
+    vector<float> tt_bin = {0., 0.2, 0.4, 0.5, 0.6, 0.7, 1.0, 2.0};
     template_binning["SR"] = SR_bin;
     template_binning["tt"] = tt_bin;
-    template_binning["ttHF"] = tt_bin;  
+    template_binning["ttC"] = tt_bin;
+    template_binning["ttB"] = tt_bin;
     template_binning["TwoB"] = tt_bin;
     template_binning["ThreeB"] = SR_bin;
     string this_region;
-    if (class_label == classCategory::tt) this_region = "tt";
-    else if (class_label == classCategory::ttHF) this_region = "ttHF";
-    else if (class_label == classCategory::Signal) this_region = "SR";
-    else this_region = "tt";
-
-
-
-    
+    if (class_label == classCategory::tt)
+        this_region = "tt";
+    else if (class_label == classCategory::ttC)
+        this_region = "ttC";
+    else if (class_label == classCategory::ttB)
+        this_region = "ttB";
+    else if (class_label == classCategory::Signal)
+        this_region = "SR";
+    else
+        this_region = "tt";
 
     Particle hw = Jets[assignment[2]] + Jets[assignment[3]];
     Particle ht = Jets[assignment[0]] + hw;
@@ -1362,96 +1396,323 @@ bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
     FillHist(histPrefix + "/" + "Reco_lbJetPt", Jets[assignment[1]].Pt(), weight, 50, 0., 200.);
     FillHist(histPrefix + "/" + "Reco_lbBvsC", Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 50, 0., 1.);
     FillHist(histPrefix + "/" + "Reco_hbBvsC", Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 50, 0., 1.);
-    FillHist(histPrefix + "/" + "Reco_BvsCAdded" , W1_BvsC + W2_BvsC, weight, template_binning[this_region].size() - 1, template_binning[this_region].data());
+    FillHist(histPrefix + "/" + "Reco_BvsCAdded", W1_BvsC + W2_BvsC, weight, template_binning[this_region].size() - 1, template_binning[this_region].data());
     int unrolledIdx = Unroller(Jets[assignment[2]], Jets[assignment[3]]);
     FillHist(histPrefix + "/" + "Reco_W1Bvsc_W2Bvsc_Unrolled", unrolledIdx, weight, 16, 0., 16.);
-    std::vector<float> class_score_bin = {0.,0.5,0.6,0.7,0.8,0.85,0.9,0.95};
+    std::vector<float> class_score_bin = {0., 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95};
     FillHist(histPrefix + "/" + "Class_Category", static_cast<float>(class_label), weight, 3, 0., 3.);
-    FillHist(histPrefix + "/" + "Class_Score0", static_cast<float>(class_score[0]), weight, class_score_bin.size() - 1 , class_score_bin.data());
-    FillHist(histPrefix + "/" + "Class_Score1", static_cast<float>(class_score[1]), weight, class_score_bin.size() - 1 , class_score_bin.data());
-    FillHist(histPrefix + "/" + "Class_Score2", static_cast<float>(class_score[2]), weight, class_score_bin.size() - 1 , class_score_bin.data());
-    FillHist(histPrefix + "/" + "EnergyFrac0p5VsBvsC", W2_BvsC, GetJetEnergyFractionWithRadius(Jets[assignment[3]], 0.5), weight, 10, 0., 1., 50, 0. ,1.);
-    FillHist(histPrefix + "/" + "EnergyFrac0p8VsBvsC", W2_BvsC, GetJetEnergyFractionWithRadius(Jets[assignment[3]], 0.8), weight, 10, 0., 1., 50, 0. ,1.);
-    FillHist(histPrefix + "/" + "EnergyFrac1p2VsBvsC", W2_BvsC, GetJetEnergyFractionWithRadius(Jets[assignment[3]], 1.2), weight, 10, 0., 1., 50, 0. ,1.);
+    FillHist(histPrefix + "/" + "Class_Score0", static_cast<float>(class_score[0]), weight, class_score_bin.size() - 1, class_score_bin.data());
+    FillHist(histPrefix + "/" + "Class_Score1", static_cast<float>(class_score[1]), weight, class_score_bin.size() - 1, class_score_bin.data());
+    FillHist(histPrefix + "/" + "Class_Score2", static_cast<float>(class_score[2]), weight, class_score_bin.size() - 1, class_score_bin.data());
+    FillHist(histPrefix + "/" + "EnergyFrac0p5VsBvsC", W2_BvsC, GetJetEnergyFractionWithRadius(Jets[assignment[3]], 0.5), weight, 10, 0., 1., 50, 0., 1.);
+    FillHist(histPrefix + "/" + "EnergyFrac0p8VsBvsC", W2_BvsC, GetJetEnergyFractionWithRadius(Jets[assignment[3]], 0.8), weight, 10, 0., 1., 50, 0., 1.);
+    FillHist(histPrefix + "/" + "EnergyFrac1p2VsBvsC", W2_BvsC, GetJetEnergyFractionWithRadius(Jets[assignment[3]], 1.2), weight, 10, 0., 1., 50, 0., 1.);
     FillHist(histPrefix + "/" + "W2BvsCvslbBvsC", W2_BvsC, Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 10, 0., 1., 50, 0., 1.);
     FillHist(histPrefix + "/" + "W2BvsCvshbBvsC", W2_BvsC, Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 10, 0., 1., 50, 0., 1.);
 
     FillHist(histPrefix + "/" + "nConstituentsVsBvsC", W2_BvsC, Jets[assignment[3]].nConstituents(), weight, 10, 0., 1., 50, 0., 50.);
-    if(W2_BvsC > 0.95){
-        NewTree("Spurious_Tree", {"*"}, {""});
-        SetBranch("Spurious_Tree", "hb_Pt", Jets[assignment[0]].Pt());
-        SetBranch("Spurious_Tree", "lb_Pt", Jets[assignment[1]].Pt());
-        SetBranch("Spurious_Tree", "W1_Pt", Jets[assignment[2]].Pt());
-        SetBranch("Spurious_Tree", "W2_Pt", Jets[assignment[3]].Pt());
-        SetBranch("Spurious_Tree", "hb_BvsC", Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
-        SetBranch("Spurious_Tree", "lb_BvsC", Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
-        SetBranch("Spurious_Tree", "W1_BvsC", Jets[assignment[2]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
-        SetBranch("Spurious_Tree", "W2_BvsC", Jets[assignment[3]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
-        SetBranch("Spurious_Tree", "hb_Eta", Jets[assignment[0]].Eta());
-        SetBranch("Spurious_Tree", "lb_Eta", Jets[assignment[1]].Eta());
-        SetBranch("Spurious_Tree", "W1_Eta", Jets[assignment[2]].Eta());
-        SetBranch("Spurious_Tree", "W2_Eta", Jets[assignment[3]].Eta());
-        SetBranch("Spurious_Tree", "hb_Phi", Jets[assignment[0]].Phi());
-        SetBranch("Spurious_Tree", "lb_Phi", Jets[assignment[1]].Phi());
-        SetBranch("Spurious_Tree", "W1_Phi", Jets[assignment[2]].Phi());
-        SetBranch("Spurious_Tree", "W2_Phi", Jets[assignment[3]].Phi());
-        SetBranch("Spurious_Tree", "hb_M", Jets[assignment[0]].M());
-        SetBranch("Spurious_Tree", "lb_M", Jets[assignment[1]].M());
-        SetBranch("Spurious_Tree", "W1_M", Jets[assignment[2]].M());
-        SetBranch("Spurious_Tree", "W2_M", Jets[assignment[3]].M());
-        SetBranch("Spurious_Tree", "find_all_jets", find_all_jets);
-        SetBranch("Spurious_Tree", "GenMatchIdx0", ttbar_jet_indices[0]);
-        SetBranch("Spurious_Tree", "GenMatchIdx1", ttbar_jet_indices[1]);
-        SetBranch("Spurious_Tree", "GenMatchIdx2", ttbar_jet_indices[2]);
-        SetBranch("Spurious_Tree", "GenMatchIdx3", ttbar_jet_indices[3]);
-        SetBranch("Spurious_Tree", "hadTop_M", ht.M());
-        SetBranch("Spurious_Tree", "hadTop_Pt", ht.Pt());
-        SetBranch("Spurious_Tree", "hadTop_Eta", ht.Eta());
-        SetBranch("Spurious_Tree", "hadTop_Phi", ht.Phi());
-        SetBranch("Spurious_Tree", "hadW_M", hw.M());
-        SetBranch("Spurious_Tree", "hadW_Pt", hw.Pt());
-        SetBranch("Spurious_Tree", "hadW_Eta", hw.Eta());
-        SetBranch("Spurious_Tree", "hadW_Phi", hw.Phi());
+    if (HasFlag("spurious"))
+    {
+        if (W2_BvsC > 0.95)
+        {
+            NewTree("Spurious_Tree", {"*"}, {""});
+            SetBranch("Spurious_Tree", "hb_Pt", Jets[assignment[0]].Pt());
+            SetBranch("Spurious_Tree", "lb_Pt", Jets[assignment[1]].Pt());
+            SetBranch("Spurious_Tree", "W1_Pt", Jets[assignment[2]].Pt());
+            SetBranch("Spurious_Tree", "W2_Pt", Jets[assignment[3]].Pt());
+            SetBranch("Spurious_Tree", "hb_PartonFlavour", Jets[assignment[0]].partonFlavour());
+            SetBranch("Spurious_Tree", "lb_PartonFlavour", Jets[assignment[1]].partonFlavour());
+            SetBranch("Spurious_Tree", "W1_PartonFlavour", Jets[assignment[2]].partonFlavour());
+            SetBranch("Spurious_Tree", "W2_PartonFlavour", Jets[assignment[3]].partonFlavour());
+            SetBranch("Spurious_Tree", "hb_BvsC", Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
+            SetBranch("Spurious_Tree", "lb_BvsC", Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
+            SetBranch("Spurious_Tree", "W1_BvsC", Jets[assignment[2]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
+            SetBranch("Spurious_Tree", "W2_BvsC", Jets[assignment[3]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
+            SetBranch("Spurious_Tree", "hb_Eta", Jets[assignment[0]].Eta());
+            SetBranch("Spurious_Tree", "lb_Eta", Jets[assignment[1]].Eta());
+            SetBranch("Spurious_Tree", "W1_Eta", Jets[assignment[2]].Eta());
+            SetBranch("Spurious_Tree", "W2_Eta", Jets[assignment[3]].Eta());
+            SetBranch("Spurious_Tree", "hb_Phi", Jets[assignment[0]].Phi());
+            SetBranch("Spurious_Tree", "lb_Phi", Jets[assignment[1]].Phi());
+            SetBranch("Spurious_Tree", "W1_Phi", Jets[assignment[2]].Phi());
+            SetBranch("Spurious_Tree", "W2_Phi", Jets[assignment[3]].Phi());
+            SetBranch("Spurious_Tree", "hb_M", Jets[assignment[0]].M());
+            SetBranch("Spurious_Tree", "lb_M", Jets[assignment[1]].M());
+            SetBranch("Spurious_Tree", "W1_M", Jets[assignment[2]].M());
+            SetBranch("Spurious_Tree", "W2_M", Jets[assignment[3]].M());
+            SetBranch("Spurious_Tree", "find_all_jets", find_all_jets);
+            SetBranch("Spurious_Tree", "GenMatchIdx0", ttbar_jet_indices[0]);
+            SetBranch("Spurious_Tree", "GenMatchIdx1", ttbar_jet_indices[1]);
+            SetBranch("Spurious_Tree", "GenMatchIdx2", ttbar_jet_indices[2]);
+            SetBranch("Spurious_Tree", "GenMatchIdx3", ttbar_jet_indices[3]);
+            SetBranch("Spurious_Tree", "hadTop_M", ht.M());
+            SetBranch("Spurious_Tree", "hadTop_Pt", ht.Pt());
+            SetBranch("Spurious_Tree", "hadTop_Eta", ht.Eta());
+            SetBranch("Spurious_Tree", "hadTop_Phi", ht.Phi());
+            SetBranch("Spurious_Tree", "hadW_M", hw.M());
+            SetBranch("Spurious_Tree", "hadW_Pt", hw.Pt());
+            SetBranch("Spurious_Tree", "hadW_Eta", hw.Eta());
+            SetBranch("Spurious_Tree", "hadW_Phi", hw.Phi());
+            if (find_all_genjets)
+            {
+                SetBranch("Spurious_Tree", "GenMatch_hb_Pt", AllGenJets[ttbar_AllGenJets_indices[0]].Pt());
+                SetBranch("Spurious_Tree", "GenMatch_lb_Pt", AllGenJets[ttbar_AllGenJets_indices[1]].Pt());
+                SetBranch("Spurious_Tree", "GenMatch_W1_Pt", AllGenJets[ttbar_AllGenJets_indices[2]].Pt());
+                SetBranch("Spurious_Tree", "GenMatch_W2_Pt", AllGenJets[ttbar_AllGenJets_indices[3]].Pt());
+                SetBranch("Spurious_Tree", "GenMatch_hb_Eta", AllGenJets[ttbar_AllGenJets_indices[0]].Eta());
+                SetBranch("Spurious_Tree", "GenMatch_lb_Eta", AllGenJets[ttbar_AllGenJets_indices[1]].Eta());
+                SetBranch("Spurious_Tree", "GenMatch_W1_Eta", AllGenJets[ttbar_AllGenJets_indices[2]].Eta());
+                SetBranch("Spurious_Tree", "GenMatch_W2_Eta", AllGenJets[ttbar_AllGenJets_indices[3]].Eta());
+                SetBranch("Spurious_Tree", "GenMatch_hb_Phi", AllGenJets[ttbar_AllGenJets_indices[0]].Phi());
+                SetBranch("Spurious_Tree", "GenMatch_lb_Phi", AllGenJets[ttbar_AllGenJets_indices[1]].Phi());
+                SetBranch("Spurious_Tree", "GenMatch_W1_Phi", AllGenJets[ttbar_AllGenJets_indices[2]].Phi());
+                SetBranch("Spurious_Tree", "GenMatch_W2_Phi", AllGenJets[ttbar_AllGenJets_indices[3]].Phi());
+                SetBranch("Spurious_Tree", "GenMatch_hb_M", AllGenJets[ttbar_AllGenJets_indices[0]].M());
+                SetBranch("Spurious_Tree", "GenMatch_lb_M", AllGenJets[ttbar_AllGenJets_indices[1]].M());
+                SetBranch("Spurious_Tree", "GenMatch_W1_M", AllGenJets[ttbar_AllGenJets_indices[2]].M());
+                SetBranch("Spurious_Tree", "GenMatch_W2_M", AllGenJets[ttbar_AllGenJets_indices[3]].M());
+                SetBranch("Spurious_Tree", "GenMatch_hb_partonFlavour", AllGenJets[ttbar_AllGenJets_indices[0]].partonFlavour());
+                SetBranch("Spurious_Tree", "GenMatch_lb_partonFlavour", AllGenJets[ttbar_AllGenJets_indices[1]].partonFlavour());
+                SetBranch("Spurious_Tree", "GenMatch_W1_partonFlavour", AllGenJets[ttbar_AllGenJets_indices[2]].partonFlavour());
+                SetBranch("Spurious_Tree", "GenMatch_W2_partonFlavour", AllGenJets[ttbar_AllGenJets_indices[3]].partonFlavour());
+                SetBranch("Spurious_Tree", "GenMatch_hadTop_M", (AllGenJets[ttbar_AllGenJets_indices[0]] + AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).M());
+                SetBranch("Spurious_Tree", "GenMatch_hadTop_Pt", (AllGenJets[ttbar_AllGenJets_indices[0]] + AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).Pt());
+                SetBranch("Spurious_Tree", "GenMatch_hadTop_Eta", (AllGenJets[ttbar_AllGenJets_indices[0]] + AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).Eta());
+                SetBranch("Spurious_Tree", "GenMatch_hadTop_Phi", (AllGenJets[ttbar_AllGenJets_indices[0]] + AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).Phi());
+                SetBranch("Spurious_Tree", "GenMatch_hadW_M", (AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).M());
+                SetBranch("Spurious_Tree", "GenMatch_hadW_Pt", (AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).Pt());
+                SetBranch("Spurious_Tree", "GenMatch_hadW_Eta", (AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).Eta());
+                SetBranch("Spurious_Tree", "GenMatch_hadW_Phi", (AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).Phi());
+            }
+            else{
+                SetBranch("Spurious_Tree", "GenMatch_hb_Pt", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_lb_Pt", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_W1_Pt", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_W2_Pt", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_hb_Eta", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_lb_Eta", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_W1_Eta", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_W2_Eta", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_hb_Phi", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_lb_Phi", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_W1_Phi", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_W2_Phi", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_hb_M", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_lb_M", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_W1_M", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_W2_M", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_hb_partonFlavour", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_lb_partonFlavour", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_W1_partonFlavour", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_W2_partonFlavour", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_hadTop_M", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_hadTop_Pt", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_hadTop_Eta", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_hadTop_Phi", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_hadW_M", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_hadW_Pt", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_hadW_Eta", -999.f);
+                SetBranch("Spurious_Tree", "GenMatch_hadW_Phi", -999.f);
 
-        FillTrees();
-    }
+            }
 
-    else if(W2_BvsC < 0.1){
-        NewTree("Good_Tree", {"*"}, {""});
-        SetBranch("Good_Tree", "hb_Pt", Jets[assignment[0]].Pt());
-        SetBranch("Good_Tree", "lb_Pt", Jets[assignment[1]].Pt());
-        SetBranch("Good_Tree", "W1_Pt", Jets[assignment[2]].Pt());
-        SetBranch("Good_Tree", "W2_Pt", Jets[assignment[3]].Pt());
-        SetBranch("Good_Tree", "hb_BvsC", Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
-        SetBranch("Good_Tree", "lb_BvsC", Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
-        SetBranch("Good_Tree", "W1_BvsC", Jets[assignment[2]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
-        SetBranch("Good_Tree", "W2_BvsC", Jets[assignment[3]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
-        SetBranch("Good_Tree", "hb_Eta", Jets[assignment[0]].Eta());
-        SetBranch("Good_Tree", "lb_Eta", Jets[assignment[1]].Eta());
-        SetBranch("Good_Tree", "W1_Eta", Jets[assignment[2]].Eta());
-        SetBranch("Good_Tree", "W2_Eta", Jets[assignment[3]].Eta());
-        SetBranch("Good_Tree", "hb_Phi", Jets[assignment[0]].Phi());
-        SetBranch("Good_Tree", "lb_Phi", Jets[assignment[1]].Phi());
-        SetBranch("Good_Tree", "W1_Phi", Jets[assignment[2]].Phi());
-        SetBranch("Good_Tree", "W2_Phi", Jets[assignment[3]].Phi());
-        SetBranch("Good_Tree", "hb_M", Jets[assignment[0]].M());
-        SetBranch("Good_Tree", "lb_M", Jets[assignment[1]].M());
-        SetBranch("Good_Tree", "W1_M", Jets[assignment[2]].M());
-        SetBranch("Good_Tree", "W2_M", Jets[assignment[3]].M());
-        SetBranch("Good_Tree", "find_all_jets", find_all_jets);
-        SetBranch("Good_Tree", "GenMatchIdx0", ttbar_jet_indices[0]);
-        SetBranch("Good_Tree", "GenMatchIdx1", ttbar_jet_indices[1]);
-        SetBranch("Good_Tree", "GenMatchIdx2", ttbar_jet_indices[2]);
-        SetBranch("Good_Tree", "GenMatchIdx3", ttbar_jet_indices[3]);
-        SetBranch("Good_Tree", "hadTop_M", ht.M());
-        SetBranch("Good_Tree", "hadTop_Pt", ht.Pt());
-        SetBranch("Good_Tree", "hadTop_Eta", ht.Eta());
-        SetBranch("Good_Tree", "hadTop_Phi", ht.Phi());
-        SetBranch("Good_Tree", "hadW_M", hw.M());
-        SetBranch("Good_Tree", "hadW_Pt", hw.Pt());
-        SetBranch("Good_Tree", "hadW_Eta", hw.Eta());
-        SetBranch("Good_Tree", "hadW_Phi", hw.Phi());
-        FillTrees();
+            if (ttbar_jet_indices[0] >= 0)
+            {
+                int genMatch_hb_is_reco_what = 0;
+                RVec<Jet> reco_jets = {Jets[assignment[0]], Jets[assignment[1]], Jets[assignment[2]], Jets[assignment[3]]};
+                RVec<float> dR_genMatch_hb_reco_jets;
+                for (size_t i = 0; i < reco_jets.size(); i++)
+                {
+                    dR_genMatch_hb_reco_jets.push_back(reco_jets[i].DeltaR(Jets[ttbar_jet_indices[0]]));
+                }
+                // find min dR element and get idx to genMatch_hb_is_reco_what
+                genMatch_hb_is_reco_what = std::distance(dR_genMatch_hb_reco_jets.begin(), std::min_element(dR_genMatch_hb_reco_jets.begin(), dR_genMatch_hb_reco_jets.end()));
+                SetBranch("Spurious_Tree", "genMatch_hb_is_reco_what", genMatch_hb_is_reco_what);
+            }
+            if (ttbar_jet_indices[3] >= 0)
+            {
+                int genMatch_Wdown_is_reco_what = 0;
+                RVec<Jet> reco_jets = {Jets[assignment[0]], Jets[assignment[1]], Jets[assignment[2]], Jets[assignment[3]]};
+                RVec<float> dR_genMatch_Wdown_reco_jets;
+                for (size_t i = 0; i < reco_jets.size(); i++)
+                {
+                    dR_genMatch_Wdown_reco_jets.push_back(reco_jets[i].DeltaR(Jets[ttbar_jet_indices[3]]));
+                }
+                // find min dR element and get idx to genMatch_Wdown_is_reco_what
+                genMatch_Wdown_is_reco_what = std::distance(dR_genMatch_Wdown_reco_jets.begin(), std::min_element(dR_genMatch_Wdown_reco_jets.begin(), dR_genMatch_Wdown_reco_jets.end()));
+                SetBranch("Spurious_Tree", "genMatch_Wdown_is_reco_what", genMatch_Wdown_is_reco_what);
+            }
+            if (ttbar_jet_indices[2] >= 0)
+            {
+                int genMatch_Wup_is_reco_what = 0;
+                RVec<Jet> reco_jets = {Jets[assignment[0]], Jets[assignment[1]], Jets[assignment[2]], Jets[assignment[3]]};
+                RVec<float> dR_genMatch_Wup_reco_jets;
+                for (size_t i = 0; i < reco_jets.size(); i++)
+                {
+                    dR_genMatch_Wup_reco_jets.push_back(reco_jets[i].DeltaR(Jets[ttbar_jet_indices[2]]));
+                }
+                // find min dR element and get idx to genMatch_Wup_is_reco_what
+                genMatch_Wup_is_reco_what = std::distance(dR_genMatch_Wup_reco_jets.begin(), std::min_element(dR_genMatch_Wup_reco_jets.begin(), dR_genMatch_Wup_reco_jets.end()));
+                SetBranch("Spurious_Tree", "genMatch_Wup_is_reco_what", genMatch_Wup_is_reco_what);
+            }
+            else
+            {
+                SetBranch("Spurious_Tree", "genMatch_hb_is_reco_what", -1);
+                SetBranch("Spurious_Tree", "genMatch_Wdown_is_reco_what", -1);
+                SetBranch("Spurious_Tree", "genMatch_Wup_is_reco_what", -1);
+            }
+            FillTrees("Spurious_Tree");
+        }
+
+        else if (W2_BvsC < 0.1)
+        {
+            NewTree("Good_Tree", {"*"}, {""});
+            SetBranch("Good_Tree", "hb_Pt", Jets[assignment[0]].Pt());
+            SetBranch("Good_Tree", "lb_Pt", Jets[assignment[1]].Pt());
+            SetBranch("Good_Tree", "W1_Pt", Jets[assignment[2]].Pt());
+            SetBranch("Good_Tree", "W2_Pt", Jets[assignment[3]].Pt());
+            SetBranch("Good_Tree", "hb_PartonFlavour", Jets[assignment[0]].partonFlavour());
+            SetBranch("Good_Tree", "lb_PartonFlavour", Jets[assignment[1]].partonFlavour());
+            SetBranch("Good_Tree", "W1_PartonFlavour", Jets[assignment[2]].partonFlavour());
+            SetBranch("Good_Tree", "W2_PartonFlavour", Jets[assignment[3]].partonFlavour());
+            SetBranch("Good_Tree", "hb_BvsC", Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
+            SetBranch("Good_Tree", "lb_BvsC", Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
+            SetBranch("Good_Tree", "W1_BvsC", Jets[assignment[2]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
+            SetBranch("Good_Tree", "W2_BvsC", Jets[assignment[3]].GetBTaggerResult(FlavTagger[DataEra.Data()]));
+            SetBranch("Good_Tree", "hb_Eta", Jets[assignment[0]].Eta());
+            SetBranch("Good_Tree", "lb_Eta", Jets[assignment[1]].Eta());
+            SetBranch("Good_Tree", "W1_Eta", Jets[assignment[2]].Eta());
+            SetBranch("Good_Tree", "W2_Eta", Jets[assignment[3]].Eta());
+            SetBranch("Good_Tree", "hb_Phi", Jets[assignment[0]].Phi());
+            SetBranch("Good_Tree", "lb_Phi", Jets[assignment[1]].Phi());
+            SetBranch("Good_Tree", "W1_Phi", Jets[assignment[2]].Phi());
+            SetBranch("Good_Tree", "W2_Phi", Jets[assignment[3]].Phi());
+            SetBranch("Good_Tree", "hb_M", Jets[assignment[0]].M());
+            SetBranch("Good_Tree", "lb_M", Jets[assignment[1]].M());
+            SetBranch("Good_Tree", "W1_M", Jets[assignment[2]].M());
+            SetBranch("Good_Tree", "W2_M", Jets[assignment[3]].M());
+            SetBranch("Good_Tree", "find_all_jets", find_all_jets);
+            SetBranch("Good_Tree", "GenMatchIdx0", ttbar_jet_indices[0]);
+            SetBranch("Good_Tree", "GenMatchIdx1", ttbar_jet_indices[1]);
+            SetBranch("Good_Tree", "GenMatchIdx2", ttbar_jet_indices[2]);
+            SetBranch("Good_Tree", "GenMatchIdx3", ttbar_jet_indices[3]);
+            SetBranch("Good_Tree", "hadTop_M", ht.M());
+            SetBranch("Good_Tree", "hadTop_Pt", ht.Pt());
+            SetBranch("Good_Tree", "hadTop_Eta", ht.Eta());
+            SetBranch("Good_Tree", "hadTop_Phi", ht.Phi());
+            SetBranch("Good_Tree", "hadW_M", hw.M());
+            SetBranch("Good_Tree", "hadW_Pt", hw.Pt());
+            SetBranch("Good_Tree", "hadW_Eta", hw.Eta());
+            SetBranch("Good_Tree", "hadW_Phi", hw.Phi());
+            if (find_all_genjets)
+            {
+                SetBranch("Good_Tree", "GenMatch_hb_Pt", AllGenJets[ttbar_AllGenJets_indices[0]].Pt());
+                SetBranch("Good_Tree", "GenMatch_lb_Pt", AllGenJets[ttbar_AllGenJets_indices[1]].Pt());
+                SetBranch("Good_Tree", "GenMatch_W1_Pt", AllGenJets[ttbar_AllGenJets_indices[2]].Pt());
+                SetBranch("Good_Tree", "GenMatch_W2_Pt", AllGenJets[ttbar_AllGenJets_indices[3]].Pt());
+                SetBranch("Good_Tree", "GenMatch_hb_Eta", AllGenJets[ttbar_AllGenJets_indices[0]].Eta());
+                SetBranch("Good_Tree", "GenMatch_lb_Eta", AllGenJets[ttbar_AllGenJets_indices[1]].Eta());
+                SetBranch("Good_Tree", "GenMatch_W1_Eta", AllGenJets[ttbar_AllGenJets_indices[2]].Eta());
+                SetBranch("Good_Tree", "GenMatch_W2_Eta", AllGenJets[ttbar_AllGenJets_indices[3]].Eta());
+                SetBranch("Good_Tree", "GenMatch_hb_Phi", AllGenJets[ttbar_AllGenJets_indices[0]].Phi());
+                SetBranch("Good_Tree", "GenMatch_lb_Phi", AllGenJets[ttbar_AllGenJets_indices[1]].Phi());
+                SetBranch("Good_Tree", "GenMatch_W1_Phi", AllGenJets[ttbar_AllGenJets_indices[2]].Phi());
+                SetBranch("Good_Tree", "GenMatch_W2_Phi", AllGenJets[ttbar_AllGenJets_indices[3]].Phi());
+                SetBranch("Good_Tree", "GenMatch_hb_M", AllGenJets[ttbar_AllGenJets_indices[0]].M());
+                SetBranch("Good_Tree", "GenMatch_lb_M", AllGenJets[ttbar_AllGenJets_indices[1]].M());
+                SetBranch("Good_Tree", "GenMatch_W1_M", AllGenJets[ttbar_AllGenJets_indices[2]].M());
+                SetBranch("Good_Tree", "GenMatch_W2_M", AllGenJets[ttbar_AllGenJets_indices[3]].M());
+                SetBranch("Good_Tree", "GenMatch_hb_partonFlavour", AllGenJets[ttbar_AllGenJets_indices[0]].partonFlavour());
+                SetBranch("Good_Tree", "GenMatch_lb_partonFlavour", AllGenJets[ttbar_AllGenJets_indices[1]].partonFlavour());
+                SetBranch("Good_Tree", "GenMatch_W1_partonFlavour", AllGenJets[ttbar_AllGenJets_indices[2]].partonFlavour());
+                SetBranch("Good_Tree", "GenMatch_W2_partonFlavour", AllGenJets[ttbar_AllGenJets_indices[3]].partonFlavour());
+                SetBranch("Good_Tree", "GenMatch_hadTop_M", (AllGenJets[ttbar_AllGenJets_indices[0]] + AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).M());
+                SetBranch("Good_Tree", "GenMatch_hadTop_Pt", (AllGenJets[ttbar_AllGenJets_indices[0]] + AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).Pt());
+                SetBranch("Good_Tree", "GenMatch_hadTop_Eta", (AllGenJets[ttbar_AllGenJets_indices[0]] + AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).Eta());
+                SetBranch("Good_Tree", "GenMatch_hadTop_Phi", (AllGenJets[ttbar_AllGenJets_indices[0]] + AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).Phi());
+                SetBranch("Good_Tree", "GenMatch_hadW_M", (AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).M());
+                SetBranch("Good_Tree", "GenMatch_hadW_Pt", (AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).Pt());
+                SetBranch("Good_Tree", "GenMatch_hadW_Eta", (AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).Eta());
+                SetBranch("Good_Tree", "GenMatch_hadW_Phi", (AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).Phi());
+            }
+            else{
+                SetBranch("Good_Tree", "GenMatch_hb_Pt", -999.f);
+                SetBranch("Good_Tree", "GenMatch_lb_Pt", -999.f);
+                SetBranch("Good_Tree", "GenMatch_W1_Pt", -999.f);
+                SetBranch("Good_Tree", "GenMatch_W2_Pt", -999.f);
+                SetBranch("Good_Tree", "GenMatch_hb_Eta", -999.f);
+                SetBranch("Good_Tree", "GenMatch_lb_Eta", -999.f);
+                SetBranch("Good_Tree", "GenMatch_W1_Eta", -999.f);
+                SetBranch("Good_Tree", "GenMatch_W2_Eta", -999.f);
+                SetBranch("Good_Tree", "GenMatch_hb_Phi", -999.f);
+                SetBranch("Good_Tree", "GenMatch_lb_Phi", -999.f);
+                SetBranch("Good_Tree", "GenMatch_W1_Phi", -999.f);
+                SetBranch("Good_Tree", "GenMatch_W2_Phi", -999.f);
+                SetBranch("Good_Tree", "GenMatch_hb_M", -999.f);
+                SetBranch("Good_Tree", "GenMatch_lb_M", -999.f);
+                SetBranch("Good_Tree", "GenMatch_W1_M", -999.f);
+                SetBranch("Good_Tree", "GenMatch_W2_M", -999.f);
+                SetBranch("Good_Tree", "GenMatch_hb_partonFlavour", -999.f);
+                SetBranch("Good_Tree", "GenMatch_lb_partonFlavour", -999.f);
+                SetBranch("Good_Tree", "GenMatch_W1_partonFlavour", -999.f);
+                SetBranch("Good_Tree", "GenMatch_W2_partonFlavour", -999.f);
+                SetBranch("Good_Tree", "GenMatch_hadTop_M", -999.f);
+                SetBranch("Good_Tree", "GenMatch_hadTop_Pt", -999.f);
+                SetBranch("Good_Tree", "GenMatch_hadTop_Eta", -999.f);
+                SetBranch("Good_Tree", "GenMatch_hadTop_Phi", -999.f);
+                SetBranch("Good_Tree", "GenMatch_hadW_M", -999.f);
+                SetBranch("Good_Tree", "GenMatch_hadW_Pt", -999.f);
+                SetBranch("Good_Tree", "GenMatch_hadW_Eta", -999.f);
+                SetBranch("Good_Tree", "GenMatch_hadW_Phi", -999.f);
+
+            }
+            if (ttbar_jet_indices[0] >= 0)
+            {
+                int genMatch_hb_is_reco_what = 0;
+                RVec<Jet> reco_jets = {Jets[assignment[0]], Jets[assignment[1]], Jets[assignment[2]], Jets[assignment[3]]};
+                RVec<float> dR_genMatch_hb_reco_jets;
+                for (size_t i = 0; i < reco_jets.size(); i++)
+                {
+                    dR_genMatch_hb_reco_jets.push_back(reco_jets[i].DeltaR(Jets[ttbar_jet_indices[0]]));
+                }
+                // find min dR element and get idx to genMatch_hb_is_reco_what
+                genMatch_hb_is_reco_what = std::distance(dR_genMatch_hb_reco_jets.begin(), std::min_element(dR_genMatch_hb_reco_jets.begin(), dR_genMatch_hb_reco_jets.end()));
+                SetBranch("Good_Tree", "genMatch_hb_is_reco_what", genMatch_hb_is_reco_what);
+            }
+            if (ttbar_jet_indices[3] >= 0)
+            {
+                int genMatch_Wdown_is_reco_what = 0;
+                RVec<Jet> reco_jets = {Jets[assignment[0]], Jets[assignment[1]], Jets[assignment[2]], Jets[assignment[3]]};
+                RVec<float> dR_genMatch_Wdown_reco_jets;
+                for (size_t i = 0; i < reco_jets.size(); i++)
+                {
+                    dR_genMatch_Wdown_reco_jets.push_back(reco_jets[i].DeltaR(Jets[ttbar_jet_indices[3]]));
+                }
+                // find min dR element and get idx to genMatch_Wdown_is_reco_what
+                genMatch_Wdown_is_reco_what = std::distance(dR_genMatch_Wdown_reco_jets.begin(), std::min_element(dR_genMatch_Wdown_reco_jets.begin(), dR_genMatch_Wdown_reco_jets.end()));
+                SetBranch("Good_Tree", "genMatch_Wdown_is_reco_what", genMatch_Wdown_is_reco_what);
+            }
+            if (ttbar_jet_indices[2] >= 0)
+            {
+                int genMatch_Wup_is_reco_what = 0;
+                RVec<Jet> reco_jets = {Jets[assignment[0]], Jets[assignment[1]], Jets[assignment[2]], Jets[assignment[3]]};
+                RVec<float> dR_genMatch_Wup_reco_jets;
+                for (size_t i = 0; i < reco_jets.size(); i++)
+                {
+                    dR_genMatch_Wup_reco_jets.push_back(reco_jets[i].DeltaR(Jets[ttbar_jet_indices[2]]));
+                }
+                // find min dR element and get idx to genMatch_Wup_is_reco_what
+                genMatch_Wup_is_reco_what = std::distance(dR_genMatch_Wup_reco_jets.begin(), std::min_element(dR_genMatch_Wup_reco_jets.begin(), dR_genMatch_Wup_reco_jets.end()));
+                SetBranch("Good_Tree", "genMatch_Wup_is_reco_what", genMatch_Wup_is_reco_what);
+            }
+            else
+            {
+                SetBranch("Good_Tree", "genMatch_hb_is_reco_what", -1);
+                SetBranch("Good_Tree", "genMatch_Wdown_is_reco_what", -1);
+                SetBranch("Good_Tree", "genMatch_Wup_is_reco_what", -1);
+            }
+            FillTrees("Good_Tree");
+        }
     }
     return true;
 }

@@ -23,7 +23,7 @@ void Vcb::initializeAnalyzer()
         ctagging_R_file = "Vcb_SL_ctaggingR.json";
         myCorr = new Correction(DataEra, IsDATA ? DataStream : MCSample, IsDATA, btagging_eff_file, ctagging_eff_file, btagging_R_file, ctagging_R_file);
         myCorr->SetTaggingParam(FlavTagger[DataEra.Data()], SL_BTag_WP);
-        myMLHelper = std::make_unique<MLHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/data/Run3_v12_Run2_v9/2022EE/spanet_2022EE.onnx", MLHelper::ModelType::ONNX);
+        myMLHelper = std::make_unique<MLHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/data/Run3_v12_Run2_v9/2022EE/spanet_2022EE_4cls.onnx", MLHelper::ModelType::ONNX);
     }
     else if(channel == Channel::MM || channel == Channel::ME || channel == Channel::EE){
         std::cout << "Initialize Correction for DL" << std::endl;
@@ -202,6 +202,7 @@ void Vcb::executeEvent()
     {
         leptons.clear();
         executeEventFromParameter();
+        if(HasFlag("spurious")) break;
     }
 }
 
@@ -345,8 +346,9 @@ void Vcb::executeEventFromParameter()
     default_weight *= MCNormalization();
     for (const auto &weight : weight_map)
     {
-        if(!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight)) return;
+        if(!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight)) return; 
         FillHistogramsAtThisPoint(channel_string + "/" + region_string + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
+        if(HasFlag("spurious")) return;
         if(n_b_tagged_jets >=3){
             FillHistogramsAtThisPoint(channel_string + "/" + "ThreeB" + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
             FillONNXRecoInfo(channel_string + "/" + "ThreeB" + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
