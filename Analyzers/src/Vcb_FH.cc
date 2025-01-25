@@ -365,7 +365,7 @@ void Vcb_FH::FillTrainingTree()
 
     for (int i = 0; i < max_jets; i++)
     {
-        for (int j = i + 1; j < max_jets; j++)
+        for (int j = 0; j < max_jets; j++)
         {
             edge_index0.push_back(i);
             edge_index1.push_back(j);
@@ -375,12 +375,9 @@ void Vcb_FH::FillTrainingTree()
             TVector3 v1 = Jets[i].Vect();
             TVector3 v2 = Jets[j].Vect();
             float this_cosTheta = TMath::Cos(v1.Angle(v2));
-            for (size_t k = 0; k < 2; k++)
-            {
-                deltaR.push_back(this_deltaR);
-                invM.push_back(this_invM);
-                cosTheta.push_back(this_cosTheta);
-            }
+            deltaR.push_back(this_deltaR);
+            invM.push_back(this_invM);
+            cosTheta.push_back(this_cosTheta);
         }
     }
 
