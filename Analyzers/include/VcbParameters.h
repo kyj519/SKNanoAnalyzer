@@ -30,14 +30,16 @@ static inline std::unordered_map<std::string, float> Muon_Tight_Pt = {
     {"2016postVFP", 26.f},
     {"2017", 29.f},
     {"2018", 29.f},
-    {"2022EE", 26.f}};
+    {"2022EE", 26.f},
+    {"2023", 26.f}};
 
 static inline std::unordered_map<std::string, float> Electron_Tight_Pt = {
     {"2016preVFP", 35.f},
     {"2016postVFP", 35.f},
     {"2017", 37.f},
     {"2018", 37.f},
-    {"2022EE", 35.f}};
+    {"2022EE", 35.f},
+    {"2023", 32.f}};
 
 static constexpr float Jet_Veto_DR = 0.4;
 
@@ -50,7 +52,8 @@ static inline std::unordered_map<std::string, JetTagging::JetFlavTagger> FlavTag
     {"2016postVFP", JetTagging::JetFlavTagger::DeepJet},
     {"2017", JetTagging::JetFlavTagger::DeepJet},
     {"2018", JetTagging::JetFlavTagger::DeepJet},
-    {"2022EE", JetTagging::JetFlavTagger::ParT}};
+    {"2022EE", JetTagging::JetFlavTagger::ParT},
+    {"2023", JetTagging::JetFlavTagger::ParT}};
 
 // FH part
 static inline std::unordered_map<std::string, int> category_for_training_FH = {
@@ -116,49 +119,62 @@ static inline std::unordered_map<std::string, TString> Mu_Trigger = {
     {"2016postVFP", "HLT_IsoMu24"},
     {"2017", "HLT_IsoMu27"},
     {"2018", "HLT_IsoMu24"},
-    {"2022EE", "HLT_IsoMu24"}};
+    {"2022EE", "HLT_IsoMu24"},
+    {"2023", "HLT_IsoMu24"}};
 
 static inline std::unordered_map<std::string, TString> Mu_Trigger_SF_Key = {
     {"2016preVFP", "NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight"},
     {"2016postVFP", "NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight"},
     {"2017", "NUM_IsoMu27_DEN_CutBasedIdTight_and_PFIsoTight"},
     {"2018", "NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight"},
-    {"2022EE", "NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight"}};
+    {"2022EE", "NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight"},
+    {"2023", "NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight"}
+    };
 
 static inline std::unordered_map<std::string, TString> Mu_ID_SF_Key = {
     {"2016preVFP", "NUM_TightID_DEN_TrackerMuons"},
     {"2016postVFP", "NUM_TightID_DEN_TrackerMuons"},
     {"2017", "NUM_TightID_DEN_TrackerMuons"},
     {"2018", "NUM_TightID_DEN_TrackerMuons"},
-    {"2022EE", "NUM_TightID_DEN_TrackerMuons"}};
+    {"2022EE", "NUM_TightID_DEN_TrackerMuons"},
+    {"2023", "NUM_TightID_DEN_TrackerMuons"},
+    };
 
 static inline std::unordered_map<std::string, TString> Mu_Iso_SF_Key = {
     {"2016preVFP", "NUM_TightRelIso_DEN_TightIDandIPCut"},
     {"2016postVFP", "NUM_TightRelIso_DEN_TightIDandIPCut"},
     {"2017", "NUM_TightRelIso_DEN_TightIDandIPCut"},
     {"2018", "NUM_TightRelIso_DEN_TightIDandIPCut"},
-    {"2022EE", "NUM_TightPFIso_DEN_TightID"}};
+    {"2022EE", "NUM_TightPFIso_DEN_TightID"},
+    {"2023", "NUM_TightPFIso_DEN_TightID"},
+    };
 
 static inline std::unordered_map<std::string, TString> El_Trigger = {
     {"2016preVFP", "HLT_Ele32_WPTight_Gsf"},
     {"2016postVFP", "HLT_Ele32_WPTight_Gsf"},
     {"2017", "HLT_Ele35_WPTight_Gsf"},
     {"2018", "HLT_Ele35_WPTight_Gsf"},
-    {"2022EE", "HLT_Ele30_WPTight_Gsf"}};
+    {"2022EE", "HLT_Ele30_WPTight_Gsf"},
+    {"2023", "HLT_Ele30_WPTight_Gsf"},
+    };
 
 static inline std::unordered_map<std::string, TString> El_Trigger_SF_Key = {
     {"2016preVFP", "NUM_Ele27_WPTight_Gsf_DEN_CutBasedIdTight_and_PFIsoTight"},
     {"2016postVFP", "NUM_Ele27_WPTight_Gsf_DEN_CutBasedIdTight_and_PFIsoTight"},
     {"2017", "NUM_Ele32_WPTight_Gsf_DEN_CutBasedIdTight_and_PFIsoTight"},
     {"2018", "NUM_Ele32_WPTight_Gsf_DEN_CutBasedIdTight_and_PFIsoTight"},
-    {"2022EE", "HLT_SF_Ele30_MVAiso80ID"}};
+    {"2022EE", "HLT_SF_Ele30_MVAiso80ID"},
+    {"2023", "HLT_SF_Ele30_MVAiso80ID"},
+    };
 
 static inline std::unordered_map<std::string, TString> El_ID_SF_Key = {
     {"2016preVFP", "wp80iso"},
     {"2016postVFP", "wp80iso"},
     {"2017", "wp80iso"},
     {"2018", "wp80iso"},
-    {"2022EE", "wp80iso"}};
+    {"2022EE", "wp80iso"},
+    {"2023", "wp80iso"},
+    };
 
 static constexpr JetTagging::JetFlavTaggerWP SL_BTag_WP = JetTagging::JetFlavTaggerWP::Medium;
 
@@ -210,7 +226,10 @@ static inline std::unordered_map<std::string, std::string> Sample_Shorthand = {
     {"ST_sch_top_Lep", "ST"},
     {"ttHtobb_M125", "ttV"},
     {"ttHtoNonbb_M125", "ttV"},
-    {"ttWtoQQ", "ttV"},
+    {"ttWtoLNu", "ttV"},
+    {"ttZtoNuNu", "ttV"},
+    {"ttZtoLL_MLL4to50", "ttV"},
+    {"ttZtoLL_MLL50toInf", "ttV"},
     {"ttZtoQQ", "ttV"},
     {"WWtoLNuQQ", "VV"},
     {"WWto2L2Nu", "VV"},

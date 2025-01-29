@@ -210,17 +210,23 @@ void Vcb::SetSystematicLambda(bool remove_flavtagging_sf)
 {
     std::unordered_map<std::string, std::variant<std::function<float(Correction::variation, TString)>, std::function<float()>>> weight_function_map;
     auto mu_id_lambda = [&](Correction::variation syst, TString source)
-    { return myCorr->GetMuonIDSF(Mu_ID_SF_Key[DataEra.Data()], Muons, syst, source); };
+    { 
+        return myCorr->GetMuonIDSF(Mu_ID_SF_Key[DataEra.Data()], Muons, syst, source); };
     auto mu_iso_lambda = [&](Correction::variation syst, TString source)
-    { return myCorr->GetMuonISOSF(Mu_Iso_SF_Key[DataEra.Data()], Muons, syst, source); };
+    { 
+        return myCorr->GetMuonISOSF(Mu_Iso_SF_Key[DataEra.Data()], Muons, syst, source); };
     auto mu_trigger_lambda = [&](Correction::variation syst, TString source)
-    { return LeptonTriggerWeight(false, syst, source); };
+    { 
+        return LeptonTriggerWeight(false, syst, source); };
     auto el_id_lambda = [&](Correction::variation syst, TString source)
-    { return myCorr->GetElectronIDSF(El_ID_SF_Key[DataEra.Data()], Electrons, syst, source); };
+    { 
+        return myCorr->GetElectronIDSF(El_ID_SF_Key[DataEra.Data()], Electrons, syst, source); };
     auto el_recosf_lambda = [&](Correction::variation syst, TString source)
-    { return myCorr->GetElectronRECOSF(Electrons, syst, source); };
+    { 
+        return myCorr->GetElectronRECOSF(Electrons, syst, source); };
     auto el_trigger_lambda = [&](Correction::variation syst, TString source)
-    { return LeptonTriggerWeight(true, syst, source); };
+    {
+        return LeptonTriggerWeight(true, syst, source);};
 
     auto pileup_lambda = [&](Correction::variation syst, TString source)
     { return myCorr->GetPUWeight(ev.nTrueInt(), syst, source); };
@@ -465,36 +471,37 @@ float Vcb::LeptonTriggerWeight(bool isEle, const Correction::variation syst, con
     case Channel::MM:
     {
         if(isEle) return 1.f;
-        float num = 1.f;
-        float den = 1.f;
+        double num = 1.f;
+        double den = 1.f;
         for (const auto &mu : Muons)
         {
             num *= (1.f - 0.93*myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], mu.Eta(), mu.Pt(), muonVariation, muonSystSource));
             den *= (1.f - 0.93); // hardcoded: let MCEff = 1, DataEff = SF, MUON POG PLEASE GIVE ME EFFICIENCY
         }
-        return (1.f - num) / (1.f - den);
+        return (1. - num) / (1. - den);
     }
     case Channel::ME:
     {
-        float num = 1.f;
-        float den = 1.f;
+        double num = 1.f;
+        double den = 1.f;
         num *= (1.f - 0.93*myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], Muons[0].Eta(), Muons[0].Pt(), muonVariation, muonSystSource));
         den *= (1.f - 0.93); // hardcoded: let MCEff = 1, DataEff = SF, MUON POG PLEASE GIVE ME EFFICIENCY
         num *= (1.f - myCorr->GetElectronTriggerDataEff(El_Trigger_SF_Key[DataEra.Data()], Electrons[0].Eta(), Electrons[0].Pt(), electronVariation, electronSystSource));
         den *= (1.f - myCorr->GetElectronTriggerMCEff(El_Trigger_SF_Key[DataEra.Data()], Electrons[0].Eta(), Electrons[0].Pt(), electronVariation, electronSystSource));
-        return (1.f - num) / (1.f - den);
+        return (1. - num) / (1. - den);
     }
     case Channel::EE:
     {
         if(!isEle) return 1.f;
-        float num = 1.f;
-        float den = 1.f;
+        double num = 1.f;
+        double den = 1.f;
         for (const auto &el : Electrons)
         {
+            cout << "num: " << num << " den: " << den << endl;
             num *= (1.f - myCorr->GetElectronTriggerDataEff(El_Trigger_SF_Key[DataEra.Data()], el.Eta(), el.Pt(), electronVariation, electronSystSource));
             den *= (1.f - myCorr->GetElectronTriggerMCEff(El_Trigger_SF_Key[DataEra.Data()], el.Eta(), el.Pt(), electronVariation, electronSystSource));
         }
-        return (1.f - num) / (1.f - den);
+        return (1. - num) / (1. - den);
     }
     default:
     {

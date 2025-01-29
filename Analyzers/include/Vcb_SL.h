@@ -48,9 +48,11 @@ public:
     inline std::string GetRegionString() override
     {
         if(class_label == classCategory::Signal) return "SR";
-        else if(class_label == classCategory::tt) return "tt";
-        else if(class_label == classCategory::ttC) return "ttC";
         else if(class_label == classCategory::ttB) return "ttB";
+        else if(class_label == classCategory::ttC || class_label == classCategory::tt){
+            if(n_jets<=4) return "tt";
+            else return "ttC";
+        }
         else throw std::runtime_error("Invalid class label");
     }
 

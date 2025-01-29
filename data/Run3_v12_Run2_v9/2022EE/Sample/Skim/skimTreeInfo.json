@@ -658,5 +658,55 @@
         "suffix": "Vcb_SL",
         "PD": "DYJets_MG",
         "isMC": 1
+    },
+    "Skim_Vcb_DL_ttWtoLNu_EWK": {
+        "suffix": "Vcb_DL",
+        "PD": "ttWtoLNu_EWK",
+        "isMC": 1
+    },
+    "Skim_Vcb_DL_ttWtoLNu": {
+        "suffix": "Vcb_DL",
+        "PD": "ttWtoLNu",
+        "isMC": 1
+    },
+    "Skim_Vcb_DL_ttZtoLL_MLL50toInf": {
+        "suffix": "Vcb_DL",
+        "PD": "ttZtoLL_MLL50toInf",
+        "isMC": 1
+    },
+    "Skim_Vcb_DL_ttZtoLL_MLL4to50": {
+        "suffix": "Vcb_DL",
+        "PD": "ttZtoLL_MLL4to50",
+        "isMC": 1
+    },
+    "Skim_Vcb_DL_ttZtoNuNu": {
+        "suffix": "Vcb_DL",
+        "PD": "ttZtoNuNu",
+        "isMC": 1
+    },
+    "Skim_Vcb_SL_ttWtoLNu_EWK": {
+        "suffix": "Vcb_SL",
+        "PD": "ttWtoLNu_EWK",
+        "isMC": 1
+    },
+    "Skim_Vcb_SL_ttWtoLNu": {
+        "suffix": "Vcb_SL",
+        "PD": "ttWtoLNu",
+        "isMC": 1
+    },
+    "Skim_Vcb_SL_ttZtoLL_MLL50toInf": {
+        "suffix": "Vcb_SL",
+        "PD": "ttZtoLL_MLL50toInf",
+        "isMC": 1
+    },
+    "Skim_Vcb_SL_ttZtoLL_MLL4to50": {
+        "suffix": "Vcb_SL",
+        "PD": "ttZtoLL_MLL4to50",
+        "isMC": 1
+    },
+    "Skim_Vcb_SL_ttZtoNuNu": {
+        "suffix": "Vcb_SL",
+        "PD": "ttZtoNuNu",
+        "isMC": 1
     }
 }

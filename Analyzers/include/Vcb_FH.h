@@ -47,7 +47,7 @@ public:
         if(class_label == classCategory::Signal) return "SR_FH";
         else if(class_label == classCategory::tt) return "tt_FH";
         else if(class_label == classCategory::Disposal) return "Disposal_FH";
-        else throw std::runtime_error("Invalid class label");
+        else throw std::runtime_error(" label");
     }
 
     
