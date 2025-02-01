@@ -59,11 +59,6 @@
         "PD": "TTLJ_powheg_mTop173p5",
         "isMC": 1
     },
-    "Skim_Vcb_SL_ttWtoQQ": {
-        "suffix": "Vcb_SL",
-        "PD": "ttWtoQQ",
-        "isMC": 1
-    },
     "Skim_Vcb_SL_ttZtoQQ": {
         "suffix": "Vcb_SL",
         "PD": "ttZtoQQ",
@@ -127,16 +122,6 @@
     "Skim_Vcb_SL_ZZto4L": {
         "suffix": "Vcb_SL",
         "PD": "ZZto4L",
-        "isMC": 1
-    },
-    "Skim_Vcb_SL_WJets": {
-        "suffix": "Vcb_SL",
-        "PD": "WJets",
-        "isMC": 1
-    },
-    "Skim_Vcb_SL_DYJets": {
-        "suffix": "Vcb_SL",
-        "PD": "DYJets",
         "isMC": 1
     },
     "Skim_Vcb_SL_QCD_HT1500to2000": {
@@ -324,11 +309,6 @@
         "PD": "TTLL_powheg",
         "isMC": 1
     },
-    "Skim_Vcb_DL_ttWtoQQ": {
-        "suffix": "Vcb_DL",
-        "PD": "ttWtoQQ",
-        "isMC": 1
-    },
     "Skim_Vcb_DL_ttZtoQQ": {
         "suffix": "Vcb_DL",
         "PD": "ttZtoQQ",
@@ -392,16 +372,6 @@
     "Skim_Vcb_DL_ZZto4L": {
         "suffix": "Vcb_DL",
         "PD": "ZZto4L",
-        "isMC": 1
-    },
-    "Skim_Vcb_DL_WJets": {
-        "suffix": "Vcb_DL",
-        "PD": "WJets",
-        "isMC": 1
-    },
-    "Skim_Vcb_DL_DYJets": {
-        "suffix": "Vcb_DL",
-        "PD": "DYJets",
         "isMC": 1
     },
     "Skim_Vcb_DL_QCD_HT1500to2000": {
@@ -659,11 +629,6 @@
         "PD": "DYJets_MG",
         "isMC": 1
     },
-    "Skim_Vcb_DL_ttWtoLNu_EWK": {
-        "suffix": "Vcb_DL",
-        "PD": "ttWtoLNu_EWK",
-        "isMC": 1
-    },
     "Skim_Vcb_DL_ttWtoLNu": {
         "suffix": "Vcb_DL",
         "PD": "ttWtoLNu",
@@ -684,11 +649,6 @@
         "PD": "ttZtoNuNu",
         "isMC": 1
     },
-    "Skim_Vcb_SL_ttWtoLNu_EWK": {
-        "suffix": "Vcb_SL",
-        "PD": "ttWtoLNu_EWK",
-        "isMC": 1
-    },
     "Skim_Vcb_SL_ttWtoLNu": {
         "suffix": "Vcb_SL",
         "PD": "ttWtoLNu",
@@ -707,6 +667,76 @@
     "Skim_Vcb_SL_ttZtoNuNu": {
         "suffix": "Vcb_SL",
         "PD": "ttZtoNuNu",
+        "isMC": 1
+    },
+    "Skim_Vcb_FH_QCD_PT3200toInf": {
+        "suffix": "Vcb_FH",
+        "PD": "QCD_PT3200toInf",
+        "isMC": 1
+    },
+    "Skim_Vcb_FH_QCD_PT2400to3200": {
+        "suffix": "Vcb_FH",
+        "PD": "QCD_PT2400to3200",
+        "isMC": 1
+    },
+    "Skim_Vcb_FH_QCD_PT1800to2400": {
+        "suffix": "Vcb_FH",
+        "PD": "QCD_PT1800to2400",
+        "isMC": 1
+    },
+    "Skim_Vcb_FH_QCD_PT1400to1800": {
+        "suffix": "Vcb_FH",
+        "PD": "QCD_PT1400to1800",
+        "isMC": 1
+    },
+    "Skim_Vcb_FH_QCD_PT1000to1400": {
+        "suffix": "Vcb_FH",
+        "PD": "QCD_PT1000to1400",
+        "isMC": 1
+    },
+    "Skim_Vcb_FH_QCD_PT800to1000": {
+        "suffix": "Vcb_FH",
+        "PD": "QCD_PT800to1000",
+        "isMC": 1
+    },
+    "Skim_Vcb_FH_QCD_PT600to800": {
+        "suffix": "Vcb_FH",
+        "PD": "QCD_PT600to800",
+        "isMC": 1
+    },
+    "Skim_Vcb_FH_QCD_PT470to600": {
+        "suffix": "Vcb_FH",
+        "PD": "QCD_PT470to600",
+        "isMC": 1
+    },
+    "Skim_Vcb_FH_QCD_PT300to470": {
+        "suffix": "Vcb_FH",
+        "PD": "QCD_PT300to470",
+        "isMC": 1
+    },
+    "Skim_Vcb_FH_QCD_PT170to300": {
+        "suffix": "Vcb_FH",
+        "PD": "QCD_PT170to300",
+        "isMC": 1
+    },
+    "Skim_Vcb_FH_QCD_PT120to170": {
+        "suffix": "Vcb_FH",
+        "PD": "QCD_PT120to170",
+        "isMC": 1
+    },
+    "Skim_Vcb_FH_QCD_PT80to120": {
+        "suffix": "Vcb_FH",
+        "PD": "QCD_PT80to120",
+        "isMC": 1
+    },
+    "Skim_Vcb_FH_QCD_PT50to80": {
+        "suffix": "Vcb_FH",
+        "PD": "QCD_PT50to80",
+        "isMC": 1
+    },
+    "Skim_Vcb_FH_QCD_PT30to50": {
+        "suffix": "Vcb_FH",
+        "PD": "QCD_PT30to50",
         "isMC": 1
     }
 }
