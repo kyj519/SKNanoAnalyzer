@@ -466,7 +466,7 @@ float Vcb::LeptonTriggerWeight(bool isEle, const Correction::variation syst, con
     case Channel::El:
     {
         if(!isEle) return 1.f;
-        return myCorr->GetElectronTriggerSF(El_Trigger_SF_Key[DataEra.Data()], lepton.Eta(), lepton.Pt(), electronVariation, electronSystSource);
+        return myCorr->GetElectronTriggerSF(El_Trigger_SF_Key[DataEra.Data()], lepton.Eta(), lepton.Pt(), lepton.Phi(), electronVariation, electronSystSource);
     }
     case Channel::MM:
     {
@@ -486,8 +486,8 @@ float Vcb::LeptonTriggerWeight(bool isEle, const Correction::variation syst, con
         double den = 1.f;
         num *= (1.f - 0.93*myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], Muons[0].Eta(), Muons[0].Pt(), muonVariation, muonSystSource));
         den *= (1.f - 0.93); // hardcoded: let MCEff = 1, DataEff = SF, MUON POG PLEASE GIVE ME EFFICIENCY
-        num *= (1.f - myCorr->GetElectronTriggerDataEff(El_Trigger_SF_Key[DataEra.Data()], Electrons[0].Eta(), Electrons[0].Pt(), electronVariation, electronSystSource));
-        den *= (1.f - myCorr->GetElectronTriggerMCEff(El_Trigger_SF_Key[DataEra.Data()], Electrons[0].Eta(), Electrons[0].Pt(), electronVariation, electronSystSource));
+        num *= (1.f - myCorr->GetElectronTriggerDataEff(El_Trigger_SF_Key[DataEra.Data()], Electrons[0].Eta(), Electrons[0].Pt(), Electrons[0].Phi(), electronVariation, electronSystSource));
+        den *= (1.f - myCorr->GetElectronTriggerMCEff(El_Trigger_SF_Key[DataEra.Data()], Electrons[0].Eta(), Electrons[0].Pt(), Electrons[0].Phi(), electronVariation, electronSystSource));
         return (1. - num) / (1. - den);
     }
     case Channel::EE:
@@ -497,9 +497,8 @@ float Vcb::LeptonTriggerWeight(bool isEle, const Correction::variation syst, con
         double den = 1.f;
         for (const auto &el : Electrons)
         {
-            cout << "num: " << num << " den: " << den << endl;
-            num *= (1.f - myCorr->GetElectronTriggerDataEff(El_Trigger_SF_Key[DataEra.Data()], el.Eta(), el.Pt(), electronVariation, electronSystSource));
-            den *= (1.f - myCorr->GetElectronTriggerMCEff(El_Trigger_SF_Key[DataEra.Data()], el.Eta(), el.Pt(), electronVariation, electronSystSource));
+            num *= (1.f - myCorr->GetElectronTriggerDataEff(El_Trigger_SF_Key[DataEra.Data()], el.Eta(), el.Pt(), el.Phi(), electronVariation, electronSystSource));
+            den *= (1.f - myCorr->GetElectronTriggerMCEff(El_Trigger_SF_Key[DataEra.Data()], el.Eta(), el.Pt(), el.Phi(), electronVariation, electronSystSource));
         }
         return (1. - num) / (1. - den);
     }
