@@ -54,6 +54,7 @@ float AnalyzerCore::GetScaleVariation(const Correction::variation &muF_syst, con
 
 float AnalyzerCore::GetPSWeight(const Correction::variation &ISR_syst, const Correction::variation &FSR_syst){
     //[0] is ISR=2 FSR=1; [1] is ISR=1 FSR=2[2] is ISR=0.5 FSR=1; [3] is ISR=1 FSR=0.5;
+    if(nPSWeight == 1) return 1.;
     if(ISR_syst == Correction::variation::up && FSR_syst == Correction::variation::nom) return PSWeight[0];
     else if(ISR_syst == Correction::variation::nom && FSR_syst == Correction::variation::up) return PSWeight[1];
     else if(ISR_syst == Correction::variation::down && FSR_syst == Correction::variation::nom) return PSWeight[2];
