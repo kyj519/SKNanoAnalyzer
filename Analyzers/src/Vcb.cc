@@ -112,6 +112,8 @@ void Vcb::FillHistogramsAtThisPoint(const TString &histPrefix, float weight)
     FillHist(histPrefix + "/" + "n_partonFlav_c_jets", n_partonFlav_c_jets, weight, 8, 0., 8.);
     FillHist(histPrefix + "/" + "real_b_vs_tagged_b", n_partonFlav_b_jets, n_b_tagged_jets, weight, 8, 0., 8., 6, 2., 8.);
     FillHist(histPrefix + "/" + "real_c_vs_tagged_c", n_partonFlav_c_jets, n_c_tagged_jets, weight, 8, 0., 8., 6, 2., 8.);
+    FillHist(histPrefix + "/" + "BvsC_Unrolled", Unroller(Jets), weight, 16, 0., 16.);
+
     for (size_t i = 0; i < Jets.size(); i++)
     {
         FillHist(histPrefix + "/" + "Jet_Pt_" + std::to_string(i), Jets[i].Pt(), weight, 50, 0., 500.);
@@ -134,7 +136,6 @@ void Vcb::FillHistogramsAtThisPoint(const TString &histPrefix, float weight)
         FillHist(histPrefix + "/" + "ZCand_Mass", ZCand.M(), weight, 50, 0., 200.);
         FillHist(histPrefix + "/" + "ZCand_Pt", ZCand.Pt(), weight, 50, 0., 200.);
         FillHist(histPrefix + "/" + "ZCand_Eta", ZCand.Eta(), weight, 50, -2.5, 2.5);
-        FillHist(histPrefix + "/" + "BvsC_Unrolled", Unroller(Jets), weight, 16, 0., 16.);
     }
 }
 
@@ -190,9 +191,12 @@ void Vcb::executeEvent()
     if (HasFlag("Training"))
     {
         Clear();
-        if (!PassBaseLineSelection()) return;
-        FillTrainingTree();
-        return;
+        for(const auto &syst_dummy : *systHelper){
+            if (!PassBaseLineSelection()) return;
+            if(!(systHelper->getCurrentIterSysSource() == "Jet_En" && systHelper->getCurrentIterVariation() == Correction::variation::down)) continue;
+            FillTrainingTree();
+            return;
+        }
     }
     if (!CheckChannel())
     {
