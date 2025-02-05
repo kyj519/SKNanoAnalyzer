@@ -211,7 +211,7 @@ void Vcb_FH::FillTrainingTree()
     SetBranch("Training_Tree", "n_c_tagged_jets", n_c_tagged_jets);
     SetBranch("Training_Tree", "find_all_jets", find_all_jets);
     float weight = MCNormalization();
-    weight *= systHelper->calculateWeight()["Central"];
+    weight *= systHelper->calculateWeight()["Jet_En_Down"];
     SetBranch("Training_Tree", "weight", weight);
     
     if (find_all_jets)
