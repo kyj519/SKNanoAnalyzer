@@ -230,7 +230,8 @@ void Vcb::SetSystematicLambda(bool remove_flavtagging_sf)
         return myCorr->GetElectronRECOSF(Electrons, syst, source); };
     auto el_trigger_lambda = [&](Correction::variation syst, TString source)
     {
-        return LeptonTriggerWeight(true, syst, source);};
+        return LeptonTriggerWeight(true, syst, source);
+    };
 
     auto pileup_lambda = [&](Correction::variation syst, TString source)
     { return myCorr->GetPUWeight(ev.nTrueInt(), syst, source); };

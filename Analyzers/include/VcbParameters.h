@@ -259,7 +259,21 @@ static inline std::unordered_map<std::string, std::string> Sample_Shorthand = {
     {"QCD_HT1000to1200", "QCD"},
     {"QCD_HT1200to1500", "QCD"},
     {"QCD_HT1500to2000", "QCD"},
-    {"QCD_HT2000toInf", "QCD"}
+    {"QCD_HT2000toInf", "QCD"},
+    {"QCD_PT30to50", "QCD"},
+    {"QCD_PT50to80", "QCD"},
+    {"QCD_PT80to120", "QCD"},
+    {"QCD_PT120to170", "QCD"},
+    {"QCD_PT170to300", "QCD"},
+    {"QCD_PT300to470", "QCD"},
+    {"QCD_PT470to600", "QCD"},
+    {"QCD_PT600to800", "QCD"},
+    {"QCD_PT800to1000", "QCD"},
+    {"QCD_PT1000to1400", "QCD"},
+    {"QCD_PT1400to1800", "QCD"},
+    {"QCD_PT1800to2400", "QCD"},
+    {"QCD_PT2400to3200", "QCD"},
+    {"QCD_PT3200toInf", "QCD"}
 };
 
 #endif
