@@ -1,5 +1,106 @@
 systematics:
   - syst: Jet_En
+    source: total
+    evtLoopAgain: true
+
+  - syst: Jet_En_AbsoluteMPFBias
+    source: AbsoluteMPFBias
+    evtLoopAgain: true
+
+  - syst: Jet_En_AbsoluteScale
+    source: AbsoluteScale
+    evtLoopAgain: true
+
+  - syst: Jet_En_AbsoluteStat
+    source: AbsoluteStat
+    evtLoopAgain: true
+
+  - syst: Jet_En_FlavorQCD
+    source: FlavorQCD
+    evtLoopAgain: true
+
+  - syst: Jet_En_Fragmentation
+    source: Fragmentation
+    evtLoopAgain: true
+
+  - syst: Jet_En_PileUpDataMC
+    source: PileUpDataMC
+    evtLoopAgain: true
+
+  - syst: Jet_En_PileUpPtBB
+    source: PileUpPtBB
+    evtLoopAgain: true
+
+  - syst: Jet_En_PileUpPtEC1
+    source: PileUpPtEC1
+    evtLoopAgain: true
+
+  - syst: Jet_En_PileUpPtEC2
+    source: PileUpPtEC2
+    evtLoopAgain: true
+
+  - syst: Jet_En_PileUpPtHF
+    source: PileUpPtHF
+    evtLoopAgain: true  
+
+  - syst: Jet_En_PileUpPtRef
+    source: PileUpPtRef
+    evtLoopAgain: true
+
+  - syst: Jet_En_RelativeFSR
+    source: RelativeFSR
+    evtLoopAgain: true
+
+  - syst: Jet_En_RelativeJEREC1
+    source: RelativeJEREC1
+    evtLoopAgain: true
+
+  - syst: Jet_En_RelativeJEREC2
+    source: RelativeJEREC2
+    evtLoopAgain: true
+
+  - syst: Jet_En_RelativeJERHF
+    source: RelativeJERHF
+    evtLoopAgain: true
+
+  - syst: Jet_En_RelativePtBB
+    source: RelativePtBB
+    evtLoopAgain: true
+
+  - syst: Jet_En_RelativePtEC1
+    source: RelativePtEC1
+    evtLoopAgain: true
+
+  - syst: Jet_En_RelativePtEC2
+    source: RelativePtEC2
+    evtLoopAgain: true
+
+  - syst: Jet_En_RelativePtHF
+    source: RelativePtHF
+    evtLoopAgain: true
+
+  - syst: Jet_En_RelativeStatEC 
+    source: RelativeStatEC
+    evtLoopAgain: true
+
+  - syst: Jet_En_RelativeStatFSR    
+    source: RelativeStatFSR
+    evtLoopAgain: true
+
+  - syst: Jet_En_RelativeStatHF
+    source: RelativeStatHF
+    evtLoopAgain: true
+
+  - syst: Jet_En_SinglePionECAL 
+    source: SinglePionECAL
+    evtLoopAgain: true
+
+  - syst: Jet_En_SinglePionHCAL 
+    source: SinglePionHCAL
+    evtLoopAgain: true
+
+  - syst: Jet_En_TimePtEta
+    source: TimePtEta
     evtLoopAgain: true
 
   - syst: Jet_Res

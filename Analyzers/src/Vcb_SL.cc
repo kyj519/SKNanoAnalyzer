@@ -174,17 +174,33 @@ bool Vcb_SL::PassBaseLineSelection(bool remove_flavtagging_cut)
     FillCutFlow(3);
 
     Jets = SelectJets(AllJets, Jet_ID, SL_Jet_Pt_cut, Jet_Eta_cut);
-    if (systHelper->getCurrentIterSysSource() == "Jet_En")
+
+    if (systHelper->getCurrentIterSysTarget().find("Jet_En") != std::string::npos)
     {
-        Jets = ScaleJets(AllJets, systHelper->getCurrentIterVariation());
+        if (HasFlag("doBreakdown"))
+        {
+            if (systHelper->getCurrentIterSysSource() == "total")
+                return false;
+            else
+                Jets = ScaleJets(AllJets, systHelper->getCurrentIterVariation(), systHelper->getCurrentIterSysSource());
+        }
+        else
+        {
+            if (systHelper->getCurrentIterSysSource() == "total")
+                Jets = ScaleJets(AllJets, systHelper->getCurrentIterVariation());
+            else
+                return false;
+        }
         MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::JES);
     }
-    if (systHelper->getCurrentIterSysSource() == "Jet_Res")
+    MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::JES);
+
+    if (systHelper->getCurrentIterSysTarget() == "Jet_Res")
     {
         Jets = SmearJets(AllJets, AllGenJets, systHelper->getCurrentIterVariation());
         MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::JER);
     }
-    if (systHelper->getCurrentIterSysSource() == "UE")
+    if (systHelper->getCurrentIterSysTarget() == "UE")
     {
         MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::UE);
     }
@@ -274,7 +290,6 @@ void Vcb_SL::FillTrainingTree()
 {
     ttbar_jet_indices = FindTTbarJetIndices();
 
-    // GetKineMaticFitterResult(Jets, MET, lepton);
     float weight = MCNormalization();
     weight *= systHelper->calculateWeight()["Jet_En_Down"];
     SetBranch("Training_Tree", "weight", weight);
@@ -1301,9 +1316,7 @@ void Vcb_SL::InferONNX()
     // 0.1724137931034483 0.7241379310344828 0.10344827586206895
     // 0.034482758620689655 0.7931034482758621 0.1724137931034483
     // weights for Vcb: 0.017433288221999882, weights for TTLJ: 0.8531678524172805, weights for TTC: 0.07880462815669911, weights for TTB: 0.050594231204020484
-    //weights for Vcb: 0.021544346900318832, weights for TTLJ: 0.8979591836734693, weights for TTC: 0.00774263682681127, weights for TTB: 0.07275383259940064
-
-    
+    // weights for Vcb: 0.021544346900318832, weights for TTLJ: 0.8979591836734693, weights for TTC: 0.00774263682681127, weights for TTB: 0.07275383259940064
 
     class_score_temp[0] = class_score_temp[0] * 0.021544346900318832;
     class_score_temp[1] = class_score_temp[1] * 0.8979591836734693;
@@ -1336,9 +1349,10 @@ bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
     // reco cut
     if (Jets[assignment[0]].Pt() < 30. || Jets[assignment[1]].Pt() < 30.)
         return false;
-    if (!HasFlag("spurious")){
-        //if (Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]) < 0.8 || Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]) < 0.8)
-        //    return false;
+    if (!HasFlag("spurious"))
+    {
+        // if (Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]) < 0.8 || Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]) < 0.8)
+        //     return false;
     }
     ttbar_jet_indices = FindTTbarJetIndices();
     if (find_all_jets)
@@ -1364,7 +1378,7 @@ bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
     }
 
     unordered_map<string, vector<float>> template_binning;
-    vector<float> SR_bin = {0.,1.0, 1.05, 1.1, 1.2, 1.3, 1.4, 1.5, 2.0};
+    vector<float> SR_bin = {0., 1.0, 1.05, 1.1, 1.2, 1.3, 1.4, 1.5, 2.0};
     vector<float> tt_bin = {0., 0.2, 0.4, 0.5, 0.6, 0.7, 1.0, 2.0};
     template_binning["SR"] = SR_bin;
     template_binning["tt"] = tt_bin;
@@ -1373,8 +1387,10 @@ bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
     template_binning["TwoB"] = tt_bin;
     template_binning["ThreeB"] = SR_bin;
     string this_region;
-    if (histPrefix.Contains("TwoB")) this_region = "tt";
-    else if(histPrefix.Contains("ThreeB")) this_region = "SR";
+    if (histPrefix.Contains("TwoB"))
+        this_region = "tt";
+    else if (histPrefix.Contains("ThreeB"))
+        this_region = "SR";
     else if (class_label == classCategory::tt)
         this_region = "tt";
     else if (class_label == classCategory::ttC)
@@ -1386,7 +1402,7 @@ bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
     else
         this_region = "tt";
 
-    vector<float> topbvscallbin = {0.,1.05,1.5,1.8,1.95,2.0,2.05,2.1,2.2,2.3,2.4,2.5,3.0};
+    vector<float> topbvscallbin = {0., 1.05, 1.5, 1.8, 1.95, 2.0, 2.05, 2.1, 2.2, 2.3, 2.4, 2.5, 3.0};
     Particle hw = Jets[assignment[2]] + Jets[assignment[3]];
     Particle ht = Jets[assignment[0]] + hw;
     float W1_BvsC = Jets[assignment[2]].GetBTaggerResult(FlavTagger[DataEra.Data()]);
@@ -1404,7 +1420,7 @@ bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
     FillHist(histPrefix + "/" + "Reco_lbBvsC", Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 50, 0., 1.);
     FillHist(histPrefix + "/" + "Reco_hbBvsC", Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 50, 0., 1.);
     FillHist(histPrefix + "/" + "Reco_BvsCAdded", W1_BvsC + W2_BvsC, weight, template_binning[this_region].size() - 1, template_binning[this_region].data());
-    FillHist(histPrefix + "/" + "Reco_BvsC3Added", W1_BvsC+W2_BvsC+ht_BvsC,weight,topbvscallbin.size()-1,topbvscallbin.data());
+    FillHist(histPrefix + "/" + "Reco_BvsC3Added", W1_BvsC + W2_BvsC + ht_BvsC, weight, topbvscallbin.size() - 1, topbvscallbin.data());
     int unrolledIdx = Unroller(Jets[assignment[2]], Jets[assignment[3]]);
     FillHist(histPrefix + "/" + "Reco_W1Bvsc_W2Bvsc_Unrolled", unrolledIdx, weight, 16, 0., 16.);
     std::vector<float> class_score_bin = {0., 0.25, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95};
@@ -1493,7 +1509,8 @@ bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
                 SetBranch("Spurious_Tree", "GenMatch_hadW_Eta", (AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).Eta());
                 SetBranch("Spurious_Tree", "GenMatch_hadW_Phi", (AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).Phi());
             }
-            else{
+            else
+            {
                 SetBranch("Spurious_Tree", "GenMatch_hb_Pt", -999.f);
                 SetBranch("Spurious_Tree", "GenMatch_lb_Pt", -999.f);
                 SetBranch("Spurious_Tree", "GenMatch_W1_Pt", -999.f);
@@ -1522,7 +1539,6 @@ bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
                 SetBranch("Spurious_Tree", "GenMatch_hadW_Pt", -999.f);
                 SetBranch("Spurious_Tree", "GenMatch_hadW_Eta", -999.f);
                 SetBranch("Spurious_Tree", "GenMatch_hadW_Phi", -999.f);
-
             }
 
             if (ttbar_jet_indices[0] >= 0)
@@ -1644,7 +1660,8 @@ bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
                 SetBranch("Good_Tree", "GenMatch_hadW_Eta", (AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).Eta());
                 SetBranch("Good_Tree", "GenMatch_hadW_Phi", (AllGenJets[ttbar_AllGenJets_indices[2]] + AllGenJets[ttbar_AllGenJets_indices[3]]).Phi());
             }
-            else{
+            else
+            {
                 SetBranch("Good_Tree", "GenMatch_hb_Pt", -999.f);
                 SetBranch("Good_Tree", "GenMatch_lb_Pt", -999.f);
                 SetBranch("Good_Tree", "GenMatch_W1_Pt", -999.f);
@@ -1673,7 +1690,6 @@ bool Vcb_SL::FillONNXRecoInfo(const TString &histPrefix, float weight)
                 SetBranch("Good_Tree", "GenMatch_hadW_Pt", -999.f);
                 SetBranch("Good_Tree", "GenMatch_hadW_Eta", -999.f);
                 SetBranch("Good_Tree", "GenMatch_hadW_Phi", -999.f);
-
             }
             if (ttbar_jet_indices[0] >= 0)
             {

@@ -108,28 +108,45 @@ bool Vcb_FH::PassBaseLineSelection(bool remove_flavtagging_cut)
     if (!PassJetVetoMap(AllJets, AllMuons))
         return false;
     RVec<Jet> eep_veto_jets = SelectJets(AllJets, Jet::JetID::NOCUT, 30., INFINITY);
-    if(DataEra == "2022EE" && !PassJetVetoMap(eep_veto_jets, AllMuons,"jetvetomap_eep")) return false;
+    if (DataEra == "2022EE" && !PassJetVetoMap(eep_veto_jets, AllMuons, "jetvetomap_eep"))
+        return false;
     if (!PassMetFilter(AllJets, ev))
         return false;
 
     // Set Objects
     Jets = SelectJets(AllJets, Jet_ID, SL_Jet_Pt_cut, Jet_Eta_cut);
-    if (systHelper->getCurrentIterSysSource() == "Jet_En")
+
+    if (systHelper->getCurrentIterSysTarget().find("Jet_En") != std::string::npos
+)
     {
-        Jets = ScaleJets(AllJets, systHelper->getCurrentIterVariation());
+        if (HasFlag("doBreakdown"))
+        {
+            if (systHelper->getCurrentIterSysSource() == "total")
+                return false;
+            else
+                Jets = ScaleJets(AllJets, systHelper->getCurrentIterVariation(), systHelper->getCurrentIterSysSource());
+        }
+        else
+        {
+            if (systHelper->getCurrentIterSysSource() == "total")
+                Jets = ScaleJets(AllJets, systHelper->getCurrentIterVariation());
+            else
+                return false;
+        }
         MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::JES);
     }
-    if (systHelper->getCurrentIterSysSource() == "Jet_Res")
+    MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::JES);
+
+    if (systHelper->getCurrentIterSysTarget() == "Jet_Res")
     {
         Jets = SmearJets(AllJets, AllGenJets, systHelper->getCurrentIterVariation());
         MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::JER);
     }
-    if (systHelper->getCurrentIterSysSource() == "UE")
+    if (systHelper->getCurrentIterSysTarget() == "UE")
     {
         MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::UE);
     }
     Jets = SelectJets(Jets, Jet_ID, SL_Jet_Pt_cut, Jet_Eta_cut);
-        
 
     MET = ev.GetMETVector(Event::MET_Type::PUPPI);
     Muons_Veto = SelectMuons(AllMuons, Muon_Veto_ID, Muon_Veto_Pt, Muon_Veto_Eta);
@@ -146,7 +163,8 @@ bool Vcb_FH::PassBaseLineSelection(bool remove_flavtagging_cut)
 
     if (n_jets < 6)
         return false;
-    if (Jets[5].Pt() < FH_Jet_Pt_cut[DataEra.Data()]) return false;
+    if (Jets[5].Pt() < FH_Jet_Pt_cut[DataEra.Data()])
+        return false;
 
     for (const auto &jet : Jets)
     {
@@ -166,7 +184,7 @@ bool Vcb_FH::PassBaseLineSelection(bool remove_flavtagging_cut)
     if (n_b_tagged_jets < 3 && !remove_flavtagging_cut)
         return false;
     if (n_c_tagged_jets < 1 && !remove_flavtagging_cut)
-         return false;
+        return false;
     if (Muons_Veto.size() != 0 || Electrons_Veto.size() != 0)
         return false;
     if (HT < FH_HT_cut[DataEra.Data()])
@@ -213,7 +231,7 @@ void Vcb_FH::FillTrainingTree()
     float weight = MCNormalization();
     weight *= systHelper->calculateWeight()["Jet_En_Down"];
     SetBranch("Training_Tree", "weight", weight);
-    
+
     if (find_all_jets)
     {
         Particle W1Cand = Jets[ttbar_jet_indices[2]] + Jets[ttbar_jet_indices[3]];
@@ -646,7 +664,6 @@ RVec<int> Vcb_FH::FindTTbarJetIndices()
         for (auto &p : idxGenPairs)
             these_gens.push_back(p.second);
 
-
         // Perform deltaR matching
         auto result_map = deltaRMatching(these_gens, candidateGenJets, 0.4);
 
@@ -953,10 +970,9 @@ void Vcb_FH::InferONNX()
 
     std::unordered_map<std::string, FloatArray> output_data = myMLHelper->Run_ONNX_Model(input_data, input_shape);
 
-
-    for(size_t i = 0; i < class_score.size(); i++)
+    for (size_t i = 0; i < class_score.size(); i++)
     {
-        
+
         class_score[i] = (std::exp((output_data.at("EVENT/signal").at(i))));
     }
 
@@ -971,7 +987,7 @@ void Vcb_FH::InferONNX()
     std::vector<int> t1_assignment_shape = {1, 10, 10, 10};
     std::vector<int> t2_assignment_shape = {1, 10, 10, 10};
 
-    //first find the most lt probable assignment
+    // first find the most lt probable assignment
 
     size_t max_idx = FindNthMaxIndex(output_data["t1_assignment_log_probability"], 0);
     std::vector<int> current_t1_assignment = UnravelIndex(max_idx, t1_assignment_shape);
@@ -987,7 +1003,7 @@ void Vcb_FH::InferONNX()
     {
         size_t current_max_idx = FindNthMaxIndex(output_data["t2_assignment_log_probability"], i);
         std::vector<int> current_t2_assignment = UnravelIndex(current_max_idx, t2_assignment_shape);
-        
+
         t2b_assignment = current_t2_assignment[3];
         t2q1_assignment = current_t2_assignment[1];
         t2q2_assignment = current_t2_assignment[2];
@@ -997,7 +1013,7 @@ void Vcb_FH::InferONNX()
         {
             checkUnique = true;
         }
-    
+
         if (checkUnique)
         {
             break;
@@ -1016,48 +1032,61 @@ void Vcb_FH::InferONNX()
     assignment[4] = t2q1_assignment;
     assignment[5] = t2q2_assignment;
 
-
     // find which class has the highest score in class_score(find index)
     std::array<float, 3> class_score_temp = {class_score[0], class_score[1], class_score[2]};
     int max_class;
-    if(class_score_temp[2] > 0.1) max_class = 2;
-    else{
-        if(class_score_temp[0] > 0.8) max_class = 0;
-        else max_class = 1;
+    if (class_score_temp[2] > 0.1)
+        max_class = 2;
+    else
+    {
+        if (class_score_temp[0] > 0.8)
+            max_class = 0;
+        else
+            max_class = 1;
     }
-    
-    switch (max_class){
-        case 0:
-            class_label  = classCategory::Signal;
-            break;
-        case 1:
-            class_label = classCategory::tt;
-            break;
-        case 2:
-            class_label = classCategory::Disposal;
-            break;
-        default:
-            break;
+
+    switch (max_class)
+    {
+    case 0:
+        class_label = classCategory::Signal;
+        break;
+    case 1:
+        class_label = classCategory::tt;
+        break;
+    case 2:
+        class_label = classCategory::Disposal;
+        break;
+    default:
+        break;
     }
 }
 
 bool Vcb_FH::FillONNXRecoInfo(const TString &histPrefix, float weight)
 {
-    //reco cut
-    if (Jets[assignment[0]].Pt() < 40.f || Jets[assignment[1]].Pt() < 40.f) return false;
+    // reco cut
+    if (Jets[assignment[0]].Pt() < 40.f || Jets[assignment[1]].Pt() < 40.f)
+        return false;
     ttbar_jet_indices = FindTTbarJetIndices();
     std::vector<float> QCD_CUT;
-    for(size_t i = 0; i < 100; i++) QCD_CUT.push_back(0.002+(0.1-0.002)/100*i);
-    for(int i = 0; i < 100; i++){
-        if(!histPrefix.Contains("Central")) break;
+    for (size_t i = 0; i < 100; i++)
+        QCD_CUT.push_back(0.002 + (0.1 - 0.002) / 100 * i);
+    for (int i = 0; i < 100; i++)
+    {
+        if (!histPrefix.Contains("Central"))
+            break;
         float cut = QCD_CUT[i];
         std::string sample_postfix = Sample_Shorthand[MCSample.Data()];
-        if(MCSample.Contains("TT") && !MCSample.Contains("Vcb")) sample_postfix = sample_postfix + GetTTHFPostFix();
-        if(IsDATA){
-            if(class_score[2] <= cut) FillHist("FH/QCDCUT/Central/data_obs/CUT_" + std::to_string(i) , 0.f, 1.f, 1, 0., 1.);
+        if (MCSample.Contains("TT") && !MCSample.Contains("Vcb"))
+            sample_postfix = sample_postfix + GetTTHFPostFix();
+        if (IsDATA)
+        {
+            if (class_score[2] <= cut)
+                FillHist("FH/QCDCUT/Central/data_obs/CUT_" + std::to_string(i), 0.f, 1.f, 1, 0., 1.);
         }
-        else if(systHelper->getCurrentSysName() == "Central"){
-            if(class_score[2] <= cut) FillHist("FH/QCDCUT/Central/" + sample_postfix + "/CUT_" + std::to_string(i), 0.f, weight, 1, 0., 1.);
+        else if (systHelper->getCurrentSysName() == "Central")
+        {
+            if (class_score[2] <= cut)
+                FillHist("FH/QCDCUT/Central/" + sample_postfix + "/CUT_" + std::to_string(i), 0.f, weight, 1, 0., 1.);
         }
     }
     // if (find_all_jets)
@@ -1071,23 +1100,23 @@ bool Vcb_FH::FillONNXRecoInfo(const TString &histPrefix, float weight)
     //     if (isCorrect) FillHist(histPrefix + "/" + "CorrectAssignment", n_jets, n_b_tagged_jets, 1., 6, 4., 10., 4, 2, 6);
     //     else FillHist(histPrefix + "/" + "WrongAssignment", n_jets, n_b_tagged_jets, 1., 6, 4., 10., 4, 2, 6);
     // }
-    if(Jets[assignment[2]].GetBTaggerResult(FlavTagger[DataEra.Data()]) > Jets[assignment[3]].GetBTaggerResult(FlavTagger[DataEra.Data()]))
+    if (Jets[assignment[2]].GetBTaggerResult(FlavTagger[DataEra.Data()]) > Jets[assignment[3]].GetBTaggerResult(FlavTagger[DataEra.Data()]))
     {
-        //swap the assignment
+        // swap the assignment
         int temp = assignment[2];
         assignment[2] = assignment[3];
         assignment[3] = temp;
     }
-    if(Jets[assignment[4]].GetBTaggerResult(FlavTagger[DataEra.Data()]) > Jets[assignment[5]].GetBTaggerResult(FlavTagger[DataEra.Data()]))
+    if (Jets[assignment[4]].GetBTaggerResult(FlavTagger[DataEra.Data()]) > Jets[assignment[5]].GetBTaggerResult(FlavTagger[DataEra.Data()]))
     {
-        //swap the assignment
+        // swap the assignment
         int temp = assignment[4];
         assignment[4] = assignment[5];
         assignment[5] = temp;
     }
-    if(Jets[assignment[3]].GetBTaggerResult(FlavTagger[DataEra.Data()]) > Jets[assignment[5]].GetBTaggerResult(FlavTagger[DataEra.Data()]))
+    if (Jets[assignment[3]].GetBTaggerResult(FlavTagger[DataEra.Data()]) > Jets[assignment[5]].GetBTaggerResult(FlavTagger[DataEra.Data()]))
     {
-        //swap the assignment
+        // swap the assignment
         std::swap(assignment[3], assignment[5]);
         std::swap(assignment[2], assignment[4]);
         std::swap(assignment[0], assignment[1]);
@@ -1118,13 +1147,13 @@ bool Vcb_FH::FillONNXRecoInfo(const TString &histPrefix, float weight)
     FillHist(histPrefix + "/" + "Reco_t1bBvsC", Jets[assignment[0]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 100, 0., 1.);
     FillHist(histPrefix + "/" + "Reco_t2bBvsC", Jets[assignment[1]].GetBTaggerResult(FlavTagger[DataEra.Data()]), weight, 100, 0., 1.);
 
-    FillHist(histPrefix + "/" + "Reco_BvsCAdded" , W21_BvsC + W22_BvsC, weight, 100, 0., 2.);
+    FillHist(histPrefix + "/" + "Reco_BvsCAdded", W21_BvsC + W22_BvsC, weight, 100, 0., 2.);
     int unrolledIdx = Unroller(Jets[assignment[4]], Jets[assignment[5]]);
     FillHist(histPrefix + "/" + "Reco_W1Bvsc_W2Bvsc_Unrolled", unrolledIdx, weight, 16, 0., 16.);
-    std::vector<float> class_score_bin = {0.,0.5,0.6,0.7,0.8,0.85,0.9,0.95};
+    std::vector<float> class_score_bin = {0., 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95};
     FillHist(histPrefix + "/" + "Class_Category", static_cast<float>(class_label), weight, 3, 0., 3.);
-    FillHist(histPrefix + "/" + "Class_Score0", static_cast<float>(class_score[0]), weight, class_score_bin.size() - 1 , class_score_bin.data());
-    FillHist(histPrefix + "/" + "Class_Score1", static_cast<float>(class_score[1]), weight, class_score_bin.size() - 1 , class_score_bin.data());
-    FillHist(histPrefix + "/" + "Class_Score2", static_cast<float>(class_score[2]), weight, class_score_bin.size() - 1 , class_score_bin.data());
+    FillHist(histPrefix + "/" + "Class_Score0", static_cast<float>(class_score[0]), weight, class_score_bin.size() - 1, class_score_bin.data());
+    FillHist(histPrefix + "/" + "Class_Score1", static_cast<float>(class_score[1]), weight, class_score_bin.size() - 1, class_score_bin.data());
+    FillHist(histPrefix + "/" + "Class_Score2", static_cast<float>(class_score[2]), weight, class_score_bin.size() - 1, class_score_bin.data());
     return true;
 }

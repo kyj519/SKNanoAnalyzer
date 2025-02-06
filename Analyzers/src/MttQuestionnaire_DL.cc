@@ -1,21 +1,21 @@
-#include "Vcb_DL.h"
+#include "MttQuestionnaire_DL.h"
 
-Vcb_DL::Vcb_DL() {}
+MttQuestionnaire_DL::MttQuestionnaire_DL() {}
 
-bool Vcb_DL::PassBaseLineSelection(bool remove_flavtagging_cut)
+bool MttQuestionnaire_DL::PassBaseLineSelection(bool remove_flavtagging_cut)
 {
     FillCutFlow(0);
-    // if (!IsDATA)
-    // {
-    //     try
-    //     {
-    //         myCorr->METXYCorrection(MET, RunNumber, ev.nPVsGood(), Correction::XYCorrection_MetType::Type1PuppiMET);
-    //     }
-    //     catch (const std::exception &e)
-    //     {
-    //         std::cerr << e.what() << '\n';
-    //     }
-    // }
+    if (!IsDATA)
+    {
+        try
+        {
+            myCorr->METXYCorrection(MET, RunNumber, ev.nPVsGood(), Correction::XYCorrection_MetType::Type1PuppiMET);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+    }
     bool passMuTrig = ev.PassTrigger(Mu_Trigger[DataEra.Data()]);
     bool passElTrig = ev.PassTrigger(El_Trigger[DataEra.Data()]);
 
@@ -95,10 +95,6 @@ bool Vcb_DL::PassBaseLineSelection(bool remove_flavtagging_cut)
     HT = GetHT(Jets);
     n_jets = Jets.size();
 
-    if (n_jets < 4)
-        return false;
-    FillCutFlow(4);
-    FillCutFlow(5);
     for (const auto &jet : Jets)
     {
         if (jet.GetBTaggerResult(FlavTagger[DataEra.Data()]) > myCorr->GetBTaggingWP())

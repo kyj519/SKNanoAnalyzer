@@ -1,48 +1,46 @@
-#include "Vcb.h"
+#include "MttQuestionnaire.h"
 
-Vcb::Vcb() {}
+MttQuestionnaire::MttQuestionnaire() {}
 
-void Vcb::initializeAnalyzer()
+void MttQuestionnaire::initializeAnalyzer()
 {
     SetChannel();
     std::string btagging_eff_file = "btaggingEff.json";
     std::string ctagging_eff_file = "ctaggingEff.json";
     std::string btagging_R_file = "btaggingR.json";
     std::string ctagging_R_file = "ctaggingR.json";
-    if(channel == Channel::FH){
+    if (channel == Channel::FH)
+    {
         std::cout << "Initialize Correction for FH" << std::endl;
-        btagging_R_file = "Vcb_FH_btaggingR.json";
-        ctagging_R_file = "Vcb_FH_ctaggingR.json";
+        btagging_R_file = "MttQuestionnaire_FH_btaggingR.json";
+        ctagging_R_file = "MttQuestionnaire_FH_ctaggingR.json";
         myCorr = new Correction(DataEra, IsDATA ? DataStream : MCSample, IsDATA, btagging_eff_file, ctagging_eff_file, btagging_R_file, ctagging_R_file);
         myCorr->SetTaggingParam(FlavTagger[DataEra.Data()], FH_BTag_WP);
-        myMLHelper = std::make_unique<MLHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/data/Run3_v12_Run2_v9/2022EE/spanet_FH_2022EE.onnx", MLHelper::ModelType::ONNX);
     }
-    else if(channel == Channel::Mu || channel == Channel::El){
+    else if (channel == Channel::Mu || channel == Channel::El)
+    {
         std::cout << "Initialize Correction for SL" << std::endl;
-        btagging_R_file = "Vcb_SL_btaggingR.json";
-        ctagging_R_file = "Vcb_SL_ctaggingR.json";
+        btagging_R_file = "MttQuestionnaire_SL_btaggingR.json";
+        ctagging_R_file = "MttQuestionnaire_SL_ctaggingR.json";
         myCorr = new Correction(DataEra, IsDATA ? DataStream : MCSample, IsDATA, btagging_eff_file, ctagging_eff_file, btagging_R_file, ctagging_R_file);
         myCorr->SetTaggingParam(FlavTagger[DataEra.Data()], SL_BTag_WP);
-        myMLHelper = std::make_unique<MLHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/data/Run3_v12_Run2_v9/2022EE/spanet_2022EE_4cls.onnx", MLHelper::ModelType::ONNX);
     }
-    else if(channel == Channel::MM || channel == Channel::ME || channel == Channel::EE){
+    else if (channel == Channel::MM || channel == Channel::ME || channel == Channel::EE)
+    {
         std::cout << "Initialize Correction for DL" << std::endl;
-        btagging_R_file = "Vcb_DL_btaggingR.json";
-        ctagging_R_file = "Vcb_DL_ctaggingR.json";
+        btagging_R_file = "MttQuestionnaire_DL_btaggingR.json";
+        ctagging_R_file = "MttQuestionnaire_DL_ctaggingR.json";
         myCorr = new Correction(DataEra, IsDATA ? DataStream : MCSample, IsDATA, btagging_eff_file, ctagging_eff_file, btagging_R_file, ctagging_R_file);
-        myCorr->SetTaggingParam(FlavTagger[DataEra.Data()], DL_BTag_WP);
     }
-    else{ // because FH doesn't need to specify the channel
+    else
+    { // because FH doesn't need to specify the channel
         std::cout << "Initialize Correction for FH" << std::endl;
-        btagging_R_file = "Vcb_FH_btaggingR.json";
-        ctagging_R_file = "Vcb_FH_ctaggingR.json";
+        btagging_R_file = "MttQuestionnaire_FH_btaggingR.json";
+        ctagging_R_file = "MttQuestionnaire_FH_ctaggingR.json";
         myCorr = new Correction(DataEra, IsDATA ? DataStream : MCSample, IsDATA, btagging_eff_file, ctagging_eff_file, btagging_R_file, ctagging_R_file);
         myCorr->SetTaggingParam(FlavTagger[DataEra.Data()], FH_BTag_WP);
-        myMLHelper = std::make_unique<MLHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/data/Run3_v12_Run2_v9/2022EE/spanet_FH_2022EE.onnx", MLHelper::ModelType::ONNX);
     }
 
-    
-    
     if (IsDATA)
     {
         systHelper = std::make_unique<SystematicHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/AnalyzerTools/noSyst.yaml", DataStream);
@@ -51,11 +49,10 @@ void Vcb::initializeAnalyzer()
     {
         systHelper = std::make_unique<SystematicHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/AnalyzerTools/VcbSystematic_BTag.yaml", MCSample);
     }
-    
-    CreateTrainingTree();
+
 }
 
-void Vcb::SetChannel()
+void MttQuestionnaire::SetChannel()
 {
     if (HasFlag("Skim"))
         std::cout << "Skimming mode detected, will iterate over channel" << std::endl;
@@ -75,33 +72,7 @@ void Vcb::SetChannel()
         channel = Channel::FH;
 }
 
-int Vcb::Unroller(RVec<Jet> &jets)
-{
-    RVec<Jet> jets_BvsC_sorted = jets;
-    JetTagging::JetFlavTagger tagger = FlavTagger[DataEra.Data()];
-    std::sort(jets_BvsC_sorted.begin(), jets_BvsC_sorted.end(), [&tagger](const Jet &a, const Jet &b)
-              { return a.GetBTaggerResult(tagger) > b.GetBTaggerResult(tagger); });
-    Jet third_leading_BvsC_jet = jets_BvsC_sorted[2];
-    Jet fourth_leading_BvsC_jet = jets_BvsC_sorted[3];
-
-    int third_leading_BvsC_jet_PassedBTaggingWP = GetPassedBTaggingWP(third_leading_BvsC_jet);
-    int fourth_leading_BvsC_jet_PassedBTaggingWP = GetPassedBTaggingWP(fourth_leading_BvsC_jet);
-    third_leading_BvsC_jet_PassedBTaggingWP = third_leading_BvsC_jet_PassedBTaggingWP == 4 ? 3 : third_leading_BvsC_jet_PassedBTaggingWP;
-    fourth_leading_BvsC_jet_PassedBTaggingWP = fourth_leading_BvsC_jet_PassedBTaggingWP == 4 ? 3 : fourth_leading_BvsC_jet_PassedBTaggingWP;
-    int unrolled = third_leading_BvsC_jet_PassedBTaggingWP + fourth_leading_BvsC_jet_PassedBTaggingWP * 4;
-    return unrolled;
-}
-
-int Vcb::Unroller(Jet &jet1, Jet &jet2){
-    int jet1_PassedBTaggingWP = GetPassedBTaggingWP(jet1);
-    int jet2_PassedBTaggingWP = GetPassedBTaggingWP(jet2);
-    jet1_PassedBTaggingWP = jet1_PassedBTaggingWP == 4 ? 3 : jet1_PassedBTaggingWP;
-    jet2_PassedBTaggingWP = jet2_PassedBTaggingWP == 4 ? 3 : jet2_PassedBTaggingWP;
-    int unrolled = jet1_PassedBTaggingWP + jet2_PassedBTaggingWP * 4;
-    return unrolled;
-}
-
-void Vcb::FillHistogramsAtThisPoint(const TString &histPrefix, float weight)
+void MttQuestionnaire::FillHistogramsAtThisPoint(const TString &histPrefix, float weight)
 {
     FillHist(histPrefix + "/" + "MET", MET.Pt(), weight, 50, 0., 200.);
     FillHist(histPrefix + "/" + "HT", HT, weight, 100, 200., 2000.);
@@ -112,7 +83,6 @@ void Vcb::FillHistogramsAtThisPoint(const TString &histPrefix, float weight)
     FillHist(histPrefix + "/" + "n_partonFlav_c_jets", n_partonFlav_c_jets, weight, 8, 0., 8.);
     FillHist(histPrefix + "/" + "real_b_vs_tagged_b", n_partonFlav_b_jets, n_b_tagged_jets, weight, 8, 0., 8., 6, 2., 8.);
     FillHist(histPrefix + "/" + "real_c_vs_tagged_c", n_partonFlav_c_jets, n_c_tagged_jets, weight, 8, 0., 8., 6, 2., 8.);
-    FillHist(histPrefix + "/" + "BvsC_Unrolled", Unroller(Jets), weight, 16, 0., 16.);
 
     for (size_t i = 0; i < Jets.size(); i++)
     {
@@ -139,7 +109,7 @@ void Vcb::FillHistogramsAtThisPoint(const TString &histPrefix, float weight)
     }
 }
 
-short Vcb::GetPassedBTaggingWP(const Jet &jet)
+short MttQuestionnaire::GetPassedBTaggingWP(const Jet &jet)
 {
     float TightWP = myCorr->GetBTaggingWP(FlavTagger[DataEra.Data()], JetTagging::JetFlavTaggerWP::Tight);
     float MediumWP = myCorr->GetBTaggingWP(FlavTagger[DataEra.Data()], JetTagging::JetFlavTaggerWP::Medium);
@@ -154,7 +124,7 @@ short Vcb::GetPassedBTaggingWP(const Jet &jet)
         return 0;
 }
 
-short Vcb::GetPassedCTaggingWP(const Jet &jet)
+short MttQuestionnaire::GetPassedCTaggingWP(const Jet &jet)
 {
     float CvsB_TightWP = myCorr->GetCTaggingWP(FlavTagger[DataEra.Data()], JetTagging::JetFlavTaggerWP::Tight).first;
     float CvDL_TightWP = myCorr->GetCTaggingWP(FlavTagger[DataEra.Data()], JetTagging::JetFlavTaggerWP::Tight).second;
@@ -173,7 +143,7 @@ short Vcb::GetPassedCTaggingWP(const Jet &jet)
         return 0;
 }
 
-void Vcb::executeEvent()
+void MttQuestionnaire::executeEvent()
 {
     AllMuons = GetAllMuons();
     AllElectrons = GetAllElectrons();
@@ -188,17 +158,6 @@ void Vcb::executeEvent()
         SkimTree();
         return;
     }
-    if (HasFlag("Training"))
-    {
-        Clear();
-        for(const auto &syst_dummy : *systHelper){
-            if (!PassBaseLineSelection()) return;
-            if(!(systHelper->getCurrentIterSysTarget().find("Jet_En") != std::string::npos
- && systHelper->getCurrentIterVariation() == Correction::variation::down)) continue;
-            FillTrainingTree();
-            return;
-        }
-    }
     if (!CheckChannel())
     {
         throw std::runtime_error("Invalid channel flag for this analyzer");
@@ -207,28 +166,22 @@ void Vcb::executeEvent()
     {
         leptons.clear();
         executeEventFromParameter();
-        if(HasFlag("spurious")) break;
     }
 }
 
-void Vcb::SetSystematicLambda(bool remove_flavtagging_sf)
+void MttQuestionnaire::SetSystematicLambda(bool remove_flavtagging_sf)
 {
     std::unordered_map<std::string, std::variant<std::function<float(Correction::variation, TString)>, std::function<float()>>> weight_function_map;
     auto mu_id_lambda = [&](Correction::variation syst, TString source)
-    { 
-        return myCorr->GetMuonIDSF(Mu_ID_SF_Key[DataEra.Data()], Muons, syst, source); };
+    { return myCorr->GetMuonIDSF(Mu_ID_SF_Key[DataEra.Data()], Muons, syst, source); };
     auto mu_iso_lambda = [&](Correction::variation syst, TString source)
-    { 
-        return myCorr->GetMuonISOSF(Mu_Iso_SF_Key[DataEra.Data()], Muons, syst, source); };
+    { return myCorr->GetMuonISOSF(Mu_Iso_SF_Key[DataEra.Data()], Muons, syst, source); };
     auto mu_trigger_lambda = [&](Correction::variation syst, TString source)
-    { 
-        return LeptonTriggerWeight(false, syst, source); };
+    { return LeptonTriggerWeight(false, syst, source); };
     auto el_id_lambda = [&](Correction::variation syst, TString source)
-    { 
-        return myCorr->GetElectronIDSF(El_ID_SF_Key[DataEra.Data()], Electrons, syst, source); };
+    { return myCorr->GetElectronIDSF(El_ID_SF_Key[DataEra.Data()], Electrons, syst, source); };
     auto el_recosf_lambda = [&](Correction::variation syst, TString source)
-    { 
-        return myCorr->GetElectronRECOSF(Electrons, syst, source); };
+    { return myCorr->GetElectronRECOSF(Electrons, syst, source); };
     auto el_trigger_lambda = [&](Correction::variation syst, TString source)
     {
         return LeptonTriggerWeight(true, syst, source);
@@ -292,7 +245,7 @@ void Vcb::SetSystematicLambda(bool remove_flavtagging_sf)
     { float weight = 1.f;
         weight*=myCorr->GetBTaggingSF(Jets, JetTagging::JetTaggingSFMethod::shape, syst, source); 
         weight*=myCorr->GetBTaggingR(Jets, Sample_Shorthand[MCSample.Data()], syst, source);
-        return weight;};
+        return weight; };
 
     auto dummy_lambda = [&](Correction::variation syst, TString source)
     { return 1.f; };
@@ -315,7 +268,8 @@ void Vcb::SetSystematicLambda(bool remove_flavtagging_sf)
     systHelper->assignWeightFunctionMap(weight_function_map);
 }
 
-void Vcb::Clear(){
+void MttQuestionnaire::Clear()
+{
     HT = 0;
     n_jets = 0;
     n_b_tagged_jets = 0;
@@ -325,89 +279,37 @@ void Vcb::Clear(){
     find_all_jets = false;
 }
 
-void Vcb::executeEventFromParameter()
+void MttQuestionnaire::executeEventFromParameter()
 {
     Clear();
     if (!PassBaseLineSelection())
         return;
-    InferONNX();
-    std::string region_string = GetRegionString();
     std::string channel_string = GetChannelString(channel).Data();
-    if (IsDATA)
+    for (unsigned int strategy = 0; strategy < 1; strategy++)
     {
-        if(!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + "Central/data_obs", 1.f)) return;
-
-        FillHistogramsAtThisPoint(channel_string + "/" + region_string + "/" + "Central/data_obs" , 1.f);
-        if(n_b_tagged_jets >=3){
-            FillHistogramsAtThisPoint(channel_string + "/" + "ThreeB" + "/" + "Central/data_obs" , 1.f);
-            FillONNXRecoInfo(channel_string + "/" + "ThreeB" + "/" + "Central/data_obs", 1.f);
-        }
-        else{
-            FillHistogramsAtThisPoint(channel_string + "/" + "TwoB" + "/" + "Central/data_obs" , 1.f);
-            FillONNXRecoInfo(channel_string + "/" + "TwoB" + "/" + "Central/data_obs", 1.f);
+        GetKineMaticFitterResult(strategy);
+        string strategy_string = "strategy_" + std::to_string(strategy);
+        if (IsDATA)
+        {
+            FillHistogramsAtThisPoint(channel_string + "/" + strategy_string + "/" + "Central/data_obs", 1.f);
+            return;
         }
 
-        return;
-    }
+        std::string sample_postfix = Sample_Shorthand[MCSample.Data()];
+        if (MCSample.Contains("TT") && !MCSample.Contains("Vcb"))
+            sample_postfix = sample_postfix + GetTTHFPostFix();
 
-    std::string sample_postfix = Sample_Shorthand[MCSample.Data()];
-    if(MCSample.Contains("TT") && !MCSample.Contains("Vcb")) sample_postfix = sample_postfix + GetTTHFPostFix();
-
-    unordered_map<std::string, float> weight_map = systHelper->calculateWeight();
-    float default_weight = 1.f;
-    default_weight *= MCNormalization();
-    for (const auto &weight : weight_map)
-    {
-        if(!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight)) return; 
-        FillHistogramsAtThisPoint(channel_string + "/" + region_string + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
-        if(HasFlag("spurious")) return;
-        if(n_b_tagged_jets >=3){
-            FillHistogramsAtThisPoint(channel_string + "/" + "ThreeB" + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
-            FillONNXRecoInfo(channel_string + "/" + "ThreeB" + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
-        }
-        else{
-            FillHistogramsAtThisPoint(channel_string + "/" + "TwoB" + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
-            FillONNXRecoInfo(channel_string + "/" + "TwoB" + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
+        unordered_map<std::string, float> weight_map = systHelper->calculateWeight();
+        float default_weight = 1.f;
+        default_weight *= MCNormalization();
+        for (const auto &weight : weight_map)
+        {
+            FillHistogramsAtThisPoint(channel_string + "/" + strategy_string + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
         }
     }
 }
 
-void Vcb::SetTTbarId()
-{
-    if (!IsDATA)
-    {
-        ttbj = (genTtbarId % 100 == 51 || genTtbarId % 100 == 52);
-        ttbb = (genTtbarId % 100 >= 53 && genTtbarId % 100 <= 55);
-        ttcc = (genTtbarId % 100 >= 41 && genTtbarId % 100 <= 45);
-        ttLF = !(ttbj || ttbb || ttcc);
-    }
-}
-
-void Vcb::CreateTrainingTree()
-{
-}
-
-void Vcb::FillTrainingTree()
-{
-}
-
-RVec<int> Vcb::FindTTbarJetIndices()
-{
-    RVec<int> iamnothing;
-    return iamnothing;
-}
-
-void Vcb::FillKinematicFitterResult(const TString &histPrefix, float weight)
-{
-}
-
-RVec<RVec<unsigned int>> Vcb::GetPermutations(const RVec<Jet> &jets)
-{
-    RVec<RVec<unsigned int>> iamnothing;
-    return iamnothing;
-}
-
-void Vcb::SkimTree()
+void MttQuestionnaire::SkimTree()
 {
     Clear();
     RVec<TString> keeps = {"*"};
@@ -436,7 +338,34 @@ void Vcb::SkimTree()
     return;
 }
 
-float Vcb::LeptonTriggerWeight(bool isEle, const Correction::variation syst, const TString &source)
+void MttQuestionnaire::SetTTbarId()
+{
+    if (!IsDATA)
+    {
+        ttbj = (genTtbarId % 100 == 51 || genTtbarId % 100 == 52);
+        ttbb = (genTtbarId % 100 >= 53 && genTtbarId % 100 <= 55);
+        ttcc = (genTtbarId % 100 >= 41 && genTtbarId % 100 <= 45);
+        ttLF = !(ttbj || ttbb || ttcc);
+    }
+}
+
+RVec<int> MttQuestionnaire::FindTTbarJetIndices()
+{
+    RVec<int> iamnothing;
+    return iamnothing;
+}
+
+void MttQuestionnaire::FillKinematicFitterResult(const TString &histPrefix, float weight)
+{
+}
+
+RVec<RVec<unsigned int>> MttQuestionnaire::GetPermutations(const RVec<Jet> &jets)
+{
+    RVec<RVec<unsigned int>> iamnothing;
+    return iamnothing;
+}
+
+float MttQuestionnaire::LeptonTriggerWeight(bool isEle, const Correction::variation syst, const TString &source)
 {
 
     Correction::variation electronVariation = Correction::variation::nom;
@@ -466,22 +395,25 @@ float Vcb::LeptonTriggerWeight(bool isEle, const Correction::variation syst, con
     }
     case Channel::Mu:
     {
-        if(isEle) return 1.f;
+        if (isEle)
+            return 1.f;
         return myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], lepton.Eta(), lepton.Pt(), muonVariation, muonSystSource);
     }
     case Channel::El:
     {
-        if(!isEle) return 1.f;
+        if (!isEle)
+            return 1.f;
         return myCorr->GetElectronTriggerSF(El_Trigger_SF_Key[DataEra.Data()], lepton.Eta(), lepton.Pt(), lepton.Phi(), electronVariation, electronSystSource);
     }
     case Channel::MM:
     {
-        if(isEle) return 1.f;
+        if (isEle)
+            return 1.f;
         double num = 1.f;
         double den = 1.f;
         for (const auto &mu : Muons)
         {
-            num *= (1.f - 0.93*myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], mu.Eta(), mu.Pt(), muonVariation, muonSystSource));
+            num *= (1.f - 0.93 * myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], mu.Eta(), mu.Pt(), muonVariation, muonSystSource));
             den *= (1.f - 0.93); // hardcoded: let MCEff = 1, DataEff = SF, MUON POG PLEASE GIVE ME EFFICIENCY
         }
         return (1. - num) / (1. - den);
@@ -490,7 +422,7 @@ float Vcb::LeptonTriggerWeight(bool isEle, const Correction::variation syst, con
     {
         double num = 1.f;
         double den = 1.f;
-        num *= (1.f - 0.93*myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], Muons[0].Eta(), Muons[0].Pt(), muonVariation, muonSystSource));
+        num *= (1.f - 0.93 * myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], Muons[0].Eta(), Muons[0].Pt(), muonVariation, muonSystSource));
         den *= (1.f - 0.93); // hardcoded: let MCEff = 1, DataEff = SF, MUON POG PLEASE GIVE ME EFFICIENCY
         num *= (1.f - myCorr->GetElectronTriggerDataEff(El_Trigger_SF_Key[DataEra.Data()], Electrons[0].Eta(), Electrons[0].Pt(), Electrons[0].Phi(), electronVariation, electronSystSource));
         den *= (1.f - myCorr->GetElectronTriggerMCEff(El_Trigger_SF_Key[DataEra.Data()], Electrons[0].Eta(), Electrons[0].Pt(), Electrons[0].Phi(), electronVariation, electronSystSource));
@@ -498,7 +430,8 @@ float Vcb::LeptonTriggerWeight(bool isEle, const Correction::variation syst, con
     }
     case Channel::EE:
     {
-        if(!isEle) return 1.f;
+        if (!isEle)
+            return 1.f;
         double num = 1.f;
         double den = 1.f;
         for (const auto &el : Electrons)
@@ -510,16 +443,7 @@ float Vcb::LeptonTriggerWeight(bool isEle, const Correction::variation syst, con
     }
     default:
     {
-        throw std::runtime_error("[Vcb::LeptonTriggerWeight] Invalid channel");
+        throw std::runtime_error("[MttQuestionnaire::LeptonTriggerWeight] Invalid channel");
     }
     }
-}
-
-void Vcb::InferONNX()
-{
-}
-
-bool Vcb::FillONNXRecoInfo(const TString &histPrefix, float weight)
-{
-    return true;
 }
