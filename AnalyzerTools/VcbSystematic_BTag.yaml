@@ -1,7 +1,7 @@
 systematics:
-  - syst: Jet_En
-    source: total
-    evtLoopAgain: true
+  # - syst: Jet_En
+  #   source: total
+  #   evtLoopAgain: true
 
   - syst: Jet_En_AbsoluteMPFBias
     source: AbsoluteMPFBias
@@ -140,6 +140,106 @@ systematics:
     source: jes
     target: btag
 
+  - syst: B_Tag_JES_AbsoluteMPFBias
+    source: jesAbsoluteMPFBias
+    target: btag
+
+  - syst: B_Tag_JES_AbsoluteScale
+    source: jesAbsoluteScale
+    target: btag
+
+  - syst: B_Tag_JES_AbsoluteStat
+    source: jesAbsoluteStat
+    target: btag
+
+  - syst: B_Tag_JES_FlavorQCD
+    source: jesFlavorQCD
+    target: btag
+
+  - syst: B_Tag_JES_Fragmentation
+    source: jesFragmentation
+    target: btag
+
+  - syst: B_Tag_JES_PileUpDataMC
+    source: jesPileUpDataMC
+    target: btag
+
+  - syst: B_Tag_JES_PileUpPtBB
+    source: jesPileUpPtBB
+    target: btag
+
+  - syst: B_Tag_JES_PileUpPtEC1
+    source: jesPileUpPtEC1
+    target: btag
+
+  - syst: B_Tag_JES_PileUpPtEC2
+    source: jesPileUpPtEC2
+    target: btag
+
+  - syst: B_Tag_JES_PileUpPtHF
+    source: jesPileUpPtHF
+    target: btag
+
+  - syst: B_Tag_JES_PileUpPtRef
+    source: jesPileUpPtRef
+    target: btag
+
+  - syst: B_Tag_JES_RelativeFSR
+    source: jesRelativeFSR
+    target: btag
+
+  - syst: B_Tag_JES_RelativeJEREC1
+    source: jesRelativeJEREC1
+    target: btag
+
+  - syst: B_Tag_JES_RelativeJEREC2
+    source: jesRelativeJEREC2
+    target: btag
+
+  - syst: B_Tag_JES_RelativeJERHF
+    source: jesRelativeJERHF
+    target: btag
+
+  - syst: B_Tag_JES_RelativePtBB
+    source: jesRelativePtBB
+    target: btag
+
+  - syst: B_Tag_JES_RelativePtEC1
+    source: jesRelativePtEC1
+    target: btag
+
+  - syst: B_Tag_JES_RelativePtEC2
+    source: jesRelativePtEC2
+    target: btag
+
+  - syst: B_Tag_JES_RelativePtHF
+    source: jesRelativePtHF
+    target: btag
+
+  - syst: B_Tag_JES_RelativeStatEC
+    source: jesRelativeStatEC
+    target: btag
+
+  - syst: B_Tag_JES_RelativeStatFSR
+    source: jesRelativeStatFSR
+    target: btag
+
+  - syst: B_Tag_JES_RelativeStatHF
+    source: jesRelativeStatHF
+    target: btag
+
+  - syst: B_Tag_JES_SinglePionECAL
+    source: jesSinglePionECAL
+    target: btag
+
+  - syst: B_Tag_JES_SinglePionHCAL
+    source: jesSinglePionHCAL
+    target: btag
+
+  - syst: B_Tag_JES_TimePtEta
+    source: jesTimePtEta
+    target: btag
+
   - syst: B_Tag_CFErr1
     source: cferr1
     target: btag
@@ -193,4 +293,79 @@ systematics:
 correlations:
   - correlation: JES_corr
     sources: ["Jet_En", "B_Tag_JES"]
+
+  - correlation: JES_AbsoluteMPFBias_corr
+    sources: ["Jet_En_AbsoluteMPFBias", "B_Tag_JES_AbsoluteMPFBias"]
+
+  - correlation: JES_AbsoluteScale_corr
+    sources: ["Jet_En_AbsoluteScale", "B_Tag_JES_AbsoluteScale"]
+
+  - correlation: JES_AbsoluteStat_corr
+    sources: ["Jet_En_AbsoluteStat", "B_Tag_JES_AbsoluteStat"]
+
+  - correlation: JES_FlavorQCD_corr
+    sources: ["Jet_En_FlavorQCD", "B_Tag_JES_FlavorQCD"]
+
+  - correlation: JES_Fragmentation_corr
+    sources: ["Jet_En_Fragmentation", "B_Tag_JES_Fragmentation"]
+
+  - correlation: JES_PileUpDataMC_corr
+    sources: ["Jet_En_PileUpDataMC", "B_Tag_JES_PileUpDataMC"]
+
+  - correlation: JES_PileUpPtBB_corr
+    sources: ["Jet_En_PileUpPtBB", "B_Tag_JES_PileUpPtBB"]
+
+  - correlation: JES_PileUpPtEC1_corr
+    sources: ["Jet_En_PileUpPtEC1", "B_Tag_JES_PileUpPtEC1"]
+
+  - correlation: JES_PileUpPtEC2_corr
+    sources: ["Jet_En_PileUpPtEC2", "B_Tag_JES_PileUpPtEC2"]
+
+  - correlation: JES_PileUpPtHF_corr
+    sources: ["Jet_En_PileUpPtHF", "B_Tag_JES_PileUpPtHF"]
+
+  - correlation: JES_PileUpPtRef_corr
+    sources: ["Jet_En_PileUpPtRef", "B_Tag_JES_PileUpPtRef"]
+
+  - correlation: JES_RelativeFSR_corr
+    sources: ["Jet_En_RelativeFSR", "B_Tag_JES_RelativeFSR"]
+
+  - correlation: JES_RelativeJEREC1_corr
+    sources: ["Jet_En_RelativeJEREC1", "B_Tag_JES_RelativeJEREC1"]
+
+  - correlation: JES_RelativeJEREC2_corr
+    sources: ["Jet_En_RelativeJEREC2", "B_Tag_JES_RelativeJEREC2"]
+
+  - correlation: JES_RelativeJERHF_corr
+    sources: ["Jet_En_RelativeJERHF", "B_Tag_JES_RelativeJERHF"]
+
+  - correlation: JES_RelativePtBB_corr
+    sources: ["Jet_En_RelativePtBB", "B_Tag_JES_RelativePtBB"]
+
+  - correlation: JES_RelativePtEC1_corr
+    sources: ["Jet_En_RelativePtEC1", "B_Tag_JES_RelativePtEC1"]
+
+  - correlation: JES_RelativePtEC2_corr
+    sources: ["Jet_En_RelativePtEC2", "B_Tag_JES_RelativePtEC2"]
+
+  - correlation: JES_RelativePtHF_corr
+    sources: ["Jet_En_RelativePtHF", "B_Tag_JES_RelativePtHF"]
+
+  - correlation: JES_RelativeStatEC_corr
+    sources: ["Jet_En_RelativeStatEC", "B_Tag_JES_RelativeStatEC"]
+
+  - correlation: JES_RelativeStatFSR_corr
+    sources: ["Jet_En_RelativeStatFSR", "B_Tag_JES_RelativeStatFSR"]
+
+  - correlation: JES_RelativeStatHF_corr
+    sources: ["Jet_En_RelativeStatHF", "B_Tag_JES_RelativeStatHF"]
+
+  - correlation: JES_SinglePionECAL_corr
+    sources: ["Jet_En_SinglePionECAL", "B_Tag_JES_SinglePionECAL"]
+
+  - correlation: JES_SinglePionHCAL_corr
+    sources: ["Jet_En_SinglePionHCAL", "B_Tag_JES_SinglePionHCAL"]
+
+  - correlation: JES_TimePtEta_corr
+    sources: ["Jet_En_TimePtEta", "B_Tag_JES_TimePtEta"]
 
