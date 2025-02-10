@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(SKNanoAnalyzer VERSION 0.1.0)
 
 # Find ROOT packages
-find_package(ROOT REQUIRED COMPONENTS)
+find_package(ROOT REQUIRED COMPONENTS MathMore)
 find_package(Torch REQUIRED)
 
 include(${ROOT_USE_FILE})
