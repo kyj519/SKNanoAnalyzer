@@ -13,12 +13,12 @@
 - [ ] Check the update in jsonpog-correction when sourcing setup.sh: **Chihwan**
 - [x] Clean up gv0: **Jin**
 - [ ] Compare the sample list in SKFlat with the necessary samples, and bring them if necessary, check xsec, etc.: **Taehee+Eunsu+Jin**
-- [ ] Update the CheckStorages.sh to respect the folder structure under gv0: **Jin**
+- [x] Update the CheckStorages.sh to respect the folder structure under gv0: **Jin**
 - [ ] FatJet and Tau: **Youngwan**
 - [ ] SKNano.py skimming test **Yeonjoon**
-- [ ] Auto-Validation: Make validation files and check the consistency of the output for a specific NanoAOD file: **Jin**
-- [ ] Check for CVMFS environment compatability **deprecated**
-- [ ] Update MeasureTaggingEff.cc **Yeonjoon**
+- [ ] Auto-Validation: Check the consistency of the output for a specific NanoAOD file: **Jin**
+- [x] Check for CVMFS environment compatability **deprecated**
+- [x] Update MeasureTaggingEff.cc **Yeonjoon**
 - [ ] Rochester Correction Follow-up **Ask Hyonsan or Won(Contact: Chihwan)**
 - [ ] Update the network to 10G? (later)
 
@@ -34,7 +34,7 @@ For DY, check the before/after of correction
 - [ ] NLO vs LO comparison in MadGraph Tutorial: **Jin**
 - [ ] Tau+Fatjet Tutorial : **Youngwan**
 
-- [ ] At least try to install untill next meeting : ***All***
+- [ ] At least try to install until next meeting : ***All***
 
 
 ## Useful links
@@ -54,3 +54,5 @@ For DY, check the before/after of correction
 - [LHC ttbar NNLO+NNLL cross sections](https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO)
 - [LHC Single Top NNLO+NNLL cross sections](https://twiki.cern.ch/twiki/bin/view/LHCPhysics/SingleTopRefXsec)
 - [LHC Higgs Cross Section](https://twiki.cern.ch/twiki/bin/view/LHCPhysics/HiggsXSBR)
+- [Rules for Run3 2024 dataset names](https://cms-pdmv.gitbook.io/project/mccontact/rules-for-run3-2024-dataset-names)
+- [Rules for Run3 dataset names](https://cms-pdmv.gitbook.io/project/mccontact/rules-for-run3-dataset-names)

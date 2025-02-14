@@ -1,6 +1,6 @@
-#include "Correction.h"
+#include "MyCorrection.h"
 
-Correction::EraConfig Correction::GetEraConfig(TString era, string btagging_eff_file, string ctagging_eff_file, string btagging_R_file, string ctagging_R_file)
+MyCorrection::EraConfig MyCorrection::GetEraConfig(TString era, string btagging_eff_file, string ctagging_eff_file, string btagging_R_file, string ctagging_R_file)
 {
 
     EraConfig config;
@@ -183,16 +183,16 @@ Correction::EraConfig Correction::GetEraConfig(TString era, string btagging_eff_
     }
     else
     {
-        throw std::invalid_argument("[Correction::GetEraConfig] Invalid era: " + era);
+        throw std::invalid_argument("[MyCorrection::GetEraConfig] Invalid era: " + era);
     }
     return config;
 }
 
-Correction::Correction() {}
+MyCorrection::MyCorrection() {}
 
-Correction::Correction(const TString &era, const TString &sample, const bool IsData, const string &btagging_eff_file, const string &ctagging_eff_file, const string &btagging_R_file, const string &ctagging_R_file)
+MyCorrection::MyCorrection(const TString &era, const TString &sample, const bool IsData, const string &btagging_eff_file, const string &ctagging_eff_file, const string &btagging_R_file, const string &ctagging_R_file)
 {
-    cout << "[Correction::Correction] MCorrection created for " << era << endl;
+    cout << "[MyCorrection::MyCorrection] MyCorrection created for " << era << endl;
     SetEra(era);
     SetSample(sample);
     setIsData(IsData);
@@ -283,15 +283,15 @@ Correction::Correction(const TString &era, const TString &sample, const bool IsD
     JME_vetomap_keys["2016preVFP"] = "Summer19UL16_V1";
 }
 
-Correction::~Correction() {}
+MyCorrection::~MyCorrection() {}
 
-float Correction::GetMuonIDSF(const TString &Muon_ID_SF_Key, const float eta, const float pt, const variation syst, const TString &source) const
+float MyCorrection::GetMuonIDSF(const TString &Muon_ID_SF_Key, const float eta, const float pt, const variation syst, const TString &source) const
 {
     auto cset = cset_muon->at(string(Muon_ID_SF_Key));
     return cset->evaluate({fabs(eta), pt, getSystString_MUO(syst)});
 }
 
-float Correction::GetMuonIDSF(const TString &Muon_ID_SF_Key, const RVec<Muon> &muons, const variation syst, const TString &source) const
+float MyCorrection::GetMuonIDSF(const TString &Muon_ID_SF_Key, const RVec<Muon> &muons, const variation syst, const TString &source) const
 {
     float weight = 1.;
     for (const auto &muon : muons)
@@ -301,7 +301,7 @@ float Correction::GetMuonIDSF(const TString &Muon_ID_SF_Key, const RVec<Muon> &m
     return weight;
 }
 
-float Correction::GetMuonTriggerEff(const TString &Muon_Trigger_Eff_Key, const float abseta, const float pt, const bool eff_for_data, const variation syst, const TString &source) const
+float MyCorrection::GetMuonTriggerEff(const TString &Muon_Trigger_Eff_Key, const float abseta, const float pt, const bool eff_for_data, const variation syst, const TString &source) const
 {
     auto cset = cset_muon_trig_eff->at(string(Muon_Trigger_Eff_Key));
     if (eff_for_data)
@@ -310,7 +310,7 @@ float Correction::GetMuonTriggerEff(const TString &Muon_Trigger_Eff_Key, const f
         return cset->evaluate({"mc", getSystString_MUO(syst), fabs(abseta), pt});
 }
 
-float Correction::GetMuonTriggerWeight(const TString &Muon_Trigger_SF_Key, const RVec<Muon> &muons, const variation syst, const TString &source) const
+float MyCorrection::GetMuonTriggerWeight(const TString &Muon_Trigger_SF_Key, const RVec<Muon> &muons, const variation syst, const TString &source) const
 {
     float eff_data = 1.;
     float eff_mc = 1.;
@@ -324,14 +324,14 @@ float Correction::GetMuonTriggerWeight(const TString &Muon_Trigger_SF_Key, const
     return weight;
 }
 
-float Correction::GetElectronIDSF(const TString &Electron_ID_SF_Key, const float eta, const float pt, const float phi, const variation syst, const TString &source) const
+float MyCorrection::GetElectronIDSF(const TString &Electron_ID_SF_Key, const float eta, const float pt, const float phi, const variation syst, const TString &source) const
 {
     auto cset = cset_electron->at("Electron-ID-SF");
     try
     {
         //NOTE: from 2023, It seems some SF depends on phi. I think it will gradually be applied to all SFs.
         //As a interim solution, I hardcode here.
-        if((cset->inputs().size() == 5)){
+        if(!isInputInCorrection("phi", cset)){
             return cset->evaluate({EGM_keys.at(DataEra.Data()), getSystString_EGM(syst), string(Electron_ID_SF_Key), eta, pt});
         }
         else{
@@ -340,12 +340,12 @@ float Correction::GetElectronIDSF(const TString &Electron_ID_SF_Key, const float
     }
     catch (exception &e)
     {
-        cerr << "[Correction::GetElectronIDSF] " << e.what() << endl;
+        cerr << "[MyCorrection::GetElectronIDSF] " << e.what() << endl;
         throw e;
     }
 }
 
-float Correction::GetElectronIDSF(const TString &Electron_ID_SF_Key, const RVec<Electron> &electrons, const variation syst, const TString &source) const
+float MyCorrection::GetElectronIDSF(const TString &Electron_ID_SF_Key, const RVec<Electron> &electrons, const variation syst, const TString &source) const
 {
     float weight = 1.;
     for (const auto &electron : electrons)
@@ -355,12 +355,12 @@ float Correction::GetElectronIDSF(const TString &Electron_ID_SF_Key, const RVec<
     return weight;
 }
 
-float Correction::GetElectronTriggerSF(const TString &Electron_Trigger_SF_Key, const float eta, const float pt, const float phi, const variation syst, const TString &source) const
+float MyCorrection::GetElectronTriggerSF(const TString &Electron_Trigger_SF_Key, const float eta, const float pt, const float phi, const variation syst, const TString &source) const
 {
     auto cset = cset_electron_hlt->at("Electron-HLT-SF");
     try
     {
-        if(cset->inputs().size() == 5){
+        if(!isInputInCorrection("phi", cset)){
             return cset->evaluate({EGM_keys.at(DataEra.Data()), getSystString_EGM(syst), string(Electron_Trigger_SF_Key), eta, pt});
         }
         else{
@@ -369,12 +369,12 @@ float Correction::GetElectronTriggerSF(const TString &Electron_Trigger_SF_Key, c
     }
     catch (exception &e)
     {
-        cerr << "[Correction::GetElectronTriggerSF] " << e.what() << endl;
+        cerr << "[MyCorrection::GetElectronTriggerSF] " << e.what() << endl;
         throw e;
     }
 }
 
-float Correction::GetElectronTriggerEff(const TString &Electron_Trigger_SF_Key, const float eta, const float pt, const float phi, bool ofDATA, const variation syst, const TString &source) const
+float MyCorrection::GetElectronTriggerEff(const TString &Electron_Trigger_SF_Key, const float eta, const float pt, const float phi, bool ofDATA, const variation syst, const TString &source) const
 {
     std::string key = ofDATA ? "Electron-HLT-DataEff" : "Electron-HLT-McEff";
     auto cset = cset_electron_hlt->at(key);
@@ -387,10 +387,10 @@ float Correction::GetElectronTriggerEff(const TString &Electron_Trigger_SF_Key, 
     else if (ValType == "sfdown")
         ValType = "down";
     else
-        throw std::runtime_error("[Correction::GetElectronTriggerEff] Invalid syst value");
+        throw std::runtime_error("[MyCorrection::GetElectronTriggerEff] Invalid syst value");
     try
     {
-        if(cset->inputs().size() == 5){
+        if(!isInputInCorrection("phi", cset)){
             return cset->evaluate({EGM_keys.at(DataEra.Data()), ValType, string(Electron_Trigger_SF_Key), eta, pt});
         }
         else{
@@ -399,12 +399,12 @@ float Correction::GetElectronTriggerEff(const TString &Electron_Trigger_SF_Key, 
     }
     catch (exception &e)
     {
-        cerr << "[Correction::GetElectronTriggerEff] " << e.what() << endl;
+        cerr << "[MyCorrection::GetElectronTriggerEff] " << e.what() << endl;
         throw e;
     }
 }
 
-float Correction::GetElectronRECOSF(const float eta, const float pt, const float phi,const variation syst, const TString &source) const
+float MyCorrection::GetElectronRECOSF(const float eta, const float pt, const float phi,const variation syst, const TString &source) const
 {
     if (pt < 20.)
         return GetElectronIDSF("RecoBelow20", eta, pt, phi, syst);
@@ -416,7 +416,7 @@ float Correction::GetElectronRECOSF(const float eta, const float pt, const float
         return 1.;
 }
 
-float Correction::GetElectronRECOSF(const RVec<Electron> &electrons, const variation syst, const TString &source) const
+float MyCorrection::GetElectronRECOSF(const RVec<Electron> &electrons, const variation syst, const TString &source) const
 {
     float weight = 1.;
     for (const auto &electron : electrons)
@@ -426,7 +426,7 @@ float Correction::GetElectronRECOSF(const RVec<Electron> &electrons, const varia
     return weight;
 }
 
-float Correction::GetPUWeight(const float nTrueInt, const variation syst, const TString &source) const
+float MyCorrection::GetPUWeight(const float nTrueInt, const variation syst, const TString &source) const
 {
     // nota bene: Input should be nTrueInt, not nPileUp
     correction::Correction::Ref cset = nullptr;
@@ -437,11 +437,11 @@ float Correction::GetPUWeight(const float nTrueInt, const variation syst, const 
     }
     catch (exception &e)
     {
-        cerr << "[Correction::GetPUWeight] " << e.what() << endl;
+        cerr << "[MyCorrection::GetPUWeight] " << e.what() << endl;
         return 1.;
     }
 }
-void Correction::SetTaggingParam(JetTagging::JetFlavTagger tagger, JetTagging::JetFlavTaggerWP wp)
+void MyCorrection::SetTaggingParam(JetTagging::JetFlavTagger tagger, JetTagging::JetFlavTaggerWP wp)
 {
     global_tagger = tagger;
     global_wp = wp;
@@ -449,7 +449,7 @@ void Correction::SetTaggingParam(JetTagging::JetFlavTagger tagger, JetTagging::J
     global_wpStr = JetTagging::GetTaggerCorrectionWPStr(wp);
 }
 
-float Correction::GetBTaggingWP() const
+float MyCorrection::GetBTaggingWP() const
 {
     try
     {
@@ -459,13 +459,13 @@ float Correction::GetBTaggingWP() const
     catch (const std::exception &e)
     {
         std::cerr << "[Correction::GetBTaggingWP] Warning: Failed to evaluate WP '"
-                  << global_wpStr << "' for tagger '" << global_taggerStr
-                  << "'. Returning 1.f as default." << std::endl;
+                  << global_wpStr << "' for tagger '" << global_taggerStr << std::endl;
+        throw std::runtime_error(e.what());
         return 1.f;
     }
 }
 
-float Correction::GetBTaggingWP(JetTagging::JetFlavTagger tagger, JetTagging::JetFlavTaggerWP wp) const
+float MyCorrection::GetBTaggingWP(JetTagging::JetFlavTagger tagger, JetTagging::JetFlavTaggerWP wp) const
 {
     // Convert enumerations to strings
     std::string this_taggerStr = JetTagging::GetTaggerCorrectionLibStr(tagger).Data();
@@ -479,26 +479,25 @@ float Correction::GetBTaggingWP(JetTagging::JetFlavTagger tagger, JetTagging::Je
     catch (const std::exception &e)
     {
         std::cerr << "[Correction::GetBTaggingWP] Warning: Failed to evaluate WP '"
-                  << this_wpStr << "' for tagger '" << this_taggerStr
-                  << "'. Returning 1.f as default." << std::endl;
+                  << this_wpStr << "' for tagger '" << this_taggerStr << std::endl;
+        throw std::runtime_error(e.what());
         return 1.f;
     }
 }
 
-
-float Correction::GetBTaggingEff(const float eta, const float pt, const int flav, JetTagging::JetFlavTagger tagger, JetTagging::JetFlavTaggerWP wp, const variation syst)
+float MyCorrection::GetBTaggingEff(const float eta, const float pt, const int flav, JetTagging::JetFlavTagger tagger, JetTagging::JetFlavTaggerWP wp, const variation syst)
 {
     string this_taggerStr = JetTagging::GetTaggerCorrectionLibStr(tagger).Data();
     string this_wpStr = JetTagging::GetTaggerCorrectionWPStr(wp).Data();
     correction::Correction::Ref cset = cset_btagging_eff->at(this_taggerStr);
-    return cset->evaluate({"eff", this_wpStr, flav, fabs(eta), pt});
+    return cset->evaluate({getSystString_BTV(syst), this_wpStr, flav, fabs(eta), pt});
 }
 
-float Correction::GetBTaggingSF(const RVec<Jet> &jets, const JetTagging::JetFlavTagger tagger, const JetTagging::JetFlavTaggerWP wp, const JetTagging::JetTaggingSFMethod &method, const variation syst, const TString &source)
+float MyCorrection::GetBTaggingSF(const RVec<Jet> &jets, const JetTagging::JetFlavTagger tagger, const JetTagging::JetFlavTaggerWP wp, const JetTagging::JetTaggingSFMethod &method, const variation syst, const TString &source)
 {
     if (Run == 2 && tagger != JetTagging::JetFlavTagger::DeepJet)
     {
-        cerr << "[Correction::GetBTaggingSF] DeepJet is the only supported tagger for 2016preVFP, 2016postVFP, 2017, 2018, and 2018UL" << endl;
+        cerr << "[MyCorrection::GetBTaggingSF] DeepJet is the only supported tagger for 2016preVFP, 2016postVFP, 2017, 2018, and 2018UL" << endl;
         return 1.;
     }
     string this_taggerStr = JetTagging::GetTaggerCorrectionLibStr(tagger).Data();
@@ -525,7 +524,7 @@ float Correction::GetBTaggingSF(const RVec<Jet> &jets, const JetTagging::JetFlav
                 continue; // defaulted jet
             if ((c_flav_source.find(source.Data()) != c_flav_source.end()))
             {
-                weight *= cset->evaluate({this_flav == 4 ? syst_str : getSystString_BTV(Correction::variation::nom),
+                weight *= cset->evaluate({this_flav == 4 ? syst_str : getSystString_BTV(MyCorrection::variation::nom),
                                           this_flav,
                                           fabs(jet.Eta()),
                                           jet.Pt(),
@@ -533,7 +532,7 @@ float Correction::GetBTaggingSF(const RVec<Jet> &jets, const JetTagging::JetFlav
             }
             else
             {
-                weight *= cset->evaluate({this_flav == 4 ? getSystString_BTV(Correction::variation::nom) : syst_str,
+                weight *= cset->evaluate({this_flav == 4 ? getSystString_BTV(MyCorrection::variation::nom) : syst_str,
                                           this_flav,
                                           fabs(jet.Eta()),
                                           jet.Pt(),
@@ -578,12 +577,12 @@ float Correction::GetBTaggingSF(const RVec<Jet> &jets, const JetTagging::JetFlav
     }
     else
     {
-        cout << "[Correction::GetBTaggingSF] method " << JetTagging::GetJetTaggingSFMethodStr(method) << " is not implemented" << endl;
+        cout << "[MyCorrection::GetBTaggingSF] method " << JetTagging::GetJetTaggingSFMethodStr(method) << " is not implemented" << endl;
         exit(ENODATA);
     }
 }
 
-float Correction::GetBTaggingR(const RVec<Jet> &jets, const JetTagging::JetFlavTagger tagger, std::string &processName, const variation syst, const TString &source) const
+float MyCorrection::GetBTaggingR(const RVec<Jet> &jets, const JetTagging::JetFlavTagger tagger, std::string &processName, const variation syst, const TString &source) const
 {
     string this_taggerStr = JetTagging::GetTaggerCorrectionLibStr(tagger).Data();
     string syst_str = getSystString_BTV(syst);
@@ -612,7 +611,7 @@ float Correction::GetBTaggingR(const RVec<Jet> &jets, const JetTagging::JetFlavT
     return weight;
 }
 
-pair<float, float> Correction::GetCTaggingWP() const
+pair<float, float> MyCorrection::GetCTaggingWP() const
 {
     try
     {
@@ -627,13 +626,14 @@ pair<float, float> Correction::GetCTaggingWP() const
         // log a warning and return (1.f, 1.f) as a fallback.
         cerr << "[Correction::GetCTaggingWP] Warning: Failed to evaluate WP '"
              << global_wpStr << "' for tagger '" << global_taggerStr
-             << "'. Returning (1.f, 1.f) as default." << endl;
+             << endl;
+        throw std::runtime_error(e.what());
         return make_pair(1.f, 1.f);
     }
 }
 
 
-pair<float, float> Correction::GetCTaggingWP(JetTagging::JetFlavTagger tagger, JetTagging::JetFlavTaggerWP wp) const
+pair<float, float> MyCorrection::GetCTaggingWP(JetTagging::JetFlavTagger tagger, JetTagging::JetFlavTaggerWP wp) const
 {
     // Convert enumerations to strings using your existing utility functions
     string this_taggerStr = JetTagging::GetTaggerCorrectionLibStr(tagger).Data();
@@ -657,14 +657,14 @@ pair<float, float> Correction::GetCTaggingWP(JetTagging::JetFlavTagger tagger, J
         // print a warning (optional) and return default values
         std::cerr << "[Correction::GetCTaggingWP] Warning: WP '" 
                   << this_wpStr << "' not found for tagger '"
-                  << this_taggerStr << "'. Returning (1.f, 1.f) as default."
-                  << std::endl;
+                  << this_taggerStr << std::endl;
+        throw std::runtime_error(e.what());
         return make_pair(1.f, 1.f);
     }
 }
 
 
-float Correction::GetCTaggingEff(const float eta, const float pt, const int flav, JetTagging::JetFlavTagger tagger, JetTagging::JetFlavTaggerWP wp, const variation syst)
+float MyCorrection::GetCTaggingEff(const float eta, const float pt, const int flav, JetTagging::JetFlavTagger tagger, JetTagging::JetFlavTaggerWP wp, const variation syst)
 {
     return 1.;
     string this_taggerStr = JetTagging::GetTaggerCorrectionLibStr(tagger).Data();
@@ -676,16 +676,16 @@ float Correction::GetCTaggingEff(const float eta, const float pt, const int flav
     });
 }
 
-float Correction::GetCTaggingSF(const RVec<Jet> &jets, const JetTagging::JetFlavTagger tagger, const JetTagging::JetFlavTaggerWP wp, const JetTagging::JetTaggingSFMethod &method, const variation syst, const TString &source)
+float MyCorrection::GetCTaggingSF(const RVec<Jet> &jets, const JetTagging::JetFlavTagger tagger, const JetTagging::JetFlavTaggerWP wp, const JetTagging::JetTaggingSFMethod &method, const variation syst, const TString &source)
 {
     if (Run == 2 && tagger != JetTagging::JetFlavTagger::DeepJet)
     {
-        cerr << "[Correction::GetCTaggingSF] Run2 only supports DeepJet tagger" << endl;
+        cerr << "[MyCorrection::GetCTaggingSF] Run2 only supports DeepJet tagger" << endl;
         return 1.;
     }
     if (Run == 3)
     {
-        // cerr << "[Correction::GetCTaggingSF] Run3 C-Tagger SF not provided by POG yet" << endl;
+        // cerr << "[MyCorrection::GetCTaggingSF] Run3 C-Tagger SF not provided by POG yet" << endl;
         return 1.;
     }
     string this_taggerStr = JetTagging::GetTaggerCorrectionLibStr(tagger).Data();
@@ -748,12 +748,12 @@ float Correction::GetCTaggingSF(const RVec<Jet> &jets, const JetTagging::JetFlav
     }
     else
     {
-        cout << "[Correction::GetBTaggingSF] method " << JetTagging::GetJetTaggingSFMethodStr(method) << " is not implemented" << endl;
+        cout << "[MyCorrection::GetBTaggingSF] method " << JetTagging::GetJetTaggingSFMethodStr(method) << " is not implemented" << endl;
         exit(ENODATA);
     }
 }
 
-float Correction::GetCTaggingR(const float nTrueInt, const float HT, const JetTagging::JetFlavTagger tagger, const TString &processName, const TString &ttBarCategory, const TString &syst_str) const
+float MyCorrection::GetCTaggingR(const float nTrueInt, const float HT, const JetTagging::JetFlavTagger tagger, const TString &processName, const TString &ttBarCategory, const TString &syst_str) const
 {
     string this_taggerStr = JetTagging::GetTaggerCorrectionLibStr(tagger).Data();
     if (processName != "")
@@ -764,7 +764,7 @@ float Correction::GetCTaggingR(const float nTrueInt, const float HT, const JetTa
     return cset->evaluate({syst_str.Data(), ttBarCategory.Data(), nTrueInt, HT});
 }
 
-float Correction::GetJER(const float eta, const float pt, const float rho) const
+float MyCorrection::GetJER(const float eta, const float pt, const float rho) const
 {
     correction::Correction::Ref cset = nullptr;
     string cset_string = JME_JER_GT.at(DataEra.Data());
@@ -773,7 +773,7 @@ float Correction::GetJER(const float eta, const float pt, const float rho) const
     return cset->evaluate({eta, pt, rho});
 }
 
-float Correction::GetJERSF(const float eta, const float pt, const variation syst, const TString &source) const
+float MyCorrection::GetJERSF(const float eta, const float pt, const variation syst, const TString &source) const
 {
     correction::Correction::Ref cset = nullptr;
     string cset_string = JME_JER_GT.at(DataEra.Data());
@@ -790,7 +790,7 @@ float Correction::GetJERSF(const float eta, const float pt, const variation syst
     return 1.;
 }
 
-float Correction::GetJESUncertainty(const float eta, const float pt, const variation syst, const TString &source) const
+float MyCorrection::GetJESUncertainty(const float eta, const float pt, const variation syst, const TString &source) const
 {
     int int_syst = 0;
     if (syst == variation::up)
@@ -809,7 +809,7 @@ float Correction::GetJESUncertainty(const float eta, const float pt, const varia
     return this_factor;
 }
 
-bool Correction::IsJetVetoZone(const float eta, const float phi, TString mapCategory) const
+bool MyCorrection::IsJetVetoZone(const float eta, const float phi, TString mapCategory) const
 {
     correction::Correction::Ref cset = nullptr;
     string cset_string = JME_vetomap_keys.at(DataEra.Data());
@@ -820,11 +820,11 @@ bool Correction::IsJetVetoZone(const float eta, const float phi, TString mapCate
     return false;
 }
 
-void Correction::METXYCorrection(Particle &Met, const int RunNumber, const int npvs, const XYCorrection_MetType MetType)
+void MyCorrection::METXYCorrection(Particle &Met, const int RunNumber, const int npvs, const XYCorrection_MetType MetType)
 {
     if (Run == 3)
     {
-        cout << "[Correction::METXYCorrection] Run3 does not support METXYCorrection" << endl;
+        cout << "[MyCorrection::METXYCorrection] Run3 does not support METXYCorrection" << endl;
         return;
     }
     correction::Correction::Ref cset_pt = nullptr;
@@ -863,7 +863,7 @@ void Correction::METXYCorrection(Particle &Met, const int RunNumber, const int n
     Met.SetPtEtaPhiM(this_pt, this_eta, this_phi, this_m);
 }
 
-float Correction::GetTopPtReweight(const RVec<Gen> &gens) const
+float MyCorrection::GetTopPtReweight(const RVec<Gen> &gens) const
 {
     if (!Sample.Contains("TT") || !Sample.Contains("powheg"))
         return 1.;
