@@ -14,4 +14,3 @@
 #pragma link C++ class Vcb_DL+;
 #pragma link C++ class FullHadronicTriggerTnP+;
 #pragma link C++ class GeneratorStudy+;
-#pragma link C++ class MttQuestionnaire_DL+;

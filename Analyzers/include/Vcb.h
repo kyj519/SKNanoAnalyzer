@@ -64,7 +64,7 @@ public:
             return -simple_pid;
         return simple_pid;
     }
-    float LeptonTriggerWeight(bool isEle, const Correction::variation syst = Correction::variation::nom, const TString &source = "total");
+    float LeptonTriggerWeight(bool isEle, const MyCorrection::variation syst = MyCorrection::variation::nom, const TString &source = "total");
     void Clear();
     int Unroller(RVec<Jet> &jets);
     int Unroller(Jet &jet1, Jet &jet2);

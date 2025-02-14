@@ -65,7 +65,7 @@ void MeasureJetTaggingR::SetAnalyzer(std::variant<Vcb_DL *, Vcb_FH *, Vcb_SL *> 
 void MeasureJetTaggingR::initializeAnalyzer()
 {
 
-    myCorr = new Correction(DataEra, IsDATA ? DataStream : MCSample, IsDATA);
+    myCorr = new MyCorrection(DataEra, IsDATA ? DataStream : MCSample, IsDATA);
     myCorr->SetTaggingParam(JetTagging::JetFlavTagger::DeepJet, JetTagging::JetFlavTaggerWP::Medium); // Temporary Initialisation
     TString datapath = getenv("DATA_DIR");
     TString btagpath = datapath + "/" + DataEra + "/BTag/";
@@ -402,7 +402,7 @@ void MeasureJetTaggingR::executeEventFromParameter()
              
                             std::vector<std::string> this_targets = analyzer->systHelper->get_targets_from_name(this_syst);
                             std::vector<std::string> this_sources = analyzer->systHelper->get_sources_from_name(this_syst);
-                            Correction::variation this_variation = analyzer->systHelper->get_variation_from_name(this_syst);
+                            MyCorrection::variation this_variation = analyzer->systHelper->get_variation_from_name(this_syst);
 
                             std::string source_str = "central";
                             std::string variation_str = "";
@@ -413,11 +413,11 @@ void MeasureJetTaggingR::executeEventFromParameter()
                                 // get index of "btag" in this_targets TODO: have to implementaion for ctag
                                 int index = std::distance(this_targets.begin(), std::find(this_targets.begin(), this_targets.end(), "btag"));
                                 
-                                if(this_variation == Correction::variation::up){
+                                if(this_variation == MyCorrection::variation::up){
                                     source_str = this_sources[index];
                                     variation_str = "up_";
                                 }
-                                else if (this_variation == Correction::variation::down){
+                                else if (this_variation == MyCorrection::variation::down){
                                     source_str = this_sources[index];
                                     variation_str = "down_";
                                 }

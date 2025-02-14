@@ -10,33 +10,33 @@ void Vcb::initializeAnalyzer()
     std::string btagging_R_file = "btaggingR.json";
     std::string ctagging_R_file = "ctaggingR.json";
     if(channel == Channel::FH){
-        std::cout << "Initialize Correction for FH" << std::endl;
+        std::cout << "Initialize MyCorrection for FH" << std::endl;
         btagging_R_file = "Vcb_FH_btaggingR.json";
         ctagging_R_file = "Vcb_FH_ctaggingR.json";
-        myCorr = new Correction(DataEra, IsDATA ? DataStream : MCSample, IsDATA, btagging_eff_file, ctagging_eff_file, btagging_R_file, ctagging_R_file);
+        myCorr = new MyCorrection(DataEra, IsDATA ? DataStream : MCSample, IsDATA, btagging_eff_file, ctagging_eff_file, btagging_R_file, ctagging_R_file);
         myCorr->SetTaggingParam(FlavTagger[DataEra.Data()], FH_BTag_WP);
         myMLHelper = std::make_unique<MLHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/data/Run3_v12_Run2_v9/2022EE/spanet_FH_2022EE.onnx", MLHelper::ModelType::ONNX);
     }
     else if(channel == Channel::Mu || channel == Channel::El){
-        std::cout << "Initialize Correction for SL" << std::endl;
+        std::cout << "Initialize MyCorrection for SL" << std::endl;
         btagging_R_file = "Vcb_SL_btaggingR.json";
         ctagging_R_file = "Vcb_SL_ctaggingR.json";
-        myCorr = new Correction(DataEra, IsDATA ? DataStream : MCSample, IsDATA, btagging_eff_file, ctagging_eff_file, btagging_R_file, ctagging_R_file);
+        myCorr = new MyCorrection(DataEra, IsDATA ? DataStream : MCSample, IsDATA, btagging_eff_file, ctagging_eff_file, btagging_R_file, ctagging_R_file);
         myCorr->SetTaggingParam(FlavTagger[DataEra.Data()], SL_BTag_WP);
         myMLHelper = std::make_unique<MLHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/data/Run3_v12_Run2_v9/2022EE/spanet_2022EE_4cls.onnx", MLHelper::ModelType::ONNX);
     }
     else if(channel == Channel::MM || channel == Channel::ME || channel == Channel::EE){
-        std::cout << "Initialize Correction for DL" << std::endl;
+        std::cout << "Initialize MyCorrection for DL" << std::endl;
         btagging_R_file = "Vcb_DL_btaggingR.json";
         ctagging_R_file = "Vcb_DL_ctaggingR.json";
-        myCorr = new Correction(DataEra, IsDATA ? DataStream : MCSample, IsDATA, btagging_eff_file, ctagging_eff_file, btagging_R_file, ctagging_R_file);
+        myCorr = new MyCorrection(DataEra, IsDATA ? DataStream : MCSample, IsDATA, btagging_eff_file, ctagging_eff_file, btagging_R_file, ctagging_R_file);
         myCorr->SetTaggingParam(FlavTagger[DataEra.Data()], DL_BTag_WP);
     }
     else{ // because FH doesn't need to specify the channel
-        std::cout << "Initialize Correction for FH" << std::endl;
+        std::cout << "Initialize MyCorrection for FH" << std::endl;
         btagging_R_file = "Vcb_FH_btaggingR.json";
         ctagging_R_file = "Vcb_FH_ctaggingR.json";
-        myCorr = new Correction(DataEra, IsDATA ? DataStream : MCSample, IsDATA, btagging_eff_file, ctagging_eff_file, btagging_R_file, ctagging_R_file);
+        myCorr = new MyCorrection(DataEra, IsDATA ? DataStream : MCSample, IsDATA, btagging_eff_file, ctagging_eff_file, btagging_R_file, ctagging_R_file);
         myCorr->SetTaggingParam(FlavTagger[DataEra.Data()], FH_BTag_WP);
         myMLHelper = std::make_unique<MLHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/data/Run3_v12_Run2_v9/2022EE/spanet_FH_2022EE.onnx", MLHelper::ModelType::ONNX);
     }
@@ -194,7 +194,7 @@ void Vcb::executeEvent()
         for(const auto &syst_dummy : *systHelper){
             if (!PassBaseLineSelection()) return;
             if(!(systHelper->getCurrentIterSysTarget().find("Jet_En") != std::string::npos
- && systHelper->getCurrentIterVariation() == Correction::variation::down)) continue;
+ && systHelper->getCurrentIterVariation() == MyCorrection::variation::down)) continue;
             FillTrainingTree();
             return;
         }
@@ -213,88 +213,88 @@ void Vcb::executeEvent()
 
 void Vcb::SetSystematicLambda(bool remove_flavtagging_sf)
 {
-    std::unordered_map<std::string, std::variant<std::function<float(Correction::variation, TString)>, std::function<float()>>> weight_function_map;
-    auto mu_id_lambda = [&](Correction::variation syst, TString source)
+    std::unordered_map<std::string, std::variant<std::function<float(MyCorrection::variation, TString)>, std::function<float()>>> weight_function_map;
+    auto mu_id_lambda = [&](MyCorrection::variation syst, TString source)
     { 
         return myCorr->GetMuonIDSF(Mu_ID_SF_Key[DataEra.Data()], Muons, syst, source); };
-    auto mu_iso_lambda = [&](Correction::variation syst, TString source)
+    auto mu_iso_lambda = [&](MyCorrection::variation syst, TString source)
     { 
         return myCorr->GetMuonISOSF(Mu_Iso_SF_Key[DataEra.Data()], Muons, syst, source); };
-    auto mu_trigger_lambda = [&](Correction::variation syst, TString source)
+    auto mu_trigger_lambda = [&](MyCorrection::variation syst, TString source)
     { 
         return LeptonTriggerWeight(false, syst, source); };
-    auto el_id_lambda = [&](Correction::variation syst, TString source)
+    auto el_id_lambda = [&](MyCorrection::variation syst, TString source)
     { 
         return myCorr->GetElectronIDSF(El_ID_SF_Key[DataEra.Data()], Electrons, syst, source); };
-    auto el_recosf_lambda = [&](Correction::variation syst, TString source)
+    auto el_recosf_lambda = [&](MyCorrection::variation syst, TString source)
     { 
         return myCorr->GetElectronRECOSF(Electrons, syst, source); };
-    auto el_trigger_lambda = [&](Correction::variation syst, TString source)
+    auto el_trigger_lambda = [&](MyCorrection::variation syst, TString source)
     {
         return LeptonTriggerWeight(true, syst, source);
     };
 
-    auto pileup_lambda = [&](Correction::variation syst, TString source)
+    auto pileup_lambda = [&](MyCorrection::variation syst, TString source)
     { return myCorr->GetPUWeight(ev.nTrueInt(), syst, source); };
-    auto MuF_lambda = [&](Correction::variation syst, TString source)
+    auto MuF_lambda = [&](MyCorrection::variation syst, TString source)
     {
         switch (syst)
         {
-        case Correction::variation::up:
-            return GetScaleVariation(Correction::variation::up, Correction::variation::nom);
-        case Correction::variation::down:
-            return GetScaleVariation(Correction::variation::down, Correction::variation::nom);
+        case MyCorrection::variation::up:
+            return GetScaleVariation(MyCorrection::variation::up, MyCorrection::variation::nom);
+        case MyCorrection::variation::down:
+            return GetScaleVariation(MyCorrection::variation::down, MyCorrection::variation::nom);
         default:
             return 1.f;
         }
     };
 
-    auto MuR_lambda = [&](Correction::variation syst, TString source)
+    auto MuR_lambda = [&](MyCorrection::variation syst, TString source)
     {
         switch (syst)
         {
-        case Correction::variation::up:
-            return GetScaleVariation(Correction::variation::nom, Correction::variation::up);
-        case Correction::variation::down:
-            return GetScaleVariation(Correction::variation::nom, Correction::variation::down);
+        case MyCorrection::variation::up:
+            return GetScaleVariation(MyCorrection::variation::nom, MyCorrection::variation::up);
+        case MyCorrection::variation::down:
+            return GetScaleVariation(MyCorrection::variation::nom, MyCorrection::variation::down);
         default:
             return 1.f;
         }
     };
 
-    auto ISR_lambda = [&](Correction::variation syst, TString source)
+    auto ISR_lambda = [&](MyCorrection::variation syst, TString source)
     {
         switch (syst)
         {
-        case Correction::variation::up:
-            return GetPSWeight(Correction::variation::up, Correction::variation::nom);
-        case Correction::variation::down:
-            return GetPSWeight(Correction::variation::down, Correction::variation::nom);
+        case MyCorrection::variation::up:
+            return GetPSWeight(MyCorrection::variation::up, MyCorrection::variation::nom);
+        case MyCorrection::variation::down:
+            return GetPSWeight(MyCorrection::variation::down, MyCorrection::variation::nom);
         default:
             return 1.f;
         }
     };
 
-    auto FSR_lambda = [&](Correction::variation syst, TString source)
+    auto FSR_lambda = [&](MyCorrection::variation syst, TString source)
     {
         switch (syst)
         {
-        case Correction::variation::up:
-            return GetPSWeight(Correction::variation::nom, Correction::variation::up);
-        case Correction::variation::down:
-            return GetPSWeight(Correction::variation::nom, Correction::variation::down);
+        case MyCorrection::variation::up:
+            return GetPSWeight(MyCorrection::variation::nom, MyCorrection::variation::up);
+        case MyCorrection::variation::down:
+            return GetPSWeight(MyCorrection::variation::nom, MyCorrection::variation::down);
         default:
             return 1.f;
         }
     };
 
-    auto BTag_lambda = [&](Correction::variation syst, TString source)
+    auto BTag_lambda = [&](MyCorrection::variation syst, TString source)
     { float weight = 1.f;
         weight*=myCorr->GetBTaggingSF(Jets, JetTagging::JetTaggingSFMethod::shape, syst, source); 
         weight*=myCorr->GetBTaggingR(Jets, Sample_Shorthand[MCSample.Data()], syst, source);
         return weight;};
 
-    auto dummy_lambda = [&](Correction::variation syst, TString source)
+    auto dummy_lambda = [&](MyCorrection::variation syst, TString source)
     { return 1.f; };
 
     weight_function_map["Mu_ID"] = mu_id_lambda;
@@ -436,15 +436,15 @@ void Vcb::SkimTree()
     return;
 }
 
-float Vcb::LeptonTriggerWeight(bool isEle, const Correction::variation syst, const TString &source)
+float Vcb::LeptonTriggerWeight(bool isEle, const MyCorrection::variation syst, const TString &source)
 {
 
-    Correction::variation electronVariation = Correction::variation::nom;
-    Correction::variation muonVariation = Correction::variation::nom;
+    MyCorrection::variation electronVariation = MyCorrection::variation::nom;
+    MyCorrection::variation muonVariation = MyCorrection::variation::nom;
     TString electronSystSource = "total";
     TString muonSystSource = "total";
 
-    if (syst != Correction::variation::nom)
+    if (syst != MyCorrection::variation::nom)
     {
         if (isEle)
         {
