@@ -291,8 +291,8 @@ systematics:
 
 # first source represent the whole correlation
 correlations:
-  - correlation: JES_corr
-    sources: ["Jet_En", "B_Tag_JES"]
+  # - correlation: JES_corr
+  #   sources: ["Jet_En", "B_Tag_JES"]
 
   - correlation: JES_AbsoluteMPFBias_corr
     sources: ["Jet_En_AbsoluteMPFBias", "B_Tag_JES_AbsoluteMPFBias"]
