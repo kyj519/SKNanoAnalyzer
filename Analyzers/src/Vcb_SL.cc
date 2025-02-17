@@ -174,7 +174,7 @@ bool Vcb_SL::PassBaseLineSelection(bool remove_flavtagging_cut)
     FillCutFlow(3);
 
     Jets = SelectJets(AllJets, Jet_ID, SL_Jet_Pt_cut, Jet_Eta_cut);
-
+    MET = ev.GetMETVector(Event::MET_Type::PUPPI);
     if (systHelper->getCurrentIterSysTarget().find("Jet_En") != std::string::npos)
     {
         if (HasFlag("doBreakdown"))
@@ -191,10 +191,12 @@ bool Vcb_SL::PassBaseLineSelection(bool remove_flavtagging_cut)
             else
                 return false;
         }
-        MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::JES);
+        TLorentzVector Propagation;
+        Propagation.SetXYZM(0, 0, 0, 0);
+        for (auto &jet : AllJets) Propagation += static_cast<TLorentzVector>(jet);
+        for (auto &jet : Jets) Propagation -= static_cast<TLorentzVector>(jet);
+        MET.SetXYZM(MET.Px() + Propagation.Px(), MET.Py() + Propagation.Py(), 0., 0.);
     }
-    MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::JES);
-
     if (systHelper->getCurrentIterSysTarget() == "Jet_Res")
     {
         Jets = SmearJets(AllJets, AllGenJets, systHelper->getCurrentIterVariation());
@@ -206,7 +208,7 @@ bool Vcb_SL::PassBaseLineSelection(bool remove_flavtagging_cut)
     }
     Jets = SelectJets(Jets, Jet_ID, SL_Jet_Pt_cut, Jet_Eta_cut);
 
-    MET = ev.GetMETVector(Event::MET_Type::PUPPI);
+    
     std::sort(Jets.begin(), Jets.end(), PtComparing);
     Muons_Veto = SelectMuons(AllMuons, Muon_Veto_ID, Muon_Veto_Pt, Muon_Veto_Eta);
     Muons_Veto = SelectMuons(Muons_Veto, Muon_Veto_Iso, Muon_Veto_Pt, Muon_Veto_Eta);
