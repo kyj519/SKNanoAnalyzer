@@ -85,7 +85,7 @@ fi
 echo "@@@@ ROOT path: $ROOTSYS"
 
 
-export SKNANO_VERSION="Run3_v13_Run2_v9"
+export SKNANO_VERSION="Run3_v15_Run2_v15"
 export SKNANO_DATA=$SKNANO_HOME/data/$SKNANO_VERSION
 mkdir -p $SKNANO_DATA
 
@@ -96,8 +96,9 @@ export SKNANO_INSTALLDIR=$SKNANO_HOME/install/$SYSTEM
 export PATH=$SKNANO_PYTHON:$PATH
 export PYTHONPATH=$PYTHONPATH:$SKNANO_PYTHON
 export SKNANO_LIB=$SKNANO_INSTALLDIR/lib
-export SKNANO_RUN3_NANOAODPATH="/gv0/DATA/SKNano/Run3NanoAODv13p1"
-export SKNANO_RUN2_NANOAODPATH="/gv0/DATA/SKNano/Run2NanoAODv9p1"
+export SKNANO_RUN3_NANOAODPATH="/gv0/DATA/SKNano/NanoAODv15/"
+export SKNANO_RUN2_NANOAODPATH="/gv0/DATA/SKNano/NanoAODv15/"
+export ROOT_INCLUDE_DIRS=$ROOT_INCLUDE_DIRS:$SKNANO_INSTALLDIR/include
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SKNANO_LIB
 export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$SKNANO_LIB
@@ -156,14 +157,7 @@ echo "@@@@ Correction lib: $CORRECTION_LIB_DIR"
 export ROCCOR_PATH=$SKNANO_HOME/external/RoccoR
 
 # JSONPOG integration auto-update
-<<<<<<< HEAD
 export JSONPOG_INTEGRATION_PATH="$SKNANO_HOME/external/jsonpog-integration"
-=======
-check_jsonpog_updates() {
-    local auto_update=${1:-false}
-    echo -e "\033[32m@@@@ Checking for updates in jsonpog-integration repository...\033[0m"
-    export JSONPOG_REPO_PATH="$SKNANO_HOME/external/jsonpog-integration"
->>>>>>> 1631028880053d895708c59dae8cb8447e2d9023
 
     if [ "$auto_update" = false ]; then
         echo -e "\033[32m@@@@ Auto-update is disabled. Skipping update check.\033[0m"
