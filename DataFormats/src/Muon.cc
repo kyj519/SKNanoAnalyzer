@@ -65,7 +65,7 @@ void Muon::SetMVAID(MVAID id, float score) {
     switch (id) {
         case MVAID::SOFTMVA: j_softMva = score; break;
         case MVAID::MVALOWPT: j_mvaLowPt = score; break;
-        case MVAID::MVATTH: j_mvaTTH = score; break;
+        case MVAID::MVAPROMPT: j_mvaPrompt = score; break;
         default: break;
     }
 }

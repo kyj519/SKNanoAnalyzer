@@ -84,12 +84,12 @@ public:
     inline float MomentumScaleUp() const {return j_momentumScaleUp;}
     inline float MomentumScaleDown() const {return j_momentumScaleDown;}
     // MVA ID scores
-    enum class MVAID {NONE, SOFTMVA, MVALOWPT, MVATTH};
+    enum class MVAID {NONE, SOFTMVA, MVALOWPT, MVAPROMPT};
 
     void SetMVAID(MVAID id, float score);
     inline float SoftMva() const {return j_softMva;}
     inline float MvaLowPt() const {return j_mvaLowPt;}
-    inline float MvaTTH() const {return j_mvaTTH;}
+    inline float MvaTTH() const {return j_mvaPrompt;}
 
     void SetGenPartIdx(short genPartIdx) { j_genPartIdx = genPartIdx; }
     inline short GenPartIdx() const { return j_genPartIdx; }
