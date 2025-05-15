@@ -3,6 +3,14 @@
 AnalyzerCore::AnalyzerCore() {
     myCorr = nullptr;
     outfile = nullptr;
+    if(HasFlag("useTH1F")) {
+        cout << "[AnalyzerCore::AnalyzerCore] Using TH1F" << endl;
+        useTH1F = true;
+    }
+    else {
+        cout << "[AnalyzerCore::AnalyzerCore] Using TH1D" << endl;
+        useTH1F = false;
+    }
     // pdfReweight = new PDFReweight();
 }
 
@@ -183,8 +191,8 @@ unordered_map<int, int> AnalyzerCore::deltaRMatching(const RVec<TLorentzVector> 
     return matched_idx;
 }
 
-RVec<Jet> AnalyzerCore::SmearJets(const RVec<Jet> &jets, const RVec<GenJet> &genjets, const MyCorrection::variation &syst, const TString &source){
-    gRandom->SetSeed(0);
+RVec<Jet> AnalyzerCore::SmearJets(const RVec<Jet> &jets, const RVec<GenJet> &genjets, int seed, const MyCorrection::variation &syst, const TString &source){
+    gRandom->SetSeed(seed);
     unordered_map<int, int> matched_idx = GenJetMatching(jets, genjets, fixedGridRhoFastjetAll);
     RVec<Jet> smeared_jets;
     for(size_t i = 0; i < jets.size(); i++){
@@ -708,7 +716,9 @@ RVec<Jet> AnalyzerCore::GetAllJets() {
         jet.SetCorrections(tvs2);
         Jets.push_back(jet);
     }
-    if(!IsDATA) Jets = SmearJets(Jets, GetAllGenJets());
+    // Set Integer part of first Jet Pt as seed of smearing to ensure reproducibility
+    int seed = static_cast<int>(Jets[0].Pt());
+    if(!IsDATA) Jets = SmearJets(Jets, GetAllGenJets(), seed);
     return Jets;
 }
 
@@ -1374,7 +1384,9 @@ void AnalyzerCore::FillHist(const TString &histname, float value, float weight, 
     auto histkey = string(histname);
     auto it = histmap1d.find(histkey);
     if (it == histmap1d.end()) {
-        TH1F *this_hist = new TH1F(histkey.c_str(), "", n_bin, x_min, x_max);
+        TH1 *this_hist;
+        if(useTH1F) this_hist = new TH1F(histkey.c_str(), "", n_bin, x_min, x_max);
+        else this_hist = new TH1D(histkey.c_str(), "", n_bin, x_min, x_max);
         this_hist->SetDirectory(nullptr);
         histmap1d[histkey] = this_hist;
         this_hist->Fill(value, weight);
@@ -1388,7 +1400,9 @@ void AnalyzerCore::FillHist(const TString &histname, float value, float weight, 
     auto histkey = string(histname.Data());
     auto it = histmap1d.find(histkey);
     if (it == histmap1d.end()) {
-        TH1F *this_hist = new TH1F(histkey.c_str(), "", n_bin, xbins);
+        TH1 *this_hist;
+        if(useTH1F) this_hist = new TH1F(histkey.c_str(), "", n_bin, xbins);
+        else this_hist = new TH1D(histkey.c_str(), "", n_bin, xbins);
         this_hist->SetDirectory(nullptr);
         histmap1d[histkey] = this_hist;
         this_hist->Fill(value, weight);
@@ -1404,7 +1418,9 @@ void AnalyzerCore::FillHist(const TString &histname, float value_x, float value_
     auto histkey = string(histname);
     auto it = histmap2d.find(histkey);
     if (it == histmap2d.end()) {
-        TH2F *this_hist = new TH2F(histkey.c_str(), "", n_binx, x_min, x_max, n_biny, y_min, y_max);
+        TH2 *this_hist;
+        if(useTH1F) this_hist = new TH2F(histkey.c_str(), "", n_binx, x_min, x_max, n_biny, y_min, y_max);
+        else this_hist = new TH2D(histkey.c_str(), "", n_binx, x_min, x_max, n_biny, y_min, y_max);
         this_hist->SetDirectory(nullptr);
         histmap2d[histkey] = this_hist;
         this_hist->Fill(value_x, value_y, weight);
@@ -1420,7 +1436,9 @@ void AnalyzerCore::FillHist(const TString &histname, float value_x, float value_
     auto histkey = string(histname);
     auto it = histmap2d.find(histkey);
     if (it == histmap2d.end()) {
-        TH2F *this_hist = new TH2F(histkey.c_str(), "", n_binx, xbins, n_biny, ybins);
+        TH2 *this_hist;
+        if(useTH1F) this_hist = new TH2F(histkey.c_str(), "", n_binx, xbins, n_biny, ybins);
+        else this_hist = new TH2D(histkey.c_str(), "", n_binx, xbins, n_biny, ybins);
         this_hist->SetDirectory(nullptr);
         histmap2d[histkey] = this_hist;
         this_hist->Fill(value_x, value_y, weight);
@@ -1437,7 +1455,9 @@ void AnalyzerCore::FillHist(const TString &histname, float value_x, float value_
     auto histkey = string(histname);
     auto it = histmap3d.find(histkey);
     if (it == histmap3d.end()) {
-        TH3F *this_hist = new TH3F(histkey.c_str(), "", n_binx, x_min, x_max, n_biny, y_min, y_max, n_binz, z_min, z_max);
+        TH3 *this_hist;
+        if(useTH1F) this_hist = new TH3F(histkey.c_str(), "", n_binx, x_min, x_max, n_biny, y_min, y_max, n_binz, z_min, z_max);
+        else this_hist = new TH3D(histkey.c_str(), "", n_binx, x_min, x_max, n_biny, y_min, y_max, n_binz, z_min, z_max);
         this_hist->SetDirectory(nullptr);
         histmap3d[histkey] = this_hist;
         this_hist->Fill(value_x, value_y, value_z, weight);
@@ -1454,7 +1474,9 @@ void AnalyzerCore::FillHist(const TString &histname, float value_x, float value_
     auto histkey = string(histname);
     auto it = histmap3d.find(histkey);
     if (it == histmap3d.end()) {
-        TH3F *this_hist = new TH3F(histkey.c_str(), "", n_binx, xbins, n_biny, ybins, n_binz, zbins);
+        TH3 *this_hist;
+        if(useTH1F) this_hist = new TH3F(histkey.c_str(), "", n_binx, xbins, n_biny, ybins, n_binz, zbins);
+        else this_hist = new TH3D(histkey.c_str(), "", n_binx, xbins, n_biny, ybins, n_binz, zbins);
         this_hist->SetDirectory(nullptr);
         histmap3d[histkey] = this_hist;
         this_hist->Fill(value_x, value_y, value_z, weight);
@@ -1585,27 +1607,27 @@ void AnalyzerCore::FillTrees(const TString &treename)
 
 void AnalyzerCore::WriteHist() {
     cout << "[AnalyzerCore::WriteHist] Writing histograms to " << outfile->GetName() << endl;
-    std::vector<std::pair<std::string, TH1F *>> sorted_histograms1d(histmap1d.begin(), histmap1d.end());
-    std::vector<std::pair<std::string, TH2F *>> sorted_histograms2d(histmap2d.begin(), histmap2d.end());
-    std::vector<std::pair<std::string, TH3F *>> sorted_histograms3d(histmap3d.begin(), histmap3d.end());
+    std::vector<std::pair<std::string, TH1 *>> sorted_histograms1d(histmap1d.begin(), histmap1d.end());
+    std::vector<std::pair<std::string, TH2 *>> sorted_histograms2d(histmap2d.begin(), histmap2d.end());
+    std::vector<std::pair<std::string, TH3 *>> sorted_histograms3d(histmap3d.begin(), histmap3d.end());
     std::sort(sorted_histograms1d.begin(), sorted_histograms1d.end(),
-              [](const std::pair<std::string, TH1F *> &a, const std::pair<std::string, TH1F *> &b)
+              [](const std::pair<std::string, TH1 *> &a, const std::pair<std::string, TH1 *> &b)
               {
                   return a.first < b.first;
               });
     std::sort(sorted_histograms2d.begin(), sorted_histograms2d.end(),
-              [](const std::pair<std::string, TH2F *> &a, const std::pair<std::string, TH2F *> &b)
+              [](const std::pair<std::string, TH2 *> &a, const std::pair<std::string, TH2 *> &b)
               {
                   return a.first < b.first;
               });
     std::sort(sorted_histograms3d.begin(), sorted_histograms3d.end(),
-              [](const std::pair<std::string, TH3F *> &a, const std::pair<std::string, TH3F *> &b)
+              [](const std::pair<std::string, TH3 *> &a, const std::pair<std::string, TH3 *> &b)
               {
                   return a.first < b.first;
               });
     for (const auto &pair: sorted_histograms1d) {
         const string &histname = pair.first;
-        TH1F *hist = pair.second;
+        TH1 *hist = pair.second;
         cout << "[AnalyzerCore::WriteHist] Writing 1D histogram: " << histname << endl;
         // Split the directory and name
         // e.g. "dir1/dir2/histname" -> "dir1/dir2", "histname"
@@ -1623,7 +1645,7 @@ void AnalyzerCore::WriteHist() {
     for (const auto &pair: sorted_histograms2d) {
         const string &histname = pair.first;
         cout << "[AnalyzerCore::WriteHist] Writing 2D histogram: " << histname << endl;
-        TH2F *hist = pair.second;
+        TH2 *hist = pair.second;
         // Split the directory and name
         // e.g. "dir1/dir2/histname" -> "dir1/dir2", "histname"
         // e.g. "histname" -> "", "histname"
@@ -1640,7 +1662,7 @@ void AnalyzerCore::WriteHist() {
     for (const auto &pair: sorted_histograms3d) {
         const string &histname = pair.first;
         cout << "[AnalyzerCore::WriteHist] Writing 3D histogram: " << histname << endl;
-        TH3F *hist = pair.second;
+        TH3 *hist = pair.second;
         // Split the directory and name
         // e.g. "dir1/dir2/histname" -> "dir1/dir2", "histname"
         // e.g. "histname" -> "", "histname"

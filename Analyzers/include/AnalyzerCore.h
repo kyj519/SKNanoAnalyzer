@@ -6,9 +6,7 @@
 #include <deque>
 
 #include "TFile.h"
-#include "TH1F.h"
-#include "TH2F.h"
-#include "TH3F.h"
+#include "TH1.h"
 #include "TTree.h"
 #include "TBranch.h"
 #include "TString.h"
@@ -124,12 +122,12 @@ public:
     RVec<Electron> SmearElectrons(const RVec<Electron> &electrons, const MyCorrection::variation &syst = MyCorrection::variation::nom, const TString &source = "total");
     RVec<Muon> ScaleMuons(const RVec<Muon> &muons, const MyCorrection::variation &syst = MyCorrection::variation::nom, const TString &source = "total");
     RVec<Electron> ScaleElectrons(const RVec<Electron> &electrons, const MyCorrection::variation &syst = MyCorrection::variation::nom, const TString &source = "total");
-    RVec<Jet> SmearJets(const RVec<Jet> &jets, const RVec<GenJet> &genjets, const MyCorrection::variation &syst = MyCorrection::variation::nom, const TString &source = "total");
+    RVec<Jet> SmearJets(const RVec<Jet> &jets, const RVec<GenJet> &genjets, int seed,const MyCorrection::variation &syst = MyCorrection::variation::nom, const TString &source = "total");
     RVec<Jet> ScaleJets(const RVec<Jet> &jets, const MyCorrection::variation &syst = MyCorrection::variation::nom, const TString &source = "total");
 
     // Histogram Handlers
     void SetOutfilePath(TString outpath);
-    TH1F* GetHist1D(const string &histname);
+    TH1* GetHist1D(const string &histname);
     bool PassJetVetoMap(const RVec<Jet> &AllJet, const RVec<Muon> &AllMuon, const TString mapCategory = "jetvetomap");
     inline void FillCutFlow(const int &val,const int &maxCutN=10){
         static int storedMaxCutN = maxCutN;
@@ -174,9 +172,10 @@ public:
     virtual void WriteHist();
 
 private:
-    unordered_map<string, TH1F*> histmap1d;
-    unordered_map<string, TH2F*> histmap2d;
-    unordered_map<string, TH3F*> histmap3d;
+    bool useTH1F;
+    unordered_map<string, TH1*> histmap1d;
+    unordered_map<string, TH2*> histmap2d;
+    unordered_map<string, TH3*> histmap3d;
     unordered_map<string, TTree*> treemap;
     unordered_map<TTree*, unordered_map<string, TBranch*>> branchmaps; 
     deque<float> this_floats;
