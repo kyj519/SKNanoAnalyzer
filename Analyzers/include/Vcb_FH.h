@@ -32,7 +32,7 @@ public:
     inline float MCNormalization() override { 
         return MCweight()*ev.GetTriggerLumi(FH_Trigger_DoubleBTag[DataEra.Data()]);
     }
-    bool PassBaseLineSelection(bool remove_flavtagging_cut = false) override;
+    bool PassBaseLineSelection(bool remove_flavtagging_cut = false, bool loose_cut = false) override;
     void FillKinematicFitterResult(const TString &histPrefix, float weight) override;
     void GetKineMaticFitterResult(const RVec<Jet> &jets);
     RVec<int> FindTTbarJetIndices() override;

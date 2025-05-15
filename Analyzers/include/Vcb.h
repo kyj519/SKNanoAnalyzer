@@ -75,7 +75,7 @@ public:
     void initializeAnalyzer();
     void executeEvent();
     void executeEventFromParameter();
-    bool virtual PassBaseLineSelection(bool remove_flavtagging_cut = false) = 0;
+    bool virtual PassBaseLineSelection(bool remove_flavtagging_cut = false, bool loose_cut = false) = 0;
     void virtual FillHistogramsAtThisPoint(const TString &histPrefix, float weight = 1.f);
     void virtual FillKinematicFitterResult(const TString &histPrefix, float weight);
     void virtual SkimTree();

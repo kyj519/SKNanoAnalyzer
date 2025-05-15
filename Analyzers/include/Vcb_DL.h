@@ -6,7 +6,7 @@
 class Vcb_DL : public Vcb 
 {
 public:
-    bool PassBaseLineSelection(bool remove_flavtagging_cut = false) override;
+    bool PassBaseLineSelection(bool remove_flavtagging_cut = false, bool loose_cut = false) override;
     inline bool CheckChannel() override
     {
         if (channel != Channel::MM && channel != Channel::EE && channel != Channel::ME) return false;

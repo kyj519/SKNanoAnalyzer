@@ -140,7 +140,7 @@ std::variant<float, std::pair<float, float>> Vcb_SL::SolveNeutrinoPz(const Lepto
     }
 }
 
-bool Vcb_SL::PassBaseLineSelection(bool remove_flavtagging_cut)
+bool Vcb_SL::PassBaseLineSelection(bool remove_flavtagging_cut, bool loose_cut)
 {
     // if (!IsDATA)
     // {
@@ -172,8 +172,8 @@ bool Vcb_SL::PassBaseLineSelection(bool remove_flavtagging_cut)
     if (!PassMetFilter(AllJets, ev))
         return false;
     FillCutFlow(3);
-
-    Jets = SelectJets(AllJets, Jet_ID, SL_Jet_Pt_cut, Jet_Eta_cut);
+    float Jet_Pt_Cut = loose_cut ? SL_Jet_Pt_cut - 5.f : SL_Jet_Pt_cut;
+    Jets = SelectJets(AllJets, Jet_ID, Jet_Pt_Cut, Jet_Eta_cut);
     MET = ev.GetMETVector(Event::MET_Type::PUPPI);
     if (systHelper->getCurrentIterSysTarget().find("Jet_En") != std::string::npos)
     {
@@ -199,7 +199,7 @@ bool Vcb_SL::PassBaseLineSelection(bool remove_flavtagging_cut)
     }
     if (systHelper->getCurrentIterSysTarget() == "Jet_Res")
     {
-        Jets = SmearJets(AllJets, AllGenJets, systHelper->getCurrentIterVariation());
+        Jets = SmearJets(AllJets, AllGenJets, static_cast<int>(AllJets[0].Pt()),systHelper->getCurrentIterVariation());
         MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::JER);
     }
     if (systHelper->getCurrentIterSysTarget() == "UE")
@@ -255,7 +255,9 @@ bool Vcb_SL::PassBaseLineSelection(bool remove_flavtagging_cut)
         leptons.push_back(lepton);
     }
     FillCutFlow(5);
-    if (n_b_tagged_jets < 2 && !remove_flavtagging_cut)
+    int n_b_tagged_jets_cut;
+    n_b_tagged_jets_cut = loose_cut ? 1 : 2;
+    if (n_b_tagged_jets < n_b_tagged_jets_cut && !remove_flavtagging_cut)
         return false;
     FillCutFlow(6);
     SetTTbarId();

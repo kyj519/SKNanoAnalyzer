@@ -33,7 +33,7 @@ public:
         else if(channel == Channel::Mu) return MCweight()*ev.GetTriggerLumi(Mu_Trigger[DataEra.Data()]);
         else throw std::runtime_error("Invalid channel");
     }
-    bool PassBaseLineSelection(bool remove_flavtagging_cut = false) override;
+    bool PassBaseLineSelection(bool remove_flavtagging_cut = false, bool loose_cut = false) override;
     void FillKinematicFitterResult(const TString &histPrefix, float weight) override;
     std::variant<float, std::pair<float, float>> SolveNeutrinoPz(const Lepton &lepton, const Particle &met);
     void GetKineMaticFitterResult(const RVec<Jet> &jets, Particle &MET, Lepton &lepton);

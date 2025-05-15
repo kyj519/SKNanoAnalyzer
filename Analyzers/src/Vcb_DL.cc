@@ -2,7 +2,7 @@
 
 Vcb_DL::Vcb_DL() {}
 
-bool Vcb_DL::PassBaseLineSelection(bool remove_flavtagging_cut)
+bool Vcb_DL::PassBaseLineSelection(bool remove_flavtagging_cut, bool loose_cut)
 {
     FillCutFlow(0);
     // if (!IsDATA)
@@ -78,7 +78,7 @@ bool Vcb_DL::PassBaseLineSelection(bool remove_flavtagging_cut)
     }
     if (systHelper->getCurrentIterSysTarget() == "Jet_Res")
     {
-        Jets = SmearJets(AllJets, AllGenJets, systHelper->getCurrentIterVariation());
+        Jets = SmearJets(AllJets, AllGenJets, static_cast<int>(AllJets[0].Pt()),systHelper->getCurrentIterVariation());
         MET = ev.GetMETVector(Event::MET_Type::PUPPI, systHelper->getCurrentIterVariation(), Event::MET_Syst::JER);
     }
     if (systHelper->getCurrentIterSysTarget() == "UE")

@@ -192,7 +192,7 @@ void Vcb::executeEvent()
     {
         Clear();
         for(const auto &syst_dummy : *systHelper){
-            if (!PassBaseLineSelection()) return;
+            if (!PassBaseLineSelection(false, true)) return;
             if(!(systHelper->getCurrentIterSysTarget().find("Jet_En") != std::string::npos
  && systHelper->getCurrentIterVariation() == MyCorrection::variation::down)) continue;
             FillTrainingTree();
