@@ -126,7 +126,7 @@ echo "@@@@ Correction include: $CORRECTION_INCLUDE_DIR"
 echo "@@@@ Correction lib: $CORRECTION_LIB_DIR"
 
 # JSONPOG integration auto-update
-JSONPOG_INTEGRATION_PATH="$SKNANO_HOME/external/jsonpog-integration"
+export JSONPOG_INTEGRATION_PATH="$SKNANO_HOME/external/jsonpog-integration"
 
 if [ ! -d "$JSONPOG_INTEGRATION_PATH" ]; then
     echo "@@@@ JSONPOG Repository not found"
@@ -156,14 +156,16 @@ else
     BEHIND=$(git rev-list --count origin/master..HEAD)
 
     if [ "$BEHIND" -gt 0 ]; then
-        echo "@@@@ Repository is $BEHIND commits behind origin/master."
+    echo "@@@@ Repository is $BEHIND commits behind origin/master."
 
-    if [ -n "$CI" ]; then
-        echo "@@@@ CI environment detected. Auto-updating jsonpog-integration repository..."
-        git merge origin/master
-        echo "@@@@ Update completed!"
-    else
-        # Check if the user wants to update
+        if [ -n "$CI" ]; then
+            echo "@@@@ CI environment detected. Auto-updating jsonpog-integration repository..."
+            git merge origin/master
+            echo "@@@@ Update completed!"
+        else
+            TRY_COUNT=0
+            MAX_TRY=5
+
             while true; do
                 read -p "Do you want to update jsonpog correction? (Y/N): " USER_INPUT
                 case "$USER_INPUT" in
@@ -179,6 +181,11 @@ else
                         ;;
                     * ) 
                         echo "@@@@ Invalid input. Please enter Y or N."
+                        TRY_COUNT=$((TRY_COUNT+1))
+                        if [ "$TRY_COUNT" -ge "$MAX_TRY" ]; then
+                            echo "@@@@ Too many invalid attempts. Skipping update."
+                            break
+                        fi
                         ;;
                 esac
             done
