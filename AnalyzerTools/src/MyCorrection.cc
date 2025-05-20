@@ -245,7 +245,7 @@ MyCorrection::MyCorrection(const TString &era, const TString &sample, const bool
     EGM_keys["2023BPix"] = "2023PromptD";
     EGM_keys["2023"] = "2023PromptC";
     EGM_keys["2022EE"] = "2022Re-recoE+PromptFG";
-    EGM_keys["2022"] = "2022ReRecoBCD";
+    EGM_keys["2022"] = "2022Re-recoBCD";
     EGM_keys["2018"] = "UL-Electron-ID-SF";
     EGM_keys["2017"] = "UL-Electron-ID-SF";
     EGM_keys["2016postVFP"] = "UL-Electron-ID-SF";
