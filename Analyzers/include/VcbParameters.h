@@ -158,7 +158,7 @@ static inline std::unordered_map<std::string, TString> Mu_Iso_SF_Key = {
     {"2016postVFP", "NUM_TightRelIso_DEN_TightIDandIPCut"},
     {"2017", "NUM_TightRelIso_DEN_TightIDandIPCut"},
     {"2018", "NUM_TightRelIso_DEN_TightIDandIPCut"},
-    {"2022", "NUM_TightRelIso_DEN_TightIDandIPCut"},
+    {"2022", "NUM_TightPFIso_DEN_TightID"},
     {"2022EE", "NUM_TightPFIso_DEN_TightID"},
     {"2023", "NUM_TightPFIso_DEN_TightID"},
     {"2023BPix", "NUM_TightPFIso_DEN_TightID"}
