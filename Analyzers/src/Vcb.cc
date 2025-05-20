@@ -9,7 +9,8 @@ void Vcb::initializeAnalyzer()
     std::string ctagging_eff_file = "ctaggingEff.json";
     std::string btagging_R_file = "btaggingR.json";
     std::string ctagging_R_file = "ctaggingR.json";
-    if(channel == Channel::FH){
+    if (channel == Channel::FH)
+    {
         std::cout << "Initialize MyCorrection for FH" << std::endl;
         btagging_R_file = "Vcb_FH_btaggingR.json";
         ctagging_R_file = "Vcb_FH_ctaggingR.json";
@@ -17,7 +18,8 @@ void Vcb::initializeAnalyzer()
         myCorr->SetTaggingParam(FlavTagger[DataEra.Data()], FH_BTag_WP);
         myMLHelper = std::make_unique<MLHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/data/Run3_v12_Run2_v9/2022EE/spanet_FH_2022EE.onnx", MLHelper::ModelType::ONNX);
     }
-    else if(channel == Channel::Mu || channel == Channel::El){
+    else if (channel == Channel::Mu || channel == Channel::El)
+    {
         std::cout << "Initialize MyCorrection for SL" << std::endl;
         btagging_R_file = "Vcb_SL_btaggingR.json";
         ctagging_R_file = "Vcb_SL_ctaggingR.json";
@@ -25,14 +27,16 @@ void Vcb::initializeAnalyzer()
         myCorr->SetTaggingParam(FlavTagger[DataEra.Data()], SL_BTag_WP);
         myMLHelper = std::make_unique<MLHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/data/Run3_v12_Run2_v9/2022EE/spanet_2022EE_4cls.onnx", MLHelper::ModelType::ONNX);
     }
-    else if(channel == Channel::MM || channel == Channel::ME || channel == Channel::EE){
+    else if (channel == Channel::MM || channel == Channel::ME || channel == Channel::EE)
+    {
         std::cout << "Initialize MyCorrection for DL" << std::endl;
         btagging_R_file = "Vcb_DL_btaggingR.json";
         ctagging_R_file = "Vcb_DL_ctaggingR.json";
         myCorr = new MyCorrection(DataEra, IsDATA ? DataStream : MCSample, IsDATA, btagging_eff_file, ctagging_eff_file, btagging_R_file, ctagging_R_file);
         myCorr->SetTaggingParam(FlavTagger[DataEra.Data()], DL_BTag_WP);
     }
-    else{ // because FH doesn't need to specify the channel
+    else
+    { // because FH doesn't need to specify the channel
         std::cout << "Initialize MyCorrection for FH" << std::endl;
         btagging_R_file = "Vcb_FH_btaggingR.json";
         ctagging_R_file = "Vcb_FH_ctaggingR.json";
@@ -41,8 +45,6 @@ void Vcb::initializeAnalyzer()
         myMLHelper = std::make_unique<MLHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/data/Run3_v12_Run2_v9/2022EE/spanet_FH_2022EE.onnx", MLHelper::ModelType::ONNX);
     }
 
-    
-    
     if (IsDATA)
     {
         systHelper = std::make_unique<SystematicHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/AnalyzerTools/noSyst.yaml", DataStream);
@@ -51,7 +53,7 @@ void Vcb::initializeAnalyzer()
     {
         systHelper = std::make_unique<SystematicHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/AnalyzerTools/VcbSystematic_BTag.yaml", MCSample);
     }
-    
+
     CreateTrainingTree();
 }
 
@@ -92,7 +94,8 @@ int Vcb::Unroller(RVec<Jet> &jets)
     return unrolled;
 }
 
-int Vcb::Unroller(Jet &jet1, Jet &jet2){
+int Vcb::Unroller(Jet &jet1, Jet &jet2)
+{
     int jet1_PassedBTaggingWP = GetPassedBTaggingWP(jet1);
     int jet2_PassedBTaggingWP = GetPassedBTaggingWP(jet2);
     jet1_PassedBTaggingWP = jet1_PassedBTaggingWP == 4 ? 3 : jet1_PassedBTaggingWP;
@@ -191,13 +194,16 @@ void Vcb::executeEvent()
     if (HasFlag("Training"))
     {
         Clear();
-        for(const auto &syst_dummy : *systHelper){
-            if (!PassBaseLineSelection(false, true)) return;
-            if(!(systHelper->getCurrentIterSysTarget().find("Jet_En") != std::string::npos
- && systHelper->getCurrentIterVariation() == MyCorrection::variation::down)) continue;
-            FillTrainingTree();
-            return;
+        for (const auto &syst_dummy : *systHelper)
+        {
+            if (!PassBaseLineSelection(false, true)) continue;
+            if (systHelper->getCurrentIterSysTarget().find("Central") != std::string::npos)
+            {
+                FillTrainingTree();
+                return;
+            }
         }
+        return;
     }
     if (!CheckChannel())
     {
@@ -207,7 +213,8 @@ void Vcb::executeEvent()
     {
         leptons.clear();
         executeEventFromParameter();
-        if(HasFlag("spurious")) break;
+        if (HasFlag("spurious"))
+            break;
     }
 }
 
@@ -215,20 +222,15 @@ void Vcb::SetSystematicLambda(bool remove_flavtagging_sf)
 {
     std::unordered_map<std::string, std::variant<std::function<float(MyCorrection::variation, TString)>, std::function<float()>>> weight_function_map;
     auto mu_id_lambda = [&](MyCorrection::variation syst, TString source)
-    { 
-        return myCorr->GetMuonIDSF(Mu_ID_SF_Key[DataEra.Data()], Muons, syst, source); };
+    { return myCorr->GetMuonIDSF(Mu_ID_SF_Key[DataEra.Data()], Muons, syst, source); };
     auto mu_iso_lambda = [&](MyCorrection::variation syst, TString source)
-    { 
-        return myCorr->GetMuonISOSF(Mu_Iso_SF_Key[DataEra.Data()], Muons, syst, source); };
+    { return myCorr->GetMuonISOSF(Mu_Iso_SF_Key[DataEra.Data()], Muons, syst, source); };
     auto mu_trigger_lambda = [&](MyCorrection::variation syst, TString source)
-    { 
-        return LeptonTriggerWeight(false, syst, source); };
+    { return LeptonTriggerWeight(false, syst, source); };
     auto el_id_lambda = [&](MyCorrection::variation syst, TString source)
-    { 
-        return myCorr->GetElectronIDSF(El_ID_SF_Key[DataEra.Data()], Electrons, syst, source); };
+    { return myCorr->GetElectronIDSF(El_ID_SF_Key[DataEra.Data()], Electrons, syst, source); };
     auto el_recosf_lambda = [&](MyCorrection::variation syst, TString source)
-    { 
-        return myCorr->GetElectronRECOSF(Electrons, syst, source); };
+    { return myCorr->GetElectronRECOSF(Electrons, syst, source); };
     auto el_trigger_lambda = [&](MyCorrection::variation syst, TString source)
     {
         return LeptonTriggerWeight(true, syst, source);
@@ -292,7 +294,7 @@ void Vcb::SetSystematicLambda(bool remove_flavtagging_sf)
     { float weight = 1.f;
         weight*=myCorr->GetBTaggingSF(Jets, JetTagging::JetTaggingSFMethod::shape, syst, source); 
         weight*=myCorr->GetBTaggingR(Jets, Sample_Shorthand[MCSample.Data()], syst, source);
-        return weight;};
+        return weight; };
 
     auto dummy_lambda = [&](MyCorrection::variation syst, TString source)
     { return 1.f; };
@@ -315,7 +317,8 @@ void Vcb::SetSystematicLambda(bool remove_flavtagging_sf)
     systHelper->assignWeightFunctionMap(weight_function_map);
 }
 
-void Vcb::Clear(){
+void Vcb::Clear()
+{
     HT = 0;
     n_jets = 0;
     n_b_tagged_jets = 0;
@@ -335,15 +338,18 @@ void Vcb::executeEventFromParameter()
     std::string channel_string = GetChannelString(channel).Data();
     if (IsDATA)
     {
-        if(!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + "Central/data_obs", 1.f)) return;
+        if (!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + "Central/data_obs", 1.f))
+            return;
 
-        FillHistogramsAtThisPoint(channel_string + "/" + region_string + "/" + "Central/data_obs" , 1.f);
-        if(n_b_tagged_jets >=3){
-            FillHistogramsAtThisPoint(channel_string + "/" + "ThreeB" + "/" + "Central/data_obs" , 1.f);
+        FillHistogramsAtThisPoint(channel_string + "/" + region_string + "/" + "Central/data_obs", 1.f);
+        if (n_b_tagged_jets >= 3)
+        {
+            FillHistogramsAtThisPoint(channel_string + "/" + "ThreeB" + "/" + "Central/data_obs", 1.f);
             FillONNXRecoInfo(channel_string + "/" + "ThreeB" + "/" + "Central/data_obs", 1.f);
         }
-        else{
-            FillHistogramsAtThisPoint(channel_string + "/" + "TwoB" + "/" + "Central/data_obs" , 1.f);
+        else
+        {
+            FillHistogramsAtThisPoint(channel_string + "/" + "TwoB" + "/" + "Central/data_obs", 1.f);
             FillONNXRecoInfo(channel_string + "/" + "TwoB" + "/" + "Central/data_obs", 1.f);
         }
 
@@ -351,21 +357,26 @@ void Vcb::executeEventFromParameter()
     }
 
     std::string sample_postfix = Sample_Shorthand[MCSample.Data()];
-    if(MCSample.Contains("TT") && !MCSample.Contains("Vcb")) sample_postfix = sample_postfix + GetTTHFPostFix();
+    if (MCSample.Contains("TT") && !MCSample.Contains("Vcb"))
+        sample_postfix = sample_postfix + GetTTHFPostFix();
 
     unordered_map<std::string, float> weight_map = systHelper->calculateWeight();
     float default_weight = 1.f;
     default_weight *= MCNormalization();
     for (const auto &weight : weight_map)
     {
-        if(!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight)) return; 
+        if (!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight))
+            return;
         FillHistogramsAtThisPoint(channel_string + "/" + region_string + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
-        if(HasFlag("spurious")) return;
-        if(n_b_tagged_jets >=3){
+        if (HasFlag("spurious"))
+            return;
+        if (n_b_tagged_jets >= 3)
+        {
             FillHistogramsAtThisPoint(channel_string + "/" + "ThreeB" + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
             FillONNXRecoInfo(channel_string + "/" + "ThreeB" + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
         }
-        else{
+        else
+        {
             FillHistogramsAtThisPoint(channel_string + "/" + "TwoB" + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
             FillONNXRecoInfo(channel_string + "/" + "TwoB" + "/" + weight.first + "/" + sample_postfix, weight.second * default_weight);
         }
@@ -466,22 +477,25 @@ float Vcb::LeptonTriggerWeight(bool isEle, const MyCorrection::variation syst, c
     }
     case Channel::Mu:
     {
-        if(isEle) return 1.f;
+        if (isEle)
+            return 1.f;
         return myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], lepton.Eta(), lepton.Pt(), muonVariation, muonSystSource);
     }
     case Channel::El:
     {
-        if(!isEle) return 1.f;
+        if (!isEle)
+            return 1.f;
         return myCorr->GetElectronTriggerSF(El_Trigger_SF_Key[DataEra.Data()], lepton.Eta(), lepton.Pt(), lepton.Phi(), electronVariation, electronSystSource);
     }
     case Channel::MM:
     {
-        if(isEle) return 1.f;
+        if (isEle)
+            return 1.f;
         double num = 1.f;
         double den = 1.f;
         for (const auto &mu : Muons)
         {
-            num *= (1.f - 0.93*myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], mu.Eta(), mu.Pt(), muonVariation, muonSystSource));
+            num *= (1.f - 0.93 * myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], mu.Eta(), mu.Pt(), muonVariation, muonSystSource));
             den *= (1.f - 0.93); // hardcoded: let MCEff = 1, DataEff = SF, MUON POG PLEASE GIVE ME EFFICIENCY
         }
         return (1. - num) / (1. - den);
@@ -490,7 +504,7 @@ float Vcb::LeptonTriggerWeight(bool isEle, const MyCorrection::variation syst, c
     {
         double num = 1.f;
         double den = 1.f;
-        num *= (1.f - 0.93*myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], Muons[0].Eta(), Muons[0].Pt(), muonVariation, muonSystSource));
+        num *= (1.f - 0.93 * myCorr->GetMuonTriggerSF(Mu_Trigger_SF_Key[DataEra.Data()], Muons[0].Eta(), Muons[0].Pt(), muonVariation, muonSystSource));
         den *= (1.f - 0.93); // hardcoded: let MCEff = 1, DataEff = SF, MUON POG PLEASE GIVE ME EFFICIENCY
         num *= (1.f - myCorr->GetElectronTriggerDataEff(El_Trigger_SF_Key[DataEra.Data()], Electrons[0].Eta(), Electrons[0].Pt(), Electrons[0].Phi(), electronVariation, electronSystSource));
         den *= (1.f - myCorr->GetElectronTriggerMCEff(El_Trigger_SF_Key[DataEra.Data()], Electrons[0].Eta(), Electrons[0].Pt(), Electrons[0].Phi(), electronVariation, electronSystSource));
@@ -498,7 +512,8 @@ float Vcb::LeptonTriggerWeight(bool isEle, const MyCorrection::variation syst, c
     }
     case Channel::EE:
     {
-        if(!isEle) return 1.f;
+        if (!isEle)
+            return 1.f;
         double num = 1.f;
         double den = 1.f;
         for (const auto &el : Electrons)
