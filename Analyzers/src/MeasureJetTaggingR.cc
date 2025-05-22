@@ -287,49 +287,52 @@ Vcb_FH_eta_binning_flav_0 = {
 vector<float> pt_temp = {20.f,25.f,30.f,40.f,50.f,70.f,90.f,120.f,150.f,200.f,300.f,500.f};
 vector<float> eta_temp = {0.f,0.2,0.4,0.6,0.8,1.f,1.2,1.48,1.8,2.1,2.4};
 
-// Vcb_SL_pt_binning[5] = Vcb_SL_pt_binning_flav_5;
-// Vcb_SL_eta_binning[5] = Vcb_SL_eta_binning_flav_5;
-// Vcb_SL_pt_binning[4] = Vcb_SL_pt_binning_flav_4;
-// Vcb_SL_eta_binning[4] = Vcb_SL_eta_binning_flav_4;
-// Vcb_SL_pt_binning[0] = Vcb_SL_pt_binning_flav_0;
-// Vcb_SL_eta_binning[0] = Vcb_SL_eta_binning_flav_0;
+Vcb_SL_pt_binning[5] = Vcb_SL_pt_binning_flav_5;
+Vcb_SL_eta_binning[5] = Vcb_SL_eta_binning_flav_5;
+Vcb_SL_pt_binning[4] = Vcb_SL_pt_binning_flav_4;
+Vcb_SL_eta_binning[4] = Vcb_SL_eta_binning_flav_4;
+Vcb_SL_pt_binning[0] = Vcb_SL_pt_binning_flav_0;
+Vcb_SL_eta_binning[0] = Vcb_SL_eta_binning_flav_0;
 
-// Vcb_DL_pt_binning[5] = Vcb_DL_pt_binning_flav_5;
-// Vcb_DL_eta_binning[5] = Vcb_DL_eta_binning_flav_5;
-// Vcb_DL_pt_binning[4] = Vcb_DL_pt_binning_flav_4;
-// Vcb_DL_eta_binning[4] = Vcb_DL_eta_binning_flav_4;
-// Vcb_DL_pt_binning[0] = Vcb_DL_pt_binning_flav_0;
-// Vcb_DL_eta_binning[0] = Vcb_DL_eta_binning_flav_0;
+Vcb_DL_pt_binning[5] = Vcb_DL_pt_binning_flav_5;
+Vcb_DL_eta_binning[5] = Vcb_DL_eta_binning_flav_5;
+Vcb_DL_pt_binning[4] = Vcb_DL_pt_binning_flav_4;
+Vcb_DL_eta_binning[4] = Vcb_DL_eta_binning_flav_4;
+Vcb_DL_pt_binning[0] = Vcb_DL_pt_binning_flav_0;
+Vcb_DL_eta_binning[0] = Vcb_DL_eta_binning_flav_0;
 
-// Vcb_FH_pt_binning[5] = Vcb_FH_pt_binning_flav_5;
-// Vcb_FH_eta_binning[5] = Vcb_FH_eta_binning_flav_5;
-// Vcb_FH_pt_binning[4] = Vcb_FH_pt_binning_flav_4;
-// Vcb_FH_eta_binning[4] = Vcb_FH_eta_binning_flav_4;
-// Vcb_FH_pt_binning[0] = Vcb_FH_pt_binning_flav_0;
-// Vcb_FH_eta_binning[0] = Vcb_FH_eta_binning_flav_0;
+Vcb_FH_pt_binning[5] = Vcb_FH_pt_binning_flav_5;
+Vcb_FH_eta_binning[5] = Vcb_FH_eta_binning_flav_5;
+Vcb_FH_pt_binning[4] = Vcb_FH_pt_binning_flav_4;
+Vcb_FH_eta_binning[4] = Vcb_FH_eta_binning_flav_4;
+Vcb_FH_pt_binning[0] = Vcb_FH_pt_binning_flav_0;
+Vcb_FH_eta_binning[0] = Vcb_FH_eta_binning_flav_0;
 
-//Temporary all same binning
-Vcb_SL_pt_binning[5] = pt_temp;
-Vcb_SL_eta_binning[5] = eta_temp;
-Vcb_SL_pt_binning[4] = pt_temp;
-Vcb_SL_eta_binning[4] = eta_temp;
-Vcb_SL_pt_binning[0] = pt_temp;
-Vcb_SL_eta_binning[0] = eta_temp;
 
-Vcb_DL_pt_binning[5] = pt_temp;
-Vcb_DL_eta_binning[5] = eta_temp;
-Vcb_DL_pt_binning[4] = pt_temp;
-Vcb_DL_eta_binning[4] = eta_temp;
-Vcb_DL_pt_binning[0] = pt_temp;
-Vcb_DL_eta_binning[0] = eta_temp;
+// 람다로 중복 제거
+auto apply_binning = [&](auto& pt_map, auto& eta_map) {
+    for (auto& [sample, bins] : pt_map) {
+        bins = pt_temp;
+    }
+    for (auto& [sample, bins] : eta_map) {
+        bins = eta_temp;
+    }
+};
 
-Vcb_FH_pt_binning[5] = pt_temp;
-Vcb_FH_eta_binning[5] = eta_temp;
-Vcb_FH_pt_binning[4] = pt_temp;
-Vcb_FH_eta_binning[4] = eta_temp;
-Vcb_FH_pt_binning[0] = pt_temp;
-Vcb_FH_eta_binning[0] = eta_temp;
+// SL
+apply_binning(Vcb_SL_pt_binning[0], Vcb_SL_eta_binning[0]);
+apply_binning(Vcb_SL_pt_binning[4], Vcb_SL_eta_binning[4]);
+apply_binning(Vcb_SL_pt_binning[5], Vcb_SL_eta_binning[5]);
 
+// DL
+apply_binning(Vcb_DL_pt_binning[0], Vcb_DL_eta_binning[0]);
+apply_binning(Vcb_DL_pt_binning[4], Vcb_DL_eta_binning[4]);
+apply_binning(Vcb_DL_pt_binning[5], Vcb_DL_eta_binning[5]);
+
+// FH
+apply_binning(Vcb_FH_pt_binning[0], Vcb_FH_eta_binning[0]);
+apply_binning(Vcb_FH_pt_binning[4], Vcb_FH_eta_binning[4]);
+apply_binning(Vcb_FH_pt_binning[5], Vcb_FH_eta_binning[5]);
 
 Vcb_pt_binning["SL"] = Vcb_SL_pt_binning;
 Vcb_eta_binning["SL"] = Vcb_SL_eta_binning;

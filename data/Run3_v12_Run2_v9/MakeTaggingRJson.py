@@ -231,9 +231,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     out_name_str = args.out_name_str
 
-    totalEras = ['2022','2022EE']
-    totalEras = ['2017','2018','2016preVFP','2016postVFP']
-    totalEras = ['2022EE']
+    totalEras = ['2022','2022EE','2023','2023BPix']
     for era in totalEras:
         out_dir = os.path.join(os.environ['SKNANO_DATA'],era,'BTV')
         if not os.path.exists(out_dir):
