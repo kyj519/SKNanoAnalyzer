@@ -295,7 +295,7 @@ void Vcb_SL::FillTrainingTree()
     ttbar_jet_indices = FindTTbarJetIndices();
 
     float weight = MCNormalization();
-    weight *= systHelper->calculateWeight()["Jet_En_Down"];
+    weight *= systHelper->calculateWeight()["Central"];
     SetBranch("Training_Tree", "weight", weight);
     SetBranch("Training_Tree", "genTtbarId", genTtbarId);
     SetBranch("Training_Tree", "MET", MET.Pt());
@@ -440,7 +440,7 @@ void Vcb_SL::FillTrainingTree()
 
     for (int i = 0; i < max_jet; i++)
     {
-        for (int j = i + 1; j < max_jet; j++)
+        for (int j = 0; j < max_jet; j++)
         {
             edge_index_jet_jet0.push_back(i);
             edge_index_jet_jet1.push_back(j);

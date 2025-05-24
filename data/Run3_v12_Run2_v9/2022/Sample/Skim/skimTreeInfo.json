@@ -4,9 +4,8 @@
         "PD": "EGamma",
         "isMC": 0,
         "periods": [
-            "G",
-            "F",
-            "E"
+            "D",
+            "C"
         ]
     },
     "Skim_Vcb_DL_Muon": {
@@ -14,9 +13,8 @@
         "PD": "Muon",
         "isMC": 0,
         "periods": [
-            "G",
-            "F",
-            "E"
+            "D",
+            "C"
         ]
     },
     "Skim_Vcb_DL_TTLL_powheg_CP5Down": {
@@ -59,9 +57,8 @@
         "PD": "EGamma",
         "isMC": 0,
         "periods": [
-            "G",
-            "F",
-            "E"
+            "D",
+            "C"
         ]
     },
     "Skim_Vcb_SL_Muon": {
@@ -69,9 +66,8 @@
         "PD": "Muon",
         "isMC": 0,
         "periods": [
-            "G",
-            "F",
-            "E"
+            "D",
+            "C"
         ]
     },
     "Skim_Vcb_SL_TTLJ_Vcb_powheg": {
