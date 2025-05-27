@@ -196,7 +196,8 @@ void Vcb::executeEvent()
         Clear();
         for (const auto &syst_dummy : *systHelper)
         {
-            if (!PassBaseLineSelection(false, true)) continue;
+            if (!PassBaseLineSelection(false, true))
+                continue;
             if (systHelper->getCurrentIterSysTarget().find("Central") != std::string::npos)
             {
                 FillTrainingTree();
@@ -331,11 +332,31 @@ void Vcb::Clear()
 void Vcb::executeEventFromParameter()
 {
     Clear();
+    unordered_map<std::string, float> weight_map;
+    // placeholders for the histograms
+    std::string region_string = GetRegionString();
+    std::string channel_string = GetChannelString(channel).Data();
+    if (!IsDATA)
+    {
+        weight_map = systHelper->calculateWeight();
+        for (const auto &weight : weight_map)
+        {
+            
+            
+            std::string sample_postfix = Sample_Shorthand[MCSample.Data()];
+            if (MCSample.Contains("TT") && !MCSample.Contains("Vcb"))
+                sample_postfix = sample_postfix + GetTTHFPostFix();
+            FillHistogramsAtThisPoint(channel_string + "/" + region_string + "/" + weight.first + "/" + sample_postfix, 0.f);
+            FillHistogramsAtThisPoint(channel_string + "/" + "TwoB" + "/" + weight.first + "/" + sample_postfix, 0.f);
+            FillHistogramsAtThisPoint(channel_string + "/" + "ThreeB" + "/" + weight.first + "/" + sample_postfix, 0.f);
+        
+        }
+    }
+
     if (!PassBaseLineSelection())
         return;
     InferONNX();
-    std::string region_string = GetRegionString();
-    std::string channel_string = GetChannelString(channel).Data();
+
     if (IsDATA)
     {
         if (!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + "Central/data_obs", 1.f))
@@ -360,7 +381,6 @@ void Vcb::executeEventFromParameter()
     if (MCSample.Contains("TT") && !MCSample.Contains("Vcb"))
         sample_postfix = sample_postfix + GetTTHFPostFix();
 
-    unordered_map<std::string, float> weight_map = systHelper->calculateWeight();
     float default_weight = 1.f;
     default_weight *= MCNormalization();
     for (const auto &weight : weight_map)
