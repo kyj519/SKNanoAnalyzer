@@ -25,7 +25,7 @@ void Vcb::initializeAnalyzer()
         ctagging_R_file = "Vcb_SL_ctaggingR.json";
         myCorr = new MyCorrection(DataEra, IsDATA ? DataStream : MCSample, IsDATA, btagging_eff_file, ctagging_eff_file, btagging_R_file, ctagging_R_file);
         myCorr->SetTaggingParam(FlavTagger[DataEra.Data()], SL_BTag_WP);
-        myMLHelper = std::make_unique<MLHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/data/Run3_v12_Run2_v9/2022EE/spanet_2022EE_4cls.onnx", MLHelper::ModelType::ONNX);
+        myMLHelper = std::make_unique<MLHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/data/spanet_run3.onnx", MLHelper::ModelType::ONNX);
     }
     else if (channel == Channel::MM || channel == Channel::ME || channel == Channel::EE)
     {

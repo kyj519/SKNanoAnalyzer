@@ -1221,12 +1221,18 @@ void Vcb_SL::InferONNX()
     // Flatteing the input tensor
 
     std::unordered_map<std::string, std::vector<int>> input_shape;
-    input_shape["Momenta_data"] = {1, 9, 9};
+    input_shape["Momenta_data"] = {1, 9, 10};
     input_shape["Momenta_mask"] = {1, 9};
     input_shape["Met_data"] = {1, 1, 3};
     input_shape["Met_mask"] = {1, 1};
 
     // row-major order
+    unordered_map<std::string, int> era_map={
+        {"2022", 0},
+        {"2022EE",1},
+        {"2023", 2},
+        {"2023BPix", 3}
+    };
     for (size_t i = 0; i < pt.size(); i++)
     {
         Momenta_data.push_back(pt[i]);
@@ -1238,6 +1244,7 @@ void Vcb_SL::InferONNX()
         Momenta_data.push_back(btag[i]);
         Momenta_data.push_back(etag[i]);
         Momenta_data.push_back(utag[i]);
+        Momenta_data.push_back(static_cast<float>(era_map[DataEra.Data()]));
         Momenta_mask.push_back(MASK[i]);
     }
 
@@ -1321,11 +1328,11 @@ void Vcb_SL::InferONNX()
     // 0.034482758620689655 0.7931034482758621 0.1724137931034483
     // weights for Vcb: 0.017433288221999882, weights for TTLJ: 0.8531678524172805, weights for TTC: 0.07880462815669911, weights for TTB: 0.050594231204020484
     // weights for Vcb: 0.021544346900318832, weights for TTLJ: 0.8979591836734693, weights for TTC: 0.00774263682681127, weights for TTB: 0.07275383259940064
-
-    class_score_temp[0] = class_score_temp[0] * 0.021544346900318832;
-    class_score_temp[1] = class_score_temp[1] * 0.8979591836734693;
-    class_score_temp[2] = class_score_temp[2] * 0.00774263682681127;
-    class_score_temp[3] = class_score_temp[3] * 0.07275383259940064;
+    // w0=0.00543, w1=0.86851, w2=0.12068, w3=0.00538
+    class_score_temp[0] = class_score_temp[0] * 0.00543;
+    class_score_temp[1] = class_score_temp[1] * 0.86851;
+    class_score_temp[2] = class_score_temp[2] * 0.12068;
+    class_score_temp[3] = class_score_temp[3] * 0.00538;
 
     int max_class = std::distance(class_score_temp.begin(), std::max_element(class_score_temp.begin(), class_score_temp.end()));
     switch (max_class)
