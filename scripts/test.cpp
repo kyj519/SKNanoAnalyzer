@@ -1,6 +1,6 @@
 #include <algorithm>
 void test() {
-    Vcb_SL module;
+    Vcb_DL module;
     //MeasureJetTaggingR module;
     module.SetTreeName("Events");
     module.LogEvery = 1000;
@@ -11,7 +11,7 @@ void test() {
     module.sumSign = 76333768.0;
     module.SetEra("2023BPix");
     module.Userflags = {
-        "Mu",
+        "MM",
         "doBreakdown"
         //"Training",
         //"SL"

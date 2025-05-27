@@ -338,7 +338,7 @@ void Vcb::executeEventFromParameter()
     std::string channel_string = GetChannelString(channel).Data();
     if (!IsDATA)
     {
-        weight_map = systHelper->calculateWeight();
+        weight_map = systHelper->calculateWeight(true);
         for (const auto &weight : weight_map)
         {
             
