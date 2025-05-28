@@ -334,7 +334,7 @@ void Vcb::executeEventFromParameter()
     Clear();
     unordered_map<std::string, float> weight_map;
     // placeholders for the histograms
-    std::string region_string = GetRegionString();
+    
     std::string channel_string = GetChannelString(channel).Data();
     if (!IsDATA)
     {
@@ -346,7 +346,18 @@ void Vcb::executeEventFromParameter()
             std::string sample_postfix = Sample_Shorthand[MCSample.Data()];
             if (MCSample.Contains("TT") && !MCSample.Contains("Vcb"))
                 sample_postfix = sample_postfix + GetTTHFPostFix();
-            FillHistogramsAtThisPoint(channel_string + "/" + region_string + "/" + weight.first + "/" + sample_postfix, 0.f);
+            if(channel == Channel::Mu || channel == Channel::El){
+                FillHistogramsAtThisPoint(channel_string + "/" + "SR" + "/" + weight.first + "/" + sample_postfix, 0.f);
+                FillHistogramsAtThisPoint(channel_string + "/" + "tt" + "/" + weight.first + "/" + sample_postfix, 0.f);
+                FillHistogramsAtThisPoint(channel_string + "/" + "ttB" + "/" + weight.first + "/" + sample_postfix, 0.f);
+                FillHistogramsAtThisPoint(channel_string + "/" + "ttC" + "/" + weight.first + "/" + sample_postfix, 0.f);
+            }
+            else if(channel == Channel::MM || channel == Channel::ME || channel == Channel::EE){
+                FillHistogramsAtThisPoint(channel_string + "/" + "CR_DL" + "/" + weight.first + "/" + sample_postfix, 0.f);
+            }
+            else{
+               throw std::runtime_error("Time to payment for layzness, implement another hardcoding here");
+            }
             FillHistogramsAtThisPoint(channel_string + "/" + "TwoB" + "/" + weight.first + "/" + sample_postfix, 0.f);
             FillHistogramsAtThisPoint(channel_string + "/" + "ThreeB" + "/" + weight.first + "/" + sample_postfix, 0.f);
         
@@ -356,7 +367,8 @@ void Vcb::executeEventFromParameter()
     if (!PassBaseLineSelection())
         return;
     InferONNX();
-
+    std::string region_string = GetRegionString();
+    std::string sample_postfix = Sample_Shorthand[MCSample.Data()];
     if (IsDATA)
     {
         if (!FillONNXRecoInfo(channel_string + "/" + region_string + "/" + "Central/data_obs", 1.f))
@@ -377,7 +389,6 @@ void Vcb::executeEventFromParameter()
         return;
     }
 
-    std::string sample_postfix = Sample_Shorthand[MCSample.Data()];
     if (MCSample.Contains("TT") && !MCSample.Contains("Vcb"))
         sample_postfix = sample_postfix + GetTTHFPostFix();
 

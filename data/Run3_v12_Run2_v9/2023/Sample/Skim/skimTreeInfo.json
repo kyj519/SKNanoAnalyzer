@@ -582,5 +582,25 @@
         "suffix": "Vcb_SL",
         "PD": "TTLL_powheg",
         "isMC": 1
+    },
+    "Skim_Vcb_DL_TTLJ_powheg_hDampDown": {
+        "suffix": "Vcb_DL",
+        "PD": "TTLJ_powheg_hDampDown",
+        "isMC": 1
+    },
+    "Skim_Vcb_DL_TTLJ_powheg_hDampUp": {
+        "suffix": "Vcb_DL",
+        "PD": "TTLJ_powheg_hDampUp",
+        "isMC": 1
+    },
+    "Skim_Vcb_SL_TTLJ_powheg_hDampDown": {
+        "suffix": "Vcb_SL",
+        "PD": "TTLJ_powheg_hDampDown",
+        "isMC": 1
+    },
+    "Skim_Vcb_SL_TTLJ_powheg_hDampUp": {
+        "suffix": "Vcb_SL",
+        "PD": "TTLJ_powheg_hDampUp",
+        "isMC": 1
     }
 }
