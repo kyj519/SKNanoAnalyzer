@@ -47,11 +47,11 @@ void Vcb::initializeAnalyzer()
 
     if (IsDATA)
     {
-        systHelper = std::make_unique<SystematicHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/AnalyzerTools/noSyst.yaml", DataStream);
+        systHelper = std::make_unique<SystematicHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/AnalyzerTools/noSyst.yaml", DataStream, DataEra);
     }
     else
     {
-        systHelper = std::make_unique<SystematicHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/AnalyzerTools/VcbSystematic_BTag.yaml", MCSample);
+        systHelper = std::make_unique<SystematicHelper>("/data6/Users/yeonjoon/SKNanoAnalyzer/AnalyzerTools/VcbSystematic_BTag.yaml", MCSample, DataEra);
     }
 
     CreateTrainingTree();

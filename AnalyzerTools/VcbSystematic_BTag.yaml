@@ -12,6 +12,7 @@ systematics:
     evtLoopAgain: true
 
   - syst: Jet_En_AbsoluteStat
+    decorrelate_by_era: true
     source: AbsoluteStat
     evtLoopAgain: true
 
@@ -52,10 +53,12 @@ systematics:
     evtLoopAgain: true
 
   - syst: Jet_En_RelativeJEREC1
+    decorrelate_by_era: true
     source: RelativeJEREC1
     evtLoopAgain: true
 
   - syst: Jet_En_RelativeJEREC2
+    decorrelate_by_era: true
     source: RelativeJEREC2
     evtLoopAgain: true
 
@@ -68,10 +71,12 @@ systematics:
     evtLoopAgain: true
 
   - syst: Jet_En_RelativePtEC1
+    decorrelate_by_era: true
     source: RelativePtEC1
     evtLoopAgain: true
 
   - syst: Jet_En_RelativePtEC2
+    decorrelate_by_era: true
     source: RelativePtEC2
     evtLoopAgain: true
 
@@ -80,14 +85,17 @@ systematics:
     evtLoopAgain: true
 
   - syst: Jet_En_RelativeStatEC 
+    decorrelate_by_era: true
     source: RelativeStatEC
     evtLoopAgain: true
 
   - syst: Jet_En_RelativeStatFSR    
+    decorrelate_by_era: true
     source: RelativeStatFSR
     evtLoopAgain: true
 
   - syst: Jet_En_RelativeStatHF
+    decorrelate_by_era: true
     source: RelativeStatHF
     evtLoopAgain: true
 
@@ -100,6 +108,7 @@ systematics:
     evtLoopAgain: true
 
   - syst: Jet_En_TimePtEta
+    decorrelate_by_era: true
     source: TimePtEta
     evtLoopAgain: true
 
@@ -254,10 +263,12 @@ systematics:
     target: btag
 
   - syst: B_Tag_HFStats1
+    decorrelate_by_era: true
     source: hfstats1
     target: btag
 
   - syst: B_Tag_HFStats2
+    decorrelate_by_era: true
     source: hfstats2
     target: btag
 
@@ -266,10 +277,12 @@ systematics:
     target: btag
 
   - syst: B_Tag_LFStats1
+    decorrelate_by_era: true
     source: lfstats1
     target: btag
 
   - syst: B_Tag_LFStats2
+    decorrelate_by_era: true
     source: lfstats2
     target: btag
 
