@@ -177,8 +177,15 @@ void SystematicHelper::make_Iter_obj_EvtLoopAgain()
         {
             SystematicHelper::Iter_obj obj_up;
             SystematicHelper::Iter_obj obj_down;
-            obj_up.iter_name = syst.syst + variation_prefix[MyCorrection::variation::up];
-            obj_down.iter_name = syst.syst + variation_prefix[MyCorrection::variation::down];
+            obj_up.iter_name = syst.syst;
+            obj_down.iter_name = syst.syst;
+            if(syst.decorrelate_by_era)
+            {
+                obj_up.iter_name += "_" + Era;
+                obj_down.iter_name += "_" + Era;
+            }
+            obj_up.iter_name += variation_prefix[MyCorrection::variation::up];
+            obj_down.iter_name += variation_prefix[MyCorrection::variation::down];
             obj_up.syst_name = syst.syst;
             obj_up.syst_source = syst.source;
             obj_up.variation = MyCorrection::variation::up;
@@ -460,10 +467,6 @@ unordered_map<std::string, float> SystematicHelper::calculateWeight_non_central_
     }
 
     string this_iter_name = current_Iter_obj.iter_name;
-    if(findSystematic(current_Iter_obj.syst_name)->decorrelate_by_era)
-    {
-        this_iter_name += "_" + Era;
-    }
     weights[this_iter_name] = 1.;
     for (const auto &target : all_weight_targets)
     {
