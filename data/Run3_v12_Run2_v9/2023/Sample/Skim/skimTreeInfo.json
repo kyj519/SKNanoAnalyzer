@@ -602,5 +602,10 @@
         "suffix": "Vcb_SL",
         "PD": "TTLJ_powheg_hDampUp",
         "isMC": 1
+    },
+    "Skim_Vcb_SL_TTLJ_powheg_mTop171p5": {
+        "suffix": "Vcb_SL",
+        "PD": "TTLJ_powheg_mTop171p5",
+        "isMC": 1
     }
 }
