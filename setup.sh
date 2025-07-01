@@ -157,7 +157,7 @@ echo "@@@@ Correction lib: $CORRECTION_LIB_DIR"
 export ROCCOR_PATH=$SKNANO_HOME/external/RoccoR
 
 # JSONPOG integration auto-update
-export JSONPOG_INTEGRATION_PATH="$SKNANO_HOME/external/jsonpog-integration"
+export JSONPOG_REPO_PATH="$SKNANO_HOME/external/jsonpog-integration"
 
     if [ "$auto_update" = false ]; then
         echo -e "\033[32m@@@@ Auto-update is disabled. Skipping update check.\033[0m"
