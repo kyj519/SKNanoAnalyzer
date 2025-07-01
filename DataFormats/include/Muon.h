@@ -112,7 +112,7 @@ private:
     bool j_isTracker, j_isStandalone, j_isGlobal;
     bool j_looseId, j_mediumId, j_mediumPromptId, j_tightId, j_softId, j_softMvaId, j_triggerIdLoose;
     unsigned char j_highPtId, j_miniIsoId, j_multiIsoId, j_mvaMuId, j_pfIsoId, j_puppiIsoId, j_tkIsoId;
-    float j_softMva, j_mvaLowPt, j_mvaTTH;
+    float j_softMva, j_mvaLowPt, j_mvaPrompt;
     int j_nTrackerLayers;
     float j_miniAODPt, j_momentumScaleUp, j_momentumScaleDown;
     short j_genPartIdx;

@@ -906,7 +906,7 @@ float MyCorrection::GetBTaggingSF(const RVec<Jet> &jets, const JetTagging::JetFl
             auto this_cset = is_heavy ? cset : cset_light;
 
             const float sf = this_cset->evaluate({syst_str, this_wpStr, this_flav, fabs(jet.Eta()), jet.Pt()});
-            if (jet.GetBTaggerResult(tagger) > this_cut) {
+            if (jet.GetTaggerResult(tagger, JetTagging::JetFlavTaggerScoreType::B) > this_cut) {
                 weight *= sf;
             } else {
                 weight *= (1. - eff * sf) / (1. - eff);

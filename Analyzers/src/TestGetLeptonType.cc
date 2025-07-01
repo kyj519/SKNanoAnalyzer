@@ -17,7 +17,7 @@ void TestGetLeptonType::executeEvent() {
     AllElectrons = GetAllElectrons();
     AllGens = GetAllGens();
 
-    cout << "\n=== EVENT " << EventNumber << " ===" << endl;
+    cout << "\n=== EVENT " << event << " ===" << endl;
     cout << "Number of Gen particles: " << AllGens.size() << endl;
     cout << "Number of Muons: " << AllMuons.size() << endl;
     cout << "Number of Electrons: " << AllElectrons.size() << endl;

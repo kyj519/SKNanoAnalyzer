@@ -252,9 +252,9 @@ unordered_map<int, int> AnalyzerCore::deltaRMatching(const RVec<Particle> &objs1
 }
 
 RVec<Jet> AnalyzerCore::SmearJets(const RVec<Jet> &jets, const RVec<GenJet> &genjets, const MyCorrection::variation &syst, const TString &source) {
-    unordered_map<int, int> matched_idx = GenJetMatching(jets, genjets, fixedGridRhoFastjetAll);
+    unordered_map<int, int> matched_idx = GenJetMatching(jets, genjets, Rho_fixedGridRhoFastjetAll);
     RVec<Jet> smeared_jets;
-    gRandom->SetSeed(int(MET_pt*1e6));
+    gRandom->SetSeed(int(PuppiMET_pt*1e6));
     for(size_t i = 0; i < jets.size(); i++){
         Jet this_jet = jets.at(i);
 
@@ -420,7 +420,7 @@ float AnalyzerCore::MCweight(bool usesign, bool norm_1invpb) const
 Event AnalyzerCore::GetEvent()
 {
     Event ev;
-    ev.SetRunLumiEvent(RunNumber, LumiBlock, EventNumber);
+    ev.SetRunLumiEvent(RunNumber, luminosityBlock, event);
     ev.SetnPileUp(Pileup_nPU);
     ev.SetnTrueInt(Pileup_nTrueInt);
     ev.SetnPVsGood(PV_npvsGood);
@@ -596,18 +596,18 @@ RVec<Electron> AnalyzerCore::GetAllElectrons()
     RVec<Electron> electrons;
     for (int i = 0; i < nElectron; i++){
         // Reject GAP region electrons
-        const float fscEta = fabs(Electron_scEta[i]);
+        const float fscEta = fabs(Electron_superclusterEta[i]);
         if (1.444 < fscEta && fscEta < 1.566) continue;
 
         Electron electron;
         electron.SetPtEtaPhiM(Electron_pt[i], Electron_eta[i], Electron_phi[i], Electron_mass[i]);
         electron.SetCharge(Electron_charge[i]);
-        electron.SetScEta(Electron_scEta[i]);
-        electron.SetDeltaEtaInSC(Electron_deltaEtaInSC[i]);
-        electron.SetDeltaEtaInSeed(Electron_deltaEtaInSeed[i]);
-        electron.SetDeltaPhiInSC(Electron_deltaPhiInSC[i]);
-        electron.SetDeltaPhiInSeed(Electron_deltaPhiInSeed[i]);
-        electron.SetPFClusterIso(Electron_ecalPFClusterIso[i], Electron_hcalPFClusterIso[i]);
+        electron.SetScEta(Electron_superclusterEta[i]);
+        //electron.SetDeltaEtaInSC(Electron_deltaEtaInSC[i]);
+        //electron.SetDeltaEtaInSeed(Electron_deltaEtaInSeed[i]);
+        //electron.SetDeltaPhiInSC(Electron_deltaPhiInSC[i]);
+        //electron.SetDeltaPhiInSeed(Electron_deltaPhiInSeed[i]);
+        //electron.SetPFClusterIso(Electron_ecalPFClusterIso[i], Electron_hcalPFClusterIso[i]);
         electron.SetPfRelIso03(Electron_pfRelIso03_all[i]);
         electron.SetMiniPFRelIso(Electron_miniPFRelIso_all[i]);
         electron.SetdXY(Electron_dxy[i], Electron_dxyErr[i]);
@@ -625,41 +625,22 @@ RVec<Electron> AnalyzerCore::GetAllElectrons()
         electron.SetDr03TkSumPt(Electron_dr03TkSumPt[i]);
         electron.SetDr03TkSumPtHEEP(Electron_dr03TkSumPtHEEP[i]);
         electron.SetR9(Electron_r9[i]);
-        electron.SetRho(fixedGridRhoFastjetAll);
+        electron.SetRho(Rho_fixedGridRhoFastjetAll);
         electron.SetEnergyErr(Electron_energyErr[i]);
         electron.SetBIDBit(Electron::BooleanID::CUTBASEDHEEP, Electron_cutBased_HEEP[i]);
-        electron.SetMVA(Electron::MVATYPE::MVATTH, Electron_mvaTTH[i]);
+        electron.SetMVA(Electron::MVATYPE::MVAPROMPT, Electron_promptMVA[i]);
         electron.SetGenPartFlav(Electron_genPartFlav[i]);
-
-        if (Run == 2) {
-            electron.SetEnergyResUnc(Electron_dEsigmaUp[i], Electron_dEsigmaDown[i]);
-            electron.SetBIDBit(Electron::BooleanID::MVAISOWP80, Electron_mvaFall17V2Iso_WP80[i]);
-            electron.SetBIDBit(Electron::BooleanID::MVAISOWP90, Electron_mvaFall17V2Iso_WP90[i]);
-            electron.SetBIDBit(Electron::BooleanID::MVAISOWPL, Electron_mvaFall17V2Iso_WPL[i]);
-            electron.SetBIDBit(Electron::BooleanID::MVANOISOWP80, Electron_mvaFall17V2noIso_WP80[i]);
-            electron.SetBIDBit(Electron::BooleanID::MVANOISOWP90, Electron_mvaFall17V2noIso_WP90[i]);
-            electron.SetBIDBit(Electron::BooleanID::MVANOISOWPL, Electron_mvaFall17V2noIso_WPL[i]);
-            electron.SetMVA(Electron::MVATYPE::MVAISO, Electron_mvaFall17V2Iso[i]);
-            electron.SetMVA(Electron::MVATYPE::MVANOISO, Electron_mvaFall17V2noIso[i]);
-            electron.SetCBIDBit(Electron::CutBasedID::CUTBASED, Electron_cutBased_RunII[i]);
-            electron.SetGenPartIdx(static_cast<short>(Electron_genPartIdx_RunII[i]));
-            electron.SetJetIdx(Electron_jetIdx_RunII[i]);
-        } else if (Run == 3) {
-            electron.SetBIDBit(Electron::BooleanID::MVAISOWP80, Electron_mvaIso_WP80[i]);
-            electron.SetBIDBit(Electron::BooleanID::MVAISOWP90, Electron_mvaIso_WP90[i]);
-            electron.SetBIDBit(Electron::BooleanID::MVAISOWPL, Electron_mvaIso_WPL[i]);
-            electron.SetBIDBit(Electron::BooleanID::MVANOISOWP80, Electron_mvaNoIso_WP80[i]);
-            electron.SetBIDBit(Electron::BooleanID::MVANOISOWP90, Electron_mvaNoIso_WP90[i]);
-            electron.SetBIDBit(Electron::BooleanID::MVANOISOWPL, Electron_mvaNoIso_WPL[i]);
-            electron.SetMVA(Electron::MVATYPE::MVAISO, Electron_mvaIso[i]);
-            electron.SetMVA(Electron::MVATYPE::MVANOISO, Electron_mvaNoIso[i]);
-            electron.SetCBIDBit(Electron::CutBasedID::CUTBASED, Electron_cutBased[i]);
-            electron.SetGenPartIdx(Electron_genPartIdx[i]);
-            electron.SetJetIdx(Electron_jetIdx[i]); 
-        } else {
-            throw runtime_error("[AnalyzerCore::GetAllElectrons] Invalid run number");
-        }
-
+        electron.SetBIDBit(Electron::BooleanID::MVAISOWP80, Electron_mvaIso_WP80[i]);
+        electron.SetBIDBit(Electron::BooleanID::MVAISOWP90, Electron_mvaIso_WP90[i]);
+        //electron.SetBIDBit(Electron::BooleanID::MVAISOWPL, Electron_mvaIso_WPL[i]);
+        electron.SetBIDBit(Electron::BooleanID::MVANOISOWP80, Electron_mvaNoIso_WP80[i]);
+        electron.SetBIDBit(Electron::BooleanID::MVANOISOWP90, Electron_mvaNoIso_WP90[i]);
+        //electron.SetBIDBit(Electron::BooleanID::MVANOISOWPL, Electron_mvaNoIso_WPL[i]);
+        electron.SetMVA(Electron::MVATYPE::MVAISO, Electron_mvaIso[i]);
+        electron.SetMVA(Electron::MVATYPE::MVANOISO, Electron_mvaNoIso[i]);
+        electron.SetCBIDBit(Electron::CutBasedID::CUTBASED, Electron_cutBased[i]);
+        electron.SetGenPartIdx(Electron_genPartIdx[i]);
+        electron.SetJetIdx(Electron_jetIdx[i]); 
 
         electrons.push_back(electron);
     }
@@ -1193,11 +1174,7 @@ RVec<TrigObj> AnalyzerCore::GetAllTrigObjs() {
         TrigObj trigObj;
         trigObj.SetRun(Run);
         trigObj.SetPtEtaPhiM(TrigObj_pt[i], TrigObj_eta[i], TrigObj_phi[i], 0.0); // TrigObj mass is typically 0
-        if (Run == 3) {
-            trigObj.SetId(static_cast<Int_t>(TrigObj_id[i]));
-        } else {
-            trigObj.SetId(TrigObj_id_RunII[i]);
-        }
+        trigObj.SetId(static_cast<Int_t>(TrigObj_id[i]));
         trigObj.SetFilterBits(TrigObj_filterBits[i]);
         TrigObjs.push_back(trigObj);
     }

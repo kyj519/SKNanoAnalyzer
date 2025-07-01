@@ -145,7 +145,7 @@ public:
     float GetL1PrefireWeight(MyCorrection::variation syst = MyCorrection::variation::nom);
     unordered_map<int, int> GenJetMatching(const RVec<Jet> &jets, const RVec<GenJet> &genjets, const float &rho, const float dR = 0.2, const float pTJerCut = 3.);
     unordered_map<int, int> deltaRMatching(const RVec<Particle> &objs1, const RVec<Particle> &objs2, const float dR = 0.4);
-    RVec<Muon> ScaleMuons(const RVec<Muon> &muons, const TString &syst );
+    RVec<Muon> ScaleMuons(const RVec<Muon> &muons, const MyCorrection::variation &syst=MyCorrection::variation::nom);
     RVec<Electron> ScaleElectrons(const Event &ev, const RVec<Electron> &electrons, const TString &syst);
     RVec<Electron> SmearElectrons(const RVec<Electron> &electrons, const TString &syst);
 

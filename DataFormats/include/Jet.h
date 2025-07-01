@@ -115,10 +115,8 @@ public:
   inline void SetOriginalIndex(int idx) { j_originalIndex = idx; };
   inline int OriginalIndex() const { return j_originalIndex; };
 
-  inline void SetJetPuID(int puIDBit) {
-    j_loosePuId = (puIDBit & 1);
-    j_mediumPuId = (puIDBit & 2);
-    j_tightPuId = (puIDBit & 4);
+  inline void SetJetPuIDScore(float puIDScore) {
+    j_puIDScore = puIDScore;
   };
 
   inline void SetCorrections(RVec<float> corrs) {
@@ -152,7 +150,6 @@ public:
   inline float neutralEMFraction() const { return j_neEmEF; }
   inline float neutralHadronFraction() const { return j_neHEF; }
   inline float EMFraction() const { return j_chEmEF + j_neEmEF; }
-  inline float nConstituents() const { return j_nConstituents; }
   float GetTaggerResult(JetTagging::JetFlavTagger tagger, JetTagging::JetFlavTaggerScoreType) const;
   TLorentzVector GetUnsmearedP4() const;
 
@@ -166,7 +163,7 @@ private:
   bool j_tightJetID;
   bool j_tightLepVetoJetID;
   // jetPuID
-  bool j_puIDScore;
+  float j_puIDScore;
   // corrections
   float j_PNetRegPtRawCorr;
   float j_PNetRegPtRawCorrNeutrino;
