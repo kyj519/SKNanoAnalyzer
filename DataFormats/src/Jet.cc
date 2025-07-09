@@ -3,10 +3,6 @@
 ClassImp(Jet)
 
 Jet::Jet() : Particle() {
-  // Jet ID
-  j_looseJetId = false;
-  j_tightJetID = false;
-  j_tightLepVetoJetID = false;
 
   // Corrections
   j_PNetRegPtRawCorr = -999.0;
@@ -58,97 +54,7 @@ Jet::Jet() : Particle() {
 
 Jet::~Jet() {}
 
-//////////
 
-bool Jet::PassID(TString ID) const {
-  //TODO: implement JetID
-  // if (ID == "loose")
-  //   return j_looseJetId;
-  // else if (ID == "tight")
-  //   return j_tightJetID;
-  // else if (ID == "tightLepVeto")
-  //   return j_tightLepVetoJetID;
-  // else if (ID == "loosePuId")
-  //   return j_loosePuId;
-  // else if (ID == "mediumPuId")
-  //   return j_mediumPuId;
-  // else if (ID == "tightPuId")
-  //   return j_tightPuId;
-  // else if (ID == "NOCUT") 
-  //   return true;
-  // else
-  //   cout << "[Jet::PassID] No id : " << ID << endl;
-
-  // exit(ENODATA);
-
-  return false;
-}
-
-void Jet::SetJetID(unsigned char IDBit, int Run) {
-  // bit 0 is loose, bit 1 is tight, bit 2 is tightLepVeto
-  if(Run == 2) {
-    j_looseJetId = (IDBit & 1);
-    j_tightJetID = (IDBit & 2);
-    j_tightLepVetoJetID = (IDBit & 4);
-  }
-  // due to the bug in the NanoAODv12, Below fix is necessary
-  // Please refer https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/117 or https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13p6TeV#Recommendations_for_the_13_6_AN1
-  // We are moving to NanoAODv13 for Run3, need different implementation
-  else { // Run == 3
-    j_tightJetID = false;
-    if (abs(Eta()) <= 2.6) 
-      j_tightJetID = (neHEF() < 0.99) && (neEmEF() < 0.9) && (chMultiplicity()+neMultiplicity() > 1) && (chHEF() > 0.01) && (chMultiplicity() > 0);
-    else if (abs(Eta()) > 2.6 && abs(Eta()) <= 2.7) 
-      j_tightJetID = (neHEF() < 0.90) && (neEmEF() < 0.99);
-    else if (abs(Eta()) > 2.7 && abs(Eta()) <= 3.0) 
-      j_tightJetID = (neHEF() < 0.99);
-    else // abs(eta) > 3.0
-      j_tightJetID = (neMultiplicity() >= 2) && (neEmEF() < 0.4);
-
-    j_tightLepVetoJetID = false;
-    if (abs(Eta()) <= 2.7) 
-      j_tightLepVetoJetID = j_tightJetID && (muEF() < 0.8) && (chEmEF() < 0.8);
-    else 
-      j_tightLepVetoJetID = j_tightJetID;
-
-    /* This is for NanoAODv12
-    if (abs(eta) <= 2.7) Jet_passJetIdTight = b & (1 << 1);
-    else if (abs(eta) > 2.7 && abs(eta) <= 3.0) Jet_passJetIdTight = (b & (1 << 1)) && (Jet_neHEF < 0.99);
-    else if (abs(eta) > 3.0) Jet_passJetIdTight = (b & (1 << 1)) && (Jet_neEmEF < 0.4);      
-    
-    bool Jet_passJetIdTightLepVeto = false;      
-    if (abs(eta) <= 2.7) Jet_passJetIdTightLepVeto = Jet_passJetIdTight && (Jet_muEF < 0.8) && (Jet_chEmEF < 0.8);      
-    else Jet_passJetIdTightLepVeto = Jet_passJetIdTight;      
-    j_looseJetId = (b & 1);      
-    j_tightJetID = Jet_passJetIdTight;      
-    j_tightLepVetoJetID = Jet_passJetIdTightLepVeto;      
-    */
-  }
-}
-
-bool Jet::PassID(JetID id) const {
-  //TODO: implement JetID
-  // switch(id){
-  //   case JetID::LOOSE:
-  //     return j_looseJetId;
-  //   case JetID::TIGHT:
-  //     return j_tightJetID;
-  //   case JetID::TIGHTLEPVETO:
-  //     return j_tightLepVetoJetID;
-  //   case JetID::PUID_LOOSE:
-  //     return j_loosePuId;
-  //   case JetID::PUID_MEDIUM:
-  //     return j_mediumPuId;
-  //   case JetID::PUID_TIGHT:
-  //     return j_tightPuId;
-  //   case JetID::NOCUT:
-  //     return true;
-  //   default:
-  //     break;
-  // }
-
-  return false;
-}
 
 float Jet::GetTaggerResult(JetTagging::JetFlavTagger tagger, JetTagging::JetFlavTaggerScoreType scoreType) const {
     // First inspect correct tagger - score type is given

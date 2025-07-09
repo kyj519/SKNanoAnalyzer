@@ -111,7 +111,7 @@ public:
     j_svIdx2 = sv2;
   };
 
-  void SetJetID(unsigned char IDBit, int Run);
+
   inline void SetOriginalIndex(int idx) { j_originalIndex = idx; };
   inline int OriginalIndex() const { return j_originalIndex; };
 
@@ -143,8 +143,6 @@ public:
   inline int partonFlavour() const { return j_partonFlavour; };
   inline int hadronFlavour() const { return j_hadronFlavour; };
   inline int genJetIdx() const { return j_genJetIdx; };
-  inline bool Pass_tightJetID() const { return j_tightJetID; }
-  inline bool Pass_tightLepVetoJetID() const { return j_tightLepVetoJetID; }
   inline float chargedEMFraction() const { return j_chEmEF; }
   inline float chargedHadronFraction() const { return j_chHEF; }
   inline float neutralEMFraction() const { return j_neEmEF; }
@@ -153,15 +151,9 @@ public:
   float GetTaggerResult(JetTagging::JetFlavTagger tagger, JetTagging::JetFlavTaggerScoreType) const;
   TLorentzVector GetUnsmearedP4() const;
 
-  bool PassID(TString ID) const;
-  bool PassID(JetID id) const; 
 private:
   // For matching indices in leptons
-  int j_originalIndex;  
-  // jetID
-  bool j_looseJetId;
-  bool j_tightJetID;
-  bool j_tightLepVetoJetID;
+  int j_originalIndex; 
   // jetPuID
   float j_puIDScore;
   // corrections

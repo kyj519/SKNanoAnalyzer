@@ -16,17 +16,19 @@ MyCorrection::MyCorrection(const TString &era, const TString &sample, const bool
     };
 
     // load correction sets
-    loadCorrectionSet("muon SF", config.json_muon, cset_muon, false);
-    loadCorrectionSet("puWeights", config.json_puWeights, cset_puWeights, false);
-    loadCorrectionSet("btagging", config.json_btagging, cset_btagging, false);
-    loadCorrectionSet("ctagging", config.json_ctagging, cset_ctagging, false);
-    loadCorrectionSet("btagging eff", config.json_btagging_eff, cset_btagging_eff, false);
-    loadCorrectionSet("ctagging eff", config.json_ctagging_eff, cset_ctagging_eff, false);
-    loadCorrectionSet("electron", config.json_electron, cset_electron, false);
-    loadCorrectionSet("electron variation", config.json_electron_variation, cset_electron_variation, false);
-    loadCorrectionSet("photon", config.json_photon, cset_photon, false);
+    // only jetid and jet, jerc are available for 2024 for now, I change optional flag to true for other sets
+    loadCorrectionSet("muon SF", config.json_muon, cset_muon, true);
+    loadCorrectionSet("puWeights", config.json_puWeights, cset_puWeights, true);
+    loadCorrectionSet("btagging", config.json_btagging, cset_btagging, true);
+    loadCorrectionSet("ctagging", config.json_ctagging, cset_ctagging, true);
+    loadCorrectionSet("btagging eff", config.json_btagging_eff, cset_btagging_eff, true);
+    loadCorrectionSet("ctagging eff", config.json_ctagging_eff, cset_ctagging_eff, true);
+    loadCorrectionSet("electron", config.json_electron, cset_electron, true);
+    loadCorrectionSet("electron variation", config.json_electron_variation, cset_electron_variation, true);
+    loadCorrectionSet("photon", config.json_photon, cset_photon, true);
+    loadCorrectionSet("jetid", config.json_jetid, cset_jetid, false);
     loadCorrectionSet("jerc", config.json_jerc, cset_jerc, false);
-    loadCorrectionSet("jerc_fatjet", config.json_jerc_fatjet, cset_jerc_fatjet, false);
+    loadCorrectionSet("jerc_fatjet", config.json_jerc_fatjet, cset_jerc_fatjet, true);
     loadCorrectionSet("jetvetomap", config.json_jetvetomap, cset_jetvetomap, false);
     // Optional files
     loadRoccoR(config.txt_roccor, true);
@@ -65,33 +67,11 @@ MyCorrection::MyCorrection(const TString &era, const TString &sample, const bool
     EGM_keys["2018"] = "2018";
 
     //Please use ####### as placeholder
-    JME_JER_GT["2023BPix"] = "Summer23BPixPrompt23_RunD_JRV1_MC_######_AK4PFPuppi";
-    JME_JER_GT["2023"] = "Summer23Prompt23_RunCv4_JRV1_MC_######_AK4PFPuppi";
-    JME_JER_GT["2022"] = "Summer22_22Sep2023_JRV1_MC_######_AK4PFPuppi";
-    JME_JER_GT["2022EE"] = "Summer22EE_22Sep2023_JRV1_MC_######_AK4PFPuppi";
-    JME_JER_GT["2018"] = "Summer19UL18_JRV2_MC_######_AK4PFchs";
-    JME_JER_GT["2017"] = "Summer19UL17_JRV2_MC_######_AK4PFchs";
-    JME_JER_GT["2016postVFP"] = "Summer20UL16_JRV3_MC_######_AK4PFchs";
-    JME_JER_GT["2016preVFP"] = "Summer20UL16APV_JRV3_MC_######_AK4PFchs";
+    JME_JER_GT["2024"] = "Summer23BPixPrompt23_RunD_JRV1_MC_######_AK4PFPuppi"; // this is because real content of file is this
 
+    JME_JES_GT["2024"] = "Winter24Prompt24_V3_MC_######_AK4PFPuppi";
 
-    JME_JES_GT["2023BPix"] = "Summer23BPixPrompt23_V1_MC_######_AK4PFPuppi";
-    JME_JES_GT["2023"] = "Summer23Prompt23_V1_MC_######_AK4PFPuppi";
-    JME_JES_GT["2022"] = "Summer22_22Sep2023_V2_MC_######_AK4PFPuppi";
-    JME_JES_GT["2022EE"] = "Summer22EE_22Sep2023_V2_MC_######_AK4PFPuppi";
-    JME_JES_GT["2018"] = "Summer19UL18_V5_MC_######_AK4PFchs";
-    JME_JES_GT["2017"] = "Summer19UL17_V5_MC_######_AK4PFchs";
-    JME_JES_GT["2016postVFP"] = "Summer19UL16_V7_MC_######_AK4PFchs";
-    JME_JES_GT["2016preVFP"] = "Summer19UL16APV_V7_MC_######_AK4PFchs";
-
-    JME_vetomap_keys["2023BPix"] = "Summer23BPixPrompt23_RunD_V1";
-    JME_vetomap_keys["2023"] = "Summer23Prompt23_RunC_V1";
-    JME_vetomap_keys["2022EE"] = "Summer22EE_23Sep2023_RunEFG_V1";
-    JME_vetomap_keys["2022"] = "Summer22_23Sep2023_RunBCD_V1";
-    JME_vetomap_keys["2018"] = "Summer19UL18_V1";
-    JME_vetomap_keys["2017"] = "Summer19UL17_V1";
-    JME_vetomap_keys["2016postVFP"] = "Summer19UL16_V1";
-    JME_vetomap_keys["2016preVFP"] = "Summer19UL16_V1";
+    JME_vetomap_keys["2024"] = "Winter24Prompt23_RunD_V1";
 
     JME_PILEUP_keys["2016preVFP"] = "PUJetID_eff";
     JME_PILEUP_keys["2016postVFP"] = "PUJetID_eff";
@@ -123,25 +103,26 @@ MyCorrection::EraConfig MyCorrection::GetEraConfig(TString era) {
     const string ctagging_R_file = "ctaggingR.json";
 
 
-    config.json_muon = json_pog_path_str + "/POG/MUO";
-    config.json_muon_trig_eff = sknano_data_str;
-    config.json_puWeights = json_pog_path_str + "/POG/LUM";
-    config.json_btagging = json_pog_path_str + "/POG/BTV";
-    config.json_ctagging = json_pog_path_str + "/POG/BTV";
-    config.json_btagging_eff = sknano_data_str;
-    config.json_ctagging_eff = sknano_data_str;
-    config.json_btagging_R = sknano_data_str;
-    config.json_ctagging_R = sknano_data_str;
-    config.json_electron = json_pog_path_str + "/POG/EGM";
-    config.json_electron_hlt = config.json_electron;
-    config.json_electron_variation = sknano_data_str;
-    config.json_photon = json_pog_path_str + "/POG/EGM";
+    // config.json_muon = json_pog_path_str + "/POG/MUO";
+    // config.json_muon_trig_eff = sknano_data_str;
+    // config.json_puWeights = json_pog_path_str + "/POG/LUM";
+    // config.json_btagging = json_pog_path_str + "/POG/BTV";
+    // config.json_ctagging = json_pog_path_str + "/POG/BTV";
+    // config.json_btagging_eff = sknano_data_str;
+    // config.json_ctagging_eff = sknano_data_str;
+    // config.json_btagging_R = sknano_data_str;
+    // config.json_ctagging_R = sknano_data_str;
+    // config.json_electron = json_pog_path_str + "/POG/EGM";
+    // config.json_electron_hlt = config.json_electron;
+    // config.json_electron_variation = sknano_data_str;
+    // config.json_photon = json_pog_path_str + "/POG/EGM";
+    config.json_jetid = json_pog_path_str + "/POG/JME";
     config.json_jerc = json_pog_path_str + "/POG/JME";
-    config.json_jerc_fatjet = json_pog_path_str + "/POG/JME";
+    // config.json_jerc_fatjet = json_pog_path_str + "/POG/JME";
     config.json_jetvetomap = json_pog_path_str + "/POG/JME";
-    config.json_jmar = json_pog_path_str + "/POG/JME";
-    config.json_met = json_pog_path_str + "/POG/JME";
-    config.txt_roccor = external_roccor_str;
+    // config.json_jmar = json_pog_path_str + "/POG/JME";
+    // config.json_met = json_pog_path_str + "/POG/JME";
+    // config.txt_roccor = external_roccor_str;
 
     config.json_muon_custom_TopHNT_idsf = sknano_data_str;
     config.json_muon_custom_dblmu_leg1_eff = sknano_data_str;
@@ -152,194 +133,26 @@ MyCorrection::EraConfig MyCorrection::GetEraConfig(TString era) {
     config.json_electron_custom_emu_leg1_eff = sknano_data_str;
     config.json_electron_custom_emu_leg2_eff = sknano_data_str;
 
-    if (era == "2016preVFP") {
-        config.json_muon += "/2016preVFP_UL/muon_Z.json.gz";
-        config.json_muon_trig_eff += "/2016preVFP/MUO/muon_trig.json";
-        config.json_puWeights += "/2016preVFP_UL/puWeights.json.gz";
-        config.json_btagging += "/2016preVFP_UL/btagging.json.gz";
-        config.json_ctagging += "/2016preVFP_UL/ctagging.json.gz";
-        config.json_btagging_eff += "/2016preVFP/BTV/" + btagging_eff_file;
-        config.json_ctagging_eff += "/2016preVFP/BTV/" + ctagging_eff_file;
-        config.json_btagging_R += "/2016preVFP/BTV/" + btagging_R_file;
-        config.json_ctagging_R += "/2016preVFP/BTV/" + ctagging_R_file;
-        config.json_electron += "/2016preVFP_UL/electron.json.gz";
-        config.json_electron_variation += "/2016preVFP/EGM/EGM_ScaleUnc.json.gz";
-        config.json_photon += "/2016preVFP_UL/photon.json.gz";
-        config.json_jerc += "/2016preVFP_UL/jet_jerc.json.gz";
-        config.json_jerc_fatjet += "/2016preVFP_UL/fatJet_jerc.json.gz";
-        config.json_jetvetomap += "/2016preVFP_UL/jetvetomaps.json.gz";
-        config.json_jmar += "/2016preVFP_UL/jmar.json.gz";
-        config.json_met += "/2016preVFP_UL/met.json.gz";
-        config.txt_roccor += "/RoccoR2016aUL.txt";
-
-        config.json_muon_custom_TopHNT_idsf += "/2016preVFP/MUO/efficiency_TopHNT.json";
-        config.json_muon_custom_dblmu_leg1_eff += "/2016preVFP/MUO/efficiency_Mu17Leg1.json";
-        config.json_muon_custom_dblmu_leg2_eff += "/2016preVFP/MUO/efficiency_Mu8Leg2.json";
-        config.json_muon_custom_emu_leg1_eff += "/2016preVFP/MUO/efficiency_Mu23El12_Mu23Leg.json";
-        config.json_muon_custom_emu_leg2_eff += "/2016preVFP/MUO/efficiency_Mu8El23_Mu8Leg.json";
-        config.json_electron_custom_TopHNT_idsf += "/2016preVFP/EGM/efficiency_TopHNT.json";
-        config.json_electron_custom_emu_leg1_eff += "/2016preVFP/EGM/efficiency_Mu8El23_El23Leg.json";
-        config.json_electron_custom_emu_leg2_eff += "/2016preVFP/EGM/efficiency_Mu23El12_El12Leg.json";
-    } else if (era == "2016postVFP") {
-        config.json_muon += "/2016postVFP_UL/muon_Z.json.gz";
-        config.json_muon_trig_eff += "/2016postVFP/MUO/muon_trig.json";
-        config.json_puWeights += "/2016postVFP_UL/puWeights.json.gz";
-        config.json_btagging += "/2016postVFP_UL/btagging.json.gz";
-        config.json_ctagging += "/2016postVFP_UL/ctagging.json.gz";
-        config.json_btagging_eff += "/2016postVFP/BTV/" + btagging_eff_file;
-        config.json_ctagging_eff += "/2016postVFP/BTV/" + ctagging_eff_file;
-        config.json_btagging_R += "/2016postVFP/BTV/" + btagging_R_file;
-        config.json_ctagging_R += "/2016postVFP/BTV/" + ctagging_R_file;
-        config.json_electron += "/2016postVFP_UL/electron.json.gz";
-        config.json_electron_variation += "/2016postVFP/EGM/EGM_ScaleUnc.json.gz";
-        config.json_photon += "/2016postVFP_UL/photon.json.gz";
-        config.json_jerc += "/2016postVFP_UL/jet_jerc.json.gz";
-        config.json_jerc_fatjet += "/2016postVFP_UL/fatJet_jerc.json.gz";
-        config.json_jetvetomap += "/2016postVFP_UL/jetvetomaps.json.gz";
-        config.json_jmar += "/2016postVFP_UL/jmar.json.gz";
-        config.json_met += "/2016postVFP_UL/met.json.gz";
-        config.txt_roccor += "/RoccoR2016bUL.txt";
-
-        config.json_muon_custom_TopHNT_idsf += "/2016postVFP/MUO/efficiency_TopHNT.json";
-        config.json_muon_custom_dblmu_leg1_eff += "/2016postVFP/MUO/efficiency_Mu17Leg1.json";
-        config.json_muon_custom_dblmu_leg2_eff += "/2016postVFP/MUO/efficiency_Mu8Leg2.json";
-        config.json_muon_custom_emu_leg1_eff += "/2016postVFP/MUO/efficiency_Mu23El12_Mu23Leg.json";
-        config.json_muon_custom_emu_leg2_eff += "/2016postVFP/MUO/efficiency_Mu8El23_Mu8Leg.json";
-        config.json_electron_custom_TopHNT_idsf += "/2016postVFP/EGM/efficiency_TopHNT.json";
-        config.json_electron_custom_emu_leg1_eff += "/2016postVFP/EGM/efficiency_Mu8El23_El23Leg.json";
-        config.json_electron_custom_emu_leg2_eff += "/2016postVFP/EGM/efficiency_Mu23El12_El12Leg.json";
-    } else if (era == "2017") {
-        config.json_muon += "/2017_UL/muon_Z.json.gz";
-        //config.json_muon_trig_eff += "/2017/MUO/muon_trig.json";
-        config.json_puWeights += "/2017_UL/puWeights.json.gz";
-        config.json_btagging += "/2017_UL/btagging.json.gz";
-        config.json_ctagging += "/2017_UL/ctagging.json.gz";
-        config.json_btagging_eff += "/2017/BTV/" + btagging_eff_file;
-        config.json_ctagging_eff += "/2017/BTV/" + ctagging_eff_file;
-        config.json_btagging_R += "/2017/BTV/" + btagging_R_file;
-        config.json_ctagging_R += "/2017/BTV/" + ctagging_R_file;
-        config.json_electron += "/2017_UL/electron.json.gz";
-        config.json_electron_variation += "/2017/EGM/EGM_ScaleUnc.json.gz";
-        config.json_photon += "/2017_UL/photon.json.gz";
-        config.json_jerc += "/2017_UL/jet_jerc.json.gz";
-        config.json_jerc_fatjet += "/2017_UL/fatJet_jerc.json.gz";
-        config.json_jetvetomap += "/2017_UL/jetvetomaps.json.gz";
-        config.json_jmar += "/2017_UL/jmar.json.gz";
-        config.json_met += "/2017_UL/met.json.gz";
-        config.txt_roccor += "/RoccoR2017UL.txt";
-
-        config.json_muon_custom_TopHNT_idsf += "/2017/MUO/efficiency_TopHNT.json";
-        config.json_muon_custom_dblmu_leg1_eff += "/2017/MUO/efficiency_Mu17Leg1.json";
-        config.json_muon_custom_dblmu_leg2_eff += "/2017/MUO/efficiency_Mu8Leg2.json";
-        config.json_muon_custom_emu_leg1_eff += "/2017/MUO/efficiency_Mu23El12_Mu23Leg.json";
-        config.json_muon_custom_emu_leg2_eff += "/2017/MUO/efficiency_Mu8El23_Mu8Leg.json";
-        config.json_electron_custom_TopHNT_idsf += "/2017/EGM/efficiency_TopHNT.json";
-        config.json_electron_custom_emu_leg1_eff += "/2017/EGM/efficiency_Mu8El23_El23Leg.json";
-        config.json_electron_custom_emu_leg2_eff += "/2017/EGM/efficiency_Mu23El12_El12Leg.json";
-    } else if (era == "2018") {
-        config.json_muon += "/2018_UL/muon_Z.json.gz";
-        config.json_muon_trig_eff += "/2018/MUO/muon_trig.json";
-        config.json_puWeights += "/2018_UL/puWeights.json.gz";
-        config.json_btagging += "/2018_UL/btagging.json.gz";
-        config.json_ctagging += "/2018_UL/ctagging.json.gz";
-        config.json_btagging_eff += "/2018/BTV/" + btagging_eff_file;
-        config.json_ctagging_eff += "/2018/BTV/" + ctagging_eff_file;
-        config.json_btagging_R += "/2018/BTV/" + btagging_R_file;
-        config.json_ctagging_R += "/2018/BTV/" + ctagging_R_file;
-        config.json_electron += "/2018_UL/electron.json.gz";
-        config.json_electron_variation += "/2018/EGM/EGM_ScaleUnc.json.gz";
-        config.json_photon += "/2018_UL/photon.json.gz";
-        config.json_jerc += "/2018_UL/jet_jerc.json.gz";
-        config.json_jerc_fatjet += "/2018_UL/fatJet_jerc.json.gz";
-        config.json_jetvetomap += "/2018_UL/jetvetomaps.json.gz";
-        config.json_jmar += "/2018_UL/jmar.json.gz";
-        config.json_met += "/2018_UL/met.json.gz";
-        config.txt_roccor += "/RoccoR2018UL.txt";
-
-        config.json_muon_custom_TopHNT_idsf += "/2018/MUO/efficiency_TopHNT.json";
-        config.json_muon_custom_dblmu_leg1_eff += "/2018/MUO/efficiency_Mu17Leg1.json";
-        config.json_muon_custom_dblmu_leg2_eff += "/2018/MUO/efficiency_Mu8Leg2.json";
-        config.json_muon_custom_emu_leg1_eff += "/2018/MUO/efficiency_Mu23El12_Mu23Leg.json";
-        config.json_muon_custom_emu_leg2_eff += "/2018/MUO/efficiency_Mu8El23_Mu8Leg.json";
-        config.json_electron_custom_TopHNT_idsf += "/2018/EGM/efficiency_TopHNT.json";
-        config.json_electron_custom_emu_leg1_eff += "/2018/EGM/efficiency_Mu8El23_El23Leg.json";
-        config.json_electron_custom_emu_leg2_eff += "/2018/EGM/efficiency_Mu23El12_El12Leg.json";
-    } else if (era == "2022") {
-        config.json_muon += "/2022_Summer22/muon_Z.json.gz";
-        config.json_muon_trig_eff += "/2022/MUO/muon_trig.json";
-        config.json_puWeights += "/2022_Summer22/puWeights.json.gz";
-        config.json_btagging += "/2022_Summer22/btagging.json.gz";
-        config.json_ctagging += "/2022_Summer22/ctagging.json.gz";
-        config.json_btagging_eff += "/2022/BTV/" + btagging_eff_file;
-        config.json_ctagging_eff += "/2022/BTV/" + ctagging_eff_file;
-        config.json_btagging_R += "/2022/BTV/" + btagging_R_file;
-        config.json_ctagging_R += "/2022/BTV/" + ctagging_R_file;
-        config.json_electron += "/2022_Summer22/electron.json.gz";
-        config.json_electron_variation = json_pog_path_str + "/POG/EGM/2022_Summer22/electronSS.json.gz";
-        config.json_electron_hlt += "/2022_Summer22/electronHlt.json.gz";
-        config.json_photon += "/2022_Summer22/photon.json.gz";
-        config.json_jerc += "/2022_Summer22/jet_jerc.json.gz";
-        config.json_jerc_fatjet += "/2022_Summer22/fatJet_jerc.json.gz";
-        config.json_jetvetomap += "/2022_Summer22/jetvetomaps.json.gz";
-        config.json_met += "/2022_Summer22/met.json.gz";
-        config.txt_roccor += "/RoccoR2022.txt";
-    } else if (era == "2022EE") {
-        config.json_muon += "/2022_Summer22EE/muon_Z.json.gz";
-        config.json_muon_trig_eff += "/2022EE/MUO/muon_trig.json";
-        config.json_puWeights += "/2022_Summer22EE/puWeights.json.gz";
-        config.json_btagging += "/2022_Summer22EE/btagging.json.gz";
-        config.json_ctagging += "/2022_Summer22EE/ctagging.json.gz";
-        config.json_btagging_eff += "/2022EE/BTV/" + btagging_eff_file;
-        config.json_ctagging_eff += "/2022EE/BTV/" + ctagging_eff_file;
-        config.json_btagging_R += "/2022EE/BTV/" + btagging_R_file;
-        config.json_ctagging_R += "/2022EE/BTV/" + ctagging_R_file;
-        config.json_electron += "/2022_Summer22EE/electron.json.gz";
-        config.json_electron_variation = json_pog_path_str + "/POG/EGM/2022_Summer22EE/electronSS.json.gz";
-        config.json_electron_hlt += "/2022_Summer22EE/electronHlt.json.gz";
-        config.json_photon += "/2022_Summer22EE/photon.json.gz";
-        config.json_jerc += "/2022_Summer22EE/jet_jerc.json.gz";
-        config.json_jerc_fatjet += "/2022_Summer22EE/fatJet_jerc.json.gz";
-        config.json_jetvetomap += "/2022_Summer22EE/jetvetomaps.json.gz";
-        config.json_met += "/2022_Summer22EE/met.json.gz";
-        config.txt_roccor += "/RoccoR2022EE.txt";
-    } else if (era == "2023") {
-        config.json_muon += "/2023_Summer23/muon_Z.json.gz";
-        config.json_muon_trig_eff += "/2023/MUO/muon_trig.json";
-        config.json_puWeights += "/2023_Summer23/puWeights.json.gz";
-        config.json_btagging += "/2023_Summer23/btagging.json.gz";
-        config.json_ctagging += "/2023_Summer23/ctagging.json.gz";
-        config.json_btagging_eff += "/2023/BTV/" + btagging_eff_file;
-        config.json_ctagging_eff += "/2023/BTV/" + ctagging_eff_file;
-        config.json_btagging_R += "/2023/BTV/" + btagging_R_file;
-        config.json_ctagging_R += "/2023/BTV/" + ctagging_R_file;
-        config.json_electron += "/2023_Summer23/electron.json.gz";
-        config.json_electron_variation = json_pog_path_str + "/POG/EGM/2023_Summer23/electronSS.json.gz";
-        config.json_electron_hlt += "/2023_Summer23/electronHlt.json.gz";
-        config.json_photon += "/2023_Summer23/photon.json.gz";
-        config.json_jerc += "/2023_Summer23/jet_jerc.json.gz";
-        config.json_jerc_fatjet += "/2023_Summer23/fatJet_jerc.json.gz";
-        config.json_jetvetomap += "/2023_Summer23/jetvetomaps.json.gz";
-        config.json_met += "/2023_Summer23/met.json.gz";
-        config.txt_roccor += "/RoccoR2023.txt";
-    } else if (era == "2023BPix") {
-        config.json_muon += "/2023_Summer23BPix/muon_Z.json.gz";
-        config.json_muon_trig_eff += "/2023BPix/MUO/muon_trig.json";
-        config.json_puWeights += "/2023_Summer23BPix/puWeights.json.gz";
-        config.json_btagging += "/2023_Summer23BPix/btagging.json.gz";
-        config.json_ctagging += "/2023_Summer23BPix/ctagging.json.gz";
-        config.json_btagging_eff += "/2023BPix/BTV/" + btagging_eff_file;
-        config.json_ctagging_eff += "/2023BPix/BTV/" + ctagging_eff_file;
-        config.json_btagging_R += "/2023BPix/BTV/" + btagging_R_file;
-        config.json_ctagging_R += "/2023BPix/BTV/" + ctagging_R_file;
-        config.json_electron += "/2023_Summer23BPix/electron.json.gz";
-        config.json_electron_variation = json_pog_path_str + "/POG/EGM/2023_Summer23BPix/electronSS.json.gz";
-        config.json_electron_hlt += "/2023_Summer23BPix/electronHlt.json.gz";
-        config.json_photon += "/2023_Summer23BPix/photon.json.gz";
-        config.json_jerc += "/2023_Summer23BPix/jet_jerc.json.gz";
-        config.json_jerc_fatjet += "/2023_Summer23BPix/fatJet_jerc.json.gz";
-        config.json_jetvetomap += "/2023_Summer23BPix/jetvetomaps.json.gz";
-        config.json_met += "/2023_Summer23BPix/met.json.gz";
-        config.txt_roccor += "/RoccoR2023BPix.txt";
+    if (era == "2024") {
+        // config.json_muon += "/2023_Summer23BPix/muon_Z.json.gz";
+        // config.json_muon_trig_eff += "/2023BPix/MUO/muon_trig.json";
+        // config.json_puWeights += "/2023_Summer23BPix/puWeights.json.gz";
+        // config.json_btagging += "/2023_Summer23BPix/btagging.json.gz";
+        // config.json_ctagging += "/2023_Summer23BPix/ctagging.json.gz";
+        // config.json_btagging_eff += "/2023BPix/BTV/" + btagging_eff_file;
+        // config.json_ctagging_eff += "/2023BPix/BTV/" + ctagging_eff_file;
+        // config.json_btagging_R += "/2023BPix/BTV/" + btagging_R_file;
+        // config.json_ctagging_R += "/2023BPix/BTV/" + ctagging_R_file;
+        // config.json_electron += "/2023_Summer23BPix/electron.json.gz";
+        // config.json_electron_variation = json_pog_path_str + "/POG/EGM/2023_Summer23BPix/electronSS.json.gz";
+        // config.json_electron_hlt += "/2023_Summer23BPix/electronHlt.json.gz";
+        // config.json_photon += "/2023_Summer23BPix/photon.json.gz";
+        config.json_jetid += "/2024_Winter24/jetid.json.gz";
+        config.json_jerc += "/2024_Winter24/jet_jerc.json.gz";
+        // config.json_jerc_fatjet += "/2023_Summer23BPix/fatJet_jerc.json.gz";
+        config.json_jetvetomap += "/2024_Winter24/jetvetomaps.json.gz";
+        // config.json_met += "/2023_Summer23BPix/met.json.gz";
+        // config.txt_roccor += "/RoccoR2023BPix.txt";
     } else {
         throw invalid_argument("[MyCorrection::GetEraConfig] Invalid era: " + era);
     }
@@ -1122,6 +935,31 @@ float MyCorrection::GetPileupJetIDSF(const RVec<Jet> &jets, const unordered_map<
         weight *= this_eff;
     }
     return weight;
+}
+
+// JetID
+
+bool MyCorrection::PassJetID(const Jet &jet, const Jet::JetID &id) const{
+    correction::Correction::Ref cset = nullptr;
+    switch (id) {
+        float out;
+        case Jet::JetID::TIGHT:
+            cset = cset_jetid->at("AK4PUPPI_TightLeptonVeto");
+            out = cset->evaluate({fabs(jet.Eta()), jet.chHEF(), jet.neHEF(), jet.chEmEF(), jet.neEmEF(), jet.muEF(),jet.chMultiplicity(), jet.neMultiplicity(), jet.chMultiplicity()+ jet.neMultiplicity()});
+            return out > 0.5; // return is real
+            break;
+        case Jet::JetID::TIGHTLEPVETO:
+            cset = cset_jetid->at("AK4PUPPI_TightLeptonVeto");
+            out = cset->evaluate({fabs(jet.Eta()), jet.chHEF(), jet.neHEF(), jet.chEmEF(), jet.neEmEF(), jet.muEF(), jet.chMultiplicity(), jet.neMultiplicity(), jet.chMultiplicity()+ jet.neMultiplicity()});
+            return out > 0.5; // return is real
+            break;
+        case Jet::JetID::NOCUT:
+            // No cut, always return true
+            return true;
+            break;
+        default:
+            throw runtime_error("[MyCorrection::PassJetID] Invalid JetID type");
+    }
 }
 
 // JERC

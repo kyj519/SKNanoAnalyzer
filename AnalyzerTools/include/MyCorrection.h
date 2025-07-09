@@ -113,6 +113,9 @@ public:
     // PileUp Jet ID
     float GetPileupJetIDSF(const RVec<Jet> &jets, const unordered_map<int, int> &matched_idx, const TString &wp, const variation syst=variation::nom);
 
+    // Jet ID
+    bool PassJetID(const Jet &jet, const Jet::JetID &id) const;
+
     // JERC
     float GetJER(const float eta, const float pt, const float rho) const;
     float GetJERSF(const float eta, const float pt, const variation syst = variation::nom, const TString &source = "total") const;
@@ -143,6 +146,7 @@ private:
         string json_electron_hlt;
         string json_electron_variation;
         string json_photon;
+        string json_jetid;
         string json_jerc;
         string json_jerc_fatjet;
         string json_jetvetomap;
@@ -241,6 +245,7 @@ private:
     unique_ptr<CorrectionSet> cset_electron_hlt;
     unique_ptr<CorrectionSet> cset_electron_variation;
     unique_ptr<CorrectionSet> cset_photon;
+    unique_ptr<CorrectionSet> cset_jetid;
     unique_ptr<CorrectionSet> cset_jerc;
     unique_ptr<CorrectionSet> cset_jerc_fatjet;
     unique_ptr<CorrectionSet> cset_jetvetomap;

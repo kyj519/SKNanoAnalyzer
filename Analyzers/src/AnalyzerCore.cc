@@ -49,7 +49,7 @@ bool AnalyzerCore::PassMetFilter(const RVec<Jet> &Alljets, const Event &ev, Even
         return MetFilter;
     if (ev.GetMETVector(met_type).Pt() <= 100.)
         return MetFilter;
-    RVec<Jet> this_jet = SelectJets(Alljets, "NOCUT", 50., 5.0);
+    RVec<Jet> this_jet = SelectJets(Alljets, Jet::JetID::NOCUT, 50., 5.0);
     for (const auto &jet : this_jet)
     {
         bool badEcal = (jet.Pt() > 50.);
@@ -962,38 +962,8 @@ RVec<Photon> AnalyzerCore::GetPhotons(TString id, double ptmin, double fetamax)
     return out;
 }
 
-RVec<Jet> AnalyzerCore::GetJets(const TString ID, const float ptmin, const float fetamax)
-{
-    RVec<Jet> jets = GetAllJets();
-    RVec<Jet> selected_jets;
-    for (const auto &jet : jets)
-    {
-        if (jet.Pt() < ptmin)
-            continue;
-        if (fabs(jet.Eta()) > fetamax)
-            continue;
-        if (!jet.PassID(ID))
-            continue;
-        selected_jets.push_back(jet);
-    }
-    return selected_jets;
-}
 
-RVec<Jet> AnalyzerCore::SelectJets(const RVec<Jet> &jets, const TString ID, const float ptmin, const float fetamax) const
-{
-    RVec<Jet> selected_jets;
-    for (const auto &jet : jets)
-    {
-        if (jet.Pt() < ptmin)
-            continue;
-        if (fabs(jet.Eta()) > fetamax)
-            continue;
-        if (!jet.PassID(ID))
-            continue;
-        selected_jets.push_back(jet);
-    }
-    return selected_jets;
-}
+
 
 RVec<Jet> AnalyzerCore::SelectJets(const RVec<Jet> &jets, const Jet::JetID ID, const float ptmin, const float fetamax) const
 {
@@ -1004,7 +974,7 @@ RVec<Jet> AnalyzerCore::SelectJets(const RVec<Jet> &jets, const Jet::JetID ID, c
             continue;
         if (fabs(jet.Eta()) > fetamax)
             continue;
-        if (!jet.PassID(ID))
+        if (!myCorr->PassJetID(jet, ID))
             continue;
         selected_jets.push_back(jet);
     }
