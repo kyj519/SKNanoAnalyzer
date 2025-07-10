@@ -32,6 +32,7 @@ MyCorrection::MyCorrection(const TString &era, const TString &sample, const bool
     loadCorrectionSet("jetvetomap", config.json_jetvetomap, cset_jetvetomap, false);
     // Optional files
     loadRoccoR(config.txt_roccor, true);
+    loadGoldenJson(config.golden_json, true);
     loadCorrectionSet("jmar", config.json_jmar, cset_jmar, true);
     loadCorrectionSet("muon trig eff", config.json_muon_trig_eff, cset_muon_trig_eff, true);
     loadCorrectionSet("electron hlt", config.json_electron_hlt, cset_electron_hlt, true);
@@ -123,6 +124,7 @@ MyCorrection::EraConfig MyCorrection::GetEraConfig(TString era) {
     // config.json_jmar = json_pog_path_str + "/POG/JME";
     // config.json_met = json_pog_path_str + "/POG/JME";
     // config.txt_roccor = external_roccor_str;
+    string golden_json = sknano_data_str;
 
     config.json_muon_custom_TopHNT_idsf = sknano_data_str;
     config.json_muon_custom_dblmu_leg1_eff = sknano_data_str;
@@ -153,10 +155,16 @@ MyCorrection::EraConfig MyCorrection::GetEraConfig(TString era) {
         config.json_jetvetomap += "/2024_Winter24/jetvetomaps.json.gz";
         // config.json_met += "/2023_Summer23BPix/met.json.gz";
         // config.txt_roccor += "/RoccoR2023BPix.txt";
+        config.golden_json += "/2024/LUM/Cert_Collisions2024_378981_386951_Golden.json";
     } else {
         throw invalid_argument("[MyCorrection::GetEraConfig] Invalid era: " + era);
     }
     return config;
+}
+
+// GoldenLumi
+bool MyCorrection::IsGoldenLumi(const unsigned int runNumber, const unsigned int lumiSection) const {
+    return golden_json_parser->isGood(runNumber, lumiSection);
 }
 
 // Muon

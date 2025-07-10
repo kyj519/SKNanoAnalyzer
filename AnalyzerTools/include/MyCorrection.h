@@ -18,6 +18,8 @@ using namespace std;
 #include "Gen.h"
 #include "Muon.h"
 #include "Electron.h"
+#include "GoldenJsonParser.h"
+
 using correction::CorrectionSet;
 
 class MyCorrection {
@@ -43,6 +45,10 @@ public:
     MyCorrection();
     MyCorrection(const TString &era, const TString &sample, const bool IsData);
     ~MyCorrection();
+
+
+    //GoldenLumi
+    bool IsGoldenLumi(const unsigned int runNumber, const unsigned int lumiSection) const;
 
     // Muon
     float GetMuonScaleSF(const Muon &muon, const variation syst = variation::nom, const float matched_pt=0) const;
@@ -153,6 +159,7 @@ private:
         string json_jmar;
         string json_met;
         string txt_roccor;
+        string golden_json;
         
         // Custom
         string json_muon_custom_TopHNT_idsf;
@@ -210,6 +217,22 @@ private:
                 return false;
             } else {
                 cerr << "[MyCorrection::loadRoccoR] Error: Failed to load " << file << " (" << e.what() << ")" << endl;
+                throw;
+            }
+        }
+    }
+
+    inline bool loadGoldenJson(const string &file, bool optional = false) {
+        cout << "[MyCorrection::loadGoldenJson] " << file << endl;
+        try {
+            golden_json_parser = make_unique<GoldenJsonParser>(file);
+            return true;
+        } catch (const exception &e) {
+            if (optional) {
+                cerr << "[MyCorrection::loadGoldenJson] Warning: Failed to load " << file << " (" << e.what() << ")" << endl;
+                return false;
+            } else {
+                cerr << "[MyCorrection::loadGoldenJson] Error: Failed to load " << file << " (" << e.what() << ")" << endl;
                 throw;
             }
         }
@@ -273,7 +296,7 @@ private:
     unordered_map<string, string> JME_MET_keys;
     
     RoccoR rc;
-
+    unique_ptr<GoldenJsonParser> golden_json_parser;
     // All POG choose different string for the systematics, so we need to convert the enum to the string....
     // Here I implement every single function instead of a general one, because heavy use of switch-case might be slow.
     inline string getSystString_CUSTOM(const variation syst) const {
