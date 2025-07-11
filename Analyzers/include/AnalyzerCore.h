@@ -110,7 +110,6 @@ public:
     // Select objects
     RVec<Muon> SelectMuons(const RVec<Muon> &muons, TString ID, const float ptmin, const float absetamax) const;
     RVec<Muon> SelectMuons(const RVec<Muon> &muons, Muon::MuonID ID, const float ptmin, const float absetamax) const;
-    RVec<Jet> SelectJets(const RVec<Jet> &jets, const TString id, const float ptmin, const float fetamax) const;
     RVec<Jet> SelectJets(const RVec<Jet> &jets, const Jet::JetID, const float ptmin, const float fetamax) const;
     RVec<Jet> JetsVetoLeptonInside(const RVec<Jet> &jets, const RVec<Electron> &electrons, const RVec<Muon> &muons, const float dR = 0.3) const;
     RVec<Electron> SelectElectrons(const RVec<Electron> &electrons, const TString id, const float ptmin, const float absetamax, bool vetoHEM = false) const;
