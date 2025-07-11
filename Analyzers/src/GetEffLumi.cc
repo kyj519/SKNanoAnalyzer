@@ -9,6 +9,10 @@ void GetEffLumi::initializeAnalyzer(){
   if(!IsDATA){
     fChain->SetBranchStatus("genWeight", 1);
   }
+  else{
+    fChain->SetBranchStatus("run", 1);
+    fChain->SetBranchStatus("luminosityBlock", 1);
+  }
   sumW = 1.;
   sumSign = 1.;
 }
