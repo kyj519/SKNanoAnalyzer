@@ -124,7 +124,7 @@ MyCorrection::EraConfig MyCorrection::GetEraConfig(TString era) {
     // config.json_jmar = json_pog_path_str + "/POG/JME";
     // config.json_met = json_pog_path_str + "/POG/JME";
     // config.txt_roccor = external_roccor_str;
-    string golden_json = sknano_data_str;
+    config.golden_json = sknano_data_str;
 
     config.json_muon_custom_TopHNT_idsf = sknano_data_str;
     config.json_muon_custom_dblmu_leg1_eff = sknano_data_str;
