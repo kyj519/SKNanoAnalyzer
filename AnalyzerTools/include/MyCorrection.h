@@ -177,7 +177,7 @@ private:
         DataEra = era;
         if (era.Contains("2016") || era.Contains("2017") || era.Contains("2018")) {
             Run = 2;
-        } else if (era.Contains("2022") || era.Contains("2023")) {
+        } else if (era.Contains("2022") || era.Contains("2023") || era.Contains("2024")) {
             Run = 3;
         } else {
             throw runtime_error("Invalid era: " + era);
