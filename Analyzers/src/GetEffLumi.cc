@@ -24,7 +24,8 @@ void GetEffLumi::executeEvent() {
       FillHist("sumSign", 0, weight_sign, 1, 0., 1.);
     }
   else{
-    FillHist("NEvents", 0, 1, 1, 0., 1.);
+    if(myCorr->IsGoldenLumi(RunNumber, luminosityBlock)) FillHist("NEvents", 0, 1, 1, 0., 1.);
+    FillHist("NEvents_GoldenAndNotGolden", 0, 1, 1, 0., 1.);
   }
 
 
