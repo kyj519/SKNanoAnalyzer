@@ -26,9 +26,15 @@ class TTreeReaderArrayWrapper
 public:
     TTreeReaderArrayWrapper() = default;
 
-    void init(TTreeReader &reader, const char *branchName)
+    bool init(TTreeReader &reader, const char *branchName)
     {
+        TTree *tree = reader.GetTree();
+        if (!tree || !tree->GetBranch(branchName)){
+            cout << "[TTreeReaderArrayWrapper] Error: Branch " << branchName << " not found in tree. Skipping..." << endl;
+            return false;
+        }
         myArray = std::make_unique<TTreeReaderArray<T>>(reader, branchName);
+        return true;
     }
 
     T operator[](std::size_t i) const
@@ -51,9 +57,15 @@ class TTreeReaderValueWrapper
 public:
     TTreeReaderValueWrapper() = default;
 
-    void init(TTreeReader &reader, const char *branchName)
+    bool init(TTreeReader &reader, const char *branchName)
     {
+        TTree *tree = reader.GetTree();
+        if (!tree || !tree->GetBranch(branchName)){
+            cout << "[TTreeReaderValueWrapper] Error: Branch " << branchName << " not found in tree. Skipping..." << endl;
+            return false;
+        }
         myValue = std::make_unique<TTreeReaderValue<T>>(reader, branchName);
+        return true;
     }
 
     operator T() const
@@ -64,7 +76,6 @@ public:
 private:
     std::unique_ptr<TTreeReaderValue<T>> myValue;
 };
-
 class SKNanoLoader
 {
 public:
