@@ -26,7 +26,7 @@ void JpsiAnalyzer::initializeAnalyzer() {
 void JpsiAnalyzer::executeEvent() {
 
     AllMuons = GetAllMuons();
-    ev = GetEvent();
+    //ev = GetEvent();
     executeEventFromParameter();
     
    
@@ -34,7 +34,7 @@ void JpsiAnalyzer::executeEvent() {
 
 void JpsiAnalyzer::executeEventFromParameter() {
     float JpsiMass = 3.096916; // PDG J/psi mass in GeV
-    if(!ev.PassTrigger("HLT_Dimuon25_Jpsi")) return;
+    //if(!ev.PassTrigger("HLT_Dimuon25_Jpsi")) return;
     Muons = SelectMuons(AllMuons, MuonIDs[0], 5., 2.4);
     std::sort(Muons.begin(), Muons.end(), AnalyzerCore::PtComparing);
     if (Muons.size() < 2) return;
