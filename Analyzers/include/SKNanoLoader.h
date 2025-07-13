@@ -21,63 +21,68 @@ using namespace std;
 using namespace ROOT::VecOps;
 
 template <typename T>
-class TTreeReaderArrayWrapper
-{
+class TTreeReaderArrayWrapper {
 public:
     TTreeReaderArrayWrapper() = default;
 
-    bool init(TTreeReader &reader, const char *branchName)
-    {
-        TTree *tree = reader.GetTree();
-        if (!tree || !tree->GetBranch(branchName)){
-            cout << "[TTreeReaderArrayWrapper] Error: Branch " << branchName << " not found in tree. Skipping..." << endl;
-            return false;
-        }
+    [[nodiscard]]             
+    bool init(TTreeReader& reader, const char* branchName) {
+        auto* tree = reader.GetTree();
+        if (!tree || !tree->GetBranch(branchName)) return false;
+
         tree->SetBranchStatus(branchName, 1);
         myArray = std::make_unique<TTreeReaderArray<T>>(reader, branchName);
         return true;
     }
 
-    T operator[](std::size_t i) const
-    {
+    const T& operator[](std::size_t i) const noexcept {
+        static const T dummy{};                    
+        if (!myArray || i >= myArray->GetSize()) return dummy;
         return (*myArray)[i];
     }
 
-    std::size_t size() const
-    {
+    std::size_t size() const noexcept {
         return myArray ? myArray->GetSize() : 0;
     }
+
+    bool valid() const noexcept { return static_cast<bool>(myArray); }
+
+    void reset() noexcept { myArray.reset(); }
 
 private:
     std::unique_ptr<TTreeReaderArray<T>> myArray;
 };
 
 template <typename T>
-class TTreeReaderValueWrapper
-{
+class TTreeReaderValueWrapper {
 public:
     TTreeReaderValueWrapper() = default;
 
-    bool init(TTreeReader &reader, const char *branchName)
-    {
-        TTree *tree = reader.GetTree();
-        if (!tree || !tree->GetBranch(branchName)){
-            cout << "[TTreeReaderValueWrapper] Error: Branch " << branchName << " not found in tree. Skipping..." << endl;
-            return false;
-        }
+    [[nodiscard]]
+    bool init(TTreeReader& reader, const char* branchName) {
+        auto* tree = reader.GetTree();
+        if (!tree || !tree->GetBranch(branchName)) return false;
+
         tree->SetBranchStatus(branchName, 1);
         myValue = std::make_unique<TTreeReaderValue<T>>(reader, branchName);
         return true;
     }
 
-    operator T() const
-    {
-        return **myValue;
+    const T& get() const noexcept {
+        static const T dummy{};
+        return myValue ? **myValue : dummy;
     }
+
+    operator const T&() const noexcept { return get(); }
+
+    bool valid() const noexcept { return static_cast<bool>(myValue); }
+
+    void reset() noexcept { myValue.reset(); }
 
 private:
     std::unique_ptr<TTreeReaderValue<T>> myValue;
 };
+
 class SKNanoLoader
 {
 public:
