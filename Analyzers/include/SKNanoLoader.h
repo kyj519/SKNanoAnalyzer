@@ -33,6 +33,7 @@ public:
             cout << "[TTreeReaderArrayWrapper] Error: Branch " << branchName << " not found in tree. Skipping..." << endl;
             return false;
         }
+        tree->SetBranchStatus(branchName, 1);
         myArray = std::make_unique<TTreeReaderArray<T>>(reader, branchName);
         return true;
     }
@@ -64,6 +65,7 @@ public:
             cout << "[TTreeReaderValueWrapper] Error: Branch " << branchName << " not found in tree. Skipping..." << endl;
             return false;
         }
+        tree->SetBranchStatus(branchName, 1);
         myValue = std::make_unique<TTreeReaderValue<T>>(reader, branchName);
         return true;
     }
