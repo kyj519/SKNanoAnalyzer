@@ -949,7 +949,7 @@ bool MyCorrection::PassJetID(const Jet &jet, const Jet::JetID &id) const{
     float out;
     switch (id) {
         case Jet::JetID::TIGHT:
-            cset = cset_jetid->at("AK4PUPPI_TightLeptonVeto");
+            cset = cset_jetid->at("AK4PUPPI_Tight");
             out = cset->evaluate({fabs(jet.Eta()), jet.chHEF(), jet.neHEF(), jet.chEmEF(), jet.neEmEF(), jet.muEF(),jet.chMultiplicity(), jet.neMultiplicity(), jet.chMultiplicity()+ jet.neMultiplicity()});
             return out > 0.5; // return is real
             break;
