@@ -18,3 +18,5 @@
 #pragma link C++ class ParseMuIDVariables+;
 #pragma link C++ class TestGetLeptonType+;
 #pragma link C++ class JpsiAnalyzer+;
+#pragma link C++ class TTreeReaderWrappers+;
+#pragma link C++ class TriggerInfo+;
