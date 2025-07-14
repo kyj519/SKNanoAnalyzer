@@ -31,7 +31,7 @@ public:
         if (!tree || !tree->GetBranch(branchName)) return false;
 
         tree->SetBranchStatus(branchName, 1);
-        myArray = std::make_unique<TTreeReaderArray<T>>(reader, branchName);
+        myArray = std::make_shared<TTreeReaderArray<T>>(reader, branchName);
         return true;
     }
 
@@ -50,7 +50,7 @@ public:
     void reset() noexcept { myArray.reset(); }
 
 private:
-    std::unique_ptr<TTreeReaderArray<T>> myArray;
+    std::shared_ptr<TTreeReaderArray<T>> myArray;
 };
 
 template <typename T>
@@ -64,7 +64,7 @@ public:
         if (!tree || !tree->GetBranch(branchName)) return false;
 
         tree->SetBranchStatus(branchName, 1);
-        myValue = std::make_unique<TTreeReaderValue<T>>(reader, branchName);
+        myValue = std::make_shared<TTreeReaderValue<T>>(reader, branchName);
         return true;
     }
 
@@ -80,7 +80,7 @@ public:
     void reset() noexcept { myValue.reset(); }
 
 private:
-    std::unique_ptr<TTreeReaderValue<T>> myValue;
+    std::shared_ptr<TTreeReaderValue<T>> myValue;
 };
 
 class SKNanoLoader
