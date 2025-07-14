@@ -1015,7 +1015,7 @@ RVec<Jet> AnalyzerCore::JetsVetoLeptonInside(const RVec<Jet> &jets, const RVec<E
 bool AnalyzerCore::PassJetVetoMap(const RVec<Jet> &AllJets, const RVec<Muon> &AllMuons, const TString mapCategory)
 {
     RVec<Jet> this_jet = SelectJets(AllJets, Jet::JetID::TIGHT, 15., 5.0);
-    this_jet = SelectJets(this_jet, Jet::JetID::PUID_TIGHT, 15., 5.0);
+    //this_jet = SelectJets(this_jet, Jet::JetID::PUID_TIGHT, 15., 5.0);
     RVec<Jet> selected_jets;
     RVec<Electron> empty_electrons;
     this_jet = JetsVetoLeptonInside(this_jet, empty_electrons, AllMuons, 0.2);
