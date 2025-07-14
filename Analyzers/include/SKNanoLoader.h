@@ -83,6 +83,14 @@ private:
     std::shared_ptr<TTreeReaderValue<T>> myValue;
 };
 
+//Type and struct for HLT loading
+struct TriggerInfo {
+    std::unique_ptr<TTreeReaderValueWrapper<Bool_t>> hlt;
+    float lumi = 0.f;
+    bool alwaysTrue = false;              // Full용
+};
+using TriggerMap_t = std::map<TString, std::unique_ptr<TriggerInfo>>;
+
 class SKNanoLoader
 {
 public:
@@ -1020,9 +1028,14 @@ public:
     // run
     TTreeReaderValueWrapper<UInt_t> RunNumber;
 
+<<<<<<< HEAD
     //===============================================
     std::map<TString, TTreeReaderValueWrapper<Bool_t>> TriggerReaders;
     std::map<TString, pair<Bool_t *, float>> TriggerMap;
+=======
+    //=================================================
+    TriggerMap_t TriggerMap;
+>>>>>>> NanoAODv15
 };
 
 #endif

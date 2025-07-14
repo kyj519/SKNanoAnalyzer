@@ -8,6 +8,9 @@
 using namespace std;
 #include <map>
 
+struct TriggerInfo;   // forward declaration
+using TriggerMap_t = std::map<TString, std::unique_ptr<TriggerInfo>>;
+
 class Event: public TObject {
 public:
     Event();
@@ -37,7 +40,7 @@ public:
     inline float nTrueInt() const { return j_nTrueInt; }
     void SetnPVsGood(int nPVsGood) { j_nPVsGood = nPVsGood;}
     inline int nPVsGood() const { return j_nPVsGood; }
-    void SetTrigger(const std::map<TString, pair<Bool_t *, float>>& TriggerMap);
+    void SetTrigger(const const TriggerMap_t& map);
     void setRho(float rho) { j_fixedGridRhoFastjetAll = rho; }
     inline float GetRho() const { return j_fixedGridRhoFastjetAll; }
     //void SetTrigger(RVec<TString> HLT_TriggerName) { j_HLT_TriggerName = HLT_TriggerName; }
@@ -63,7 +66,7 @@ public:
 
 private:
     int j_run, j_lumi, j_event;
-    const std::map<TString, pair<Bool_t*, float>>* j_HLT_TriggerMapPtr;
+    const TriggerMap_t* j_HLTmap = nullptr;
     int j_nPV;
     int j_nPVsGood;
     float j_nTrueInt;
