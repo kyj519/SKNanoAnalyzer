@@ -981,6 +981,23 @@ RVec<Jet> AnalyzerCore::SelectJets(const RVec<Jet> &jets, const Jet::JetID ID, c
     return selected_jets;
 }
 
+RVec<FatJet> AnalyzerCore::SelectFatJets(const RVec<FatJet> &fatjets, const FatJet::FatJetID ID, const float ptmin, const float fetamax) const
+{
+    RVec<Jet> selected_jets;
+    for (const auto &fatjet : fatjets)
+    {
+        if (fatjet.Pt() < ptmin)
+            continue;
+        if (fabs(fatjet.Eta()) > fetamax)
+            continue;
+        if (!myCorr->PassFatJetID(fatjet, ID))
+            continue;
+        selected_jets.push_back(fatjet);
+    }
+    return selected_jets;
+}
+
+
 RVec<Jet> AnalyzerCore::JetsVetoLeptonInside(const RVec<Jet> &jets, const RVec<Electron> &electrons, const RVec<Muon> &muons, const float dR) const
 {
     RVec<Jet> selected_jets;

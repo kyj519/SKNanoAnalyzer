@@ -121,6 +121,7 @@ public:
 
     // Jet ID
     bool PassJetID(const Jet &jet, const Jet::JetID &id) const;
+    bool PassFatJetID(const FatJet &fatjet, const FatJet::FatJetID &id) const
 
     // JERC
     float GetJER(const float eta, const float pt, const float rho) const;

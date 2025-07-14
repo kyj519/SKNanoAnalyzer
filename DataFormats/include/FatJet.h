@@ -11,6 +11,13 @@ public:
     FatJet();
     ~FatJet();
 
+    enum class FatJetID
+    {
+        NOCUT,
+        TIGHT,
+        TIGHTLEPVETO
+    };
+
     // inline void SetJetID(unsigned char b)
     // {
     //     // bit 0 is loose, bit 1 is tight, bit 2 is tightLepVeto
