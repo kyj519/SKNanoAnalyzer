@@ -967,6 +967,30 @@ bool MyCorrection::PassJetID(const Jet &jet, const Jet::JetID &id) const{
     }
 }
 
+
+bool MyCorrection:: const{
+    correction::Correction::Ref cset = nullptr;
+    float out;
+    switch (id) {
+        case FatJet::FatJetID::TIGHT:
+            cset = cset_jetid->at("AK8PUPPI_Tight");
+            out = cset->evaluate({fabs(fatjet.Eta()), fatjet.chHEF(), fatjet.neHEF(), fatjet.chEmEF(), fatjet.neEmEF(), fatjet.muEF(),fatjet.chMultiplicity(), fatjet.neMultiplicity(), fatjet.chMultiplicity()+ fatjet.neMultiplicity()});
+            return out > 0.5; // return is real
+            break;
+        case FatJet::FatJetID::TIGHTLEPVETO:
+            cset = cset_jetid->at("AK8PUPPI_TightLeptonVeto");
+            out = cset->evaluate({fabs(fatjet.Eta()), fatjet.chHEF(), fatjet.neHEF(), fatjet.chEmEF(), fatjet.neEmEF(), fatjet.muEF(), fatjet.chMultiplicity(), fatjet.neMultiplicity(), fatjet.chMultiplicity()+ fatjet.neMultiplicity()});
+            return out > 0.5; // return is real
+            break;
+        case FatJet::FatJetID::NOCUT:
+            // No cut, always return true
+            return true;
+            break;
+        default:
+            throw runtime_error("[MyCorrection::PassFatJetID] Invalid JetID type");
+    }
+}
+
 // JERC
 float MyCorrection::GetJER(const float eta, const float pt, const float rho) const {
     correction::Correction::Ref cset = nullptr;
