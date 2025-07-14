@@ -25,7 +25,7 @@ class TTreeReaderArrayWrapper {
 public:
     TTreeReaderArrayWrapper() = default;
 
-    [[nodiscard]]             
+    //[[nodiscard]]             
     bool init(TTreeReader& reader, const char* branchName) {
         auto* tree = reader.GetTree();
         if (!tree || !tree->GetBranch(branchName)) return false;
@@ -58,7 +58,7 @@ class TTreeReaderValueWrapper {
 public:
     TTreeReaderValueWrapper() = default;
 
-    [[nodiscard]]
+    //[[nodiscard]]
     bool init(TTreeReader& reader, const char* branchName) {
         auto* tree = reader.GetTree();
         if (!tree || !tree->GetBranch(branchName)) return false;
@@ -1021,7 +1021,7 @@ public:
     TTreeReaderValueWrapper<UInt_t> RunNumber;
 
     //===============================================
-    std::unordered_map<TString, TTreeReaderValueWrapper<Bool_t>> TriggerReaders;
+    std::map<TString, TTreeReaderValueWrapper<Bool_t>> TriggerReaders;
     std::map<TString, pair<Bool_t *, float>> TriggerMap;
 };
 
