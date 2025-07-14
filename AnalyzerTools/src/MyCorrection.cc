@@ -120,7 +120,7 @@ MyCorrection::EraConfig MyCorrection::GetEraConfig(TString era, const string &bt
     config.json_jetvetomap = json_pog_path_str + "/POG/JME";
     // config.json_jmar = json_pog_path_str + "/POG/JME";
     // config.json_met = json_pog_path_str + "/POG/JME";
-    // config.txt_roccor = external_roccor_str;
+    config.txt_roccor = external_roccor_str;
     config.golden_json = sknano_data_str;
 
     config.json_muon_custom_TopHNT_idsf = sknano_data_str;
@@ -151,7 +151,7 @@ MyCorrection::EraConfig MyCorrection::GetEraConfig(TString era, const string &bt
         // config.json_jerc_fatjet += "/2023_Summer23BPix/fatJet_jerc.json.gz";
         config.json_jetvetomap += "/2024_Winter24/jetvetomaps.json.gz";
         // config.json_met += "/2023_Summer23BPix/met.json.gz";
-        // config.txt_roccor += "/RoccoR2023BPix.txt";
+        config.txt_roccor += "/RoccoR2023BPix.txt";
         config.golden_json += "/2024/LUM/Cert_Collisions2024_378981_386951_Golden.json";
     } else {
         throw invalid_argument("[MyCorrection::GetEraConfig] Invalid era: " + era);
@@ -949,7 +949,7 @@ bool MyCorrection::PassJetID(const Jet &jet, const Jet::JetID &id) const{
     float out;
     switch (id) {
         case Jet::JetID::TIGHT:
-            cset = cset_jetid->at("AK4PUPPI_TightLeptonVeto");
+            cset = cset_jetid->at("AK4PUPPI_Tight");
             out = cset->evaluate({fabs(jet.Eta()), jet.chHEF(), jet.neHEF(), jet.chEmEF(), jet.neEmEF(), jet.muEF(),jet.chMultiplicity(), jet.neMultiplicity(), jet.chMultiplicity()+ jet.neMultiplicity()});
             return out > 0.5; // return is real
             break;
