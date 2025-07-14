@@ -1,13 +1,14 @@
 #include "MyCorrection.h"
 
 MyCorrection::MyCorrection() {}
-MyCorrection::MyCorrection(const TString &era, const TString &sample, const bool IsData) {
+MyCorrection::MyCorrection(const TString &era, const TString &sample, const bool IsData, const string &btagging_eff_file, const string &ctagging_eff_file, const string &btagging_R_file, const string &ctagging_R_file)
+{ 
     cout << "[MyCorrection::MyCorrection] MyCorrection created for " << era << endl;
     SetEra(era);
     SetSample(sample);
     setIsData(IsData);
 
-    EraConfig config = GetEraConfig(era);
+    EraConfig config = GetEraConfig(era, btagging_eff_file, ctagging_eff_file, btagging_R_file, ctagging_R_file);
     struct CorrectionInfo {
         string name;
         string path;  
@@ -82,7 +83,7 @@ MyCorrection::MyCorrection(const TString &era, const TString &sample, const bool
 
 MyCorrection::~MyCorrection() {}
 
-MyCorrection::EraConfig MyCorrection::GetEraConfig(TString era) {
+MyCorrection::EraConfig MyCorrection::GetEraConfig(TString era, const string &btagging_eff_file, const string &ctagging_eff_file, const string &btagging_R_file, const string &ctagging_R_file) const {
     EraConfig config;
 
     const char *json_pog_path = getenv("JSONPOG_REPO_PATH");
@@ -98,10 +99,6 @@ MyCorrection::EraConfig MyCorrection::GetEraConfig(TString era) {
     const string json_pog_path_str(json_pog_path);
     const string sknano_data_str(sknano_data);
     const string external_roccor_str(external_roccor);
-    const string btagging_eff_file = "btaggingEff.json";
-    const string ctagging_eff_file = "ctaggingEff.json";
-    const string btagging_R_file = "btaggingR.json";
-    const string ctagging_R_file = "ctaggingR.json";
 
 
     // config.json_muon = json_pog_path_str + "/POG/MUO";

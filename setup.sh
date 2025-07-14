@@ -61,15 +61,23 @@ if [ $PACKAGE = "conda" ]; then
     fi
 elif [ $PACKAGE = "mamba" ]; then
     echo -e "\033[32m@@@@ Primary environment using mamba\033[0m"
+    # Detect Singularity or GitHub Actions
     IS_SINGULARITY=$(env | grep -i "SINGULARITY_ENVIRONMENT")
-    if [[ -n "$IS_SINGULARITY" ||  -n "$GITHUB_ACTION" ]]; then
-        # Building within Singularity image, will be used for batch jobs
+    if [[ -n "$IS_SINGULARITY" || -n "$GITHUB_ACTION" ]]; then
         echo -e "\033[32m@@@@ Detected Singularity environment\033[0m"
-        eval "$(micromamba shell hook -s zsh)"
     else
-        export PATH="$HOME/micromamba/bin:${PATH}"
-        export MAMBA_ROOT_PREFIX="$HOME/micromamba"
+        # Only add micromamba to PATH if it's not already in PATH
+        if ! command -v micromamba &> /dev/null; then
+            export PATH="$HOME/micromamba/bin:${PATH}"
+            export MAMBA_ROOT_PREFIX="$HOME/micromamba"
+        fi
+    fi
+
+    # micromamba shell hook should only be run once per session
+    if [[ -z "$__MAMBA_SETUP_DONE" ]]; then
+        unalias mamba 2>/dev/null
         eval "$(micromamba shell hook -s zsh)"
+        export __MAMBA_SETUP_DONE=1
     fi
     micromamba activate Nano
     # from this point on, we can follow conda version of setup
