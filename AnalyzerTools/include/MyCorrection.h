@@ -18,6 +18,7 @@ using namespace std;
 #include "Gen.h"
 #include "Muon.h"
 #include "Electron.h"
+#include "FatJet.h"
 #include "GoldenJsonParser.h"
 
 using correction::CorrectionSet;
@@ -121,7 +122,7 @@ public:
 
     // Jet ID
     bool PassJetID(const Jet &jet, const Jet::JetID &id) const;
-    bool PassFatJetID(const FatJet &fatjet, const FatJet::FatJetID &id) const
+    bool PassFatJetID(const FatJet &fatjet, const FatJet::FatJetID &id) const;
 
     // JERC
     float GetJER(const float eta, const float pt, const float rho) const;
