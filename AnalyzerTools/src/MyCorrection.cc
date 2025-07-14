@@ -73,7 +73,7 @@ MyCorrection::MyCorrection(const TString &era, const TString &sample, const bool
 
     JME_JES_GT["2024"] = "Winter24Prompt24_V3_MC_######_AK4PFPuppi";
 
-    JME_vetomap_keys["2024"] = "Winter24Prompt23_RunD_V1";
+    JME_vetomap_keys["2024"] = "Winter24Prompt2024BCDEFGHI_V1";
 
     JME_PILEUP_keys["2016preVFP"] = "PUJetID_eff";
     JME_PILEUP_keys["2016postVFP"] = "PUJetID_eff";
