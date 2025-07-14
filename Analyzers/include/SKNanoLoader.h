@@ -1020,7 +1020,8 @@ public:
     // run
     TTreeReaderValueWrapper<UInt_t> RunNumber;
 
-    //=================================================
+    //===============================================
+    std::unordered_map<TString, TTreeReaderValueWrapper<Bool_t>> TriggerReaders;
     std::map<TString, pair<Bool_t *, float>> TriggerMap;
 };
 

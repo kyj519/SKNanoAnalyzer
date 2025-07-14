@@ -61,17 +61,6 @@ void SKNanoLoader::Loop()
 
 void SKNanoLoader::Init()
 {
-    auto SafeSetBranchAddress = [this](const TString &branchName, void *address)
-    {
-        TBranch *branch = fChain->GetBranch(branchName);
-        if (!branch)
-        {
-            cout << "[SKNanoGenLoader::Init] Warning:Branch " << branchName << " not found" << endl;
-            return;
-        }
-        fChain->SetBranchStatus(branchName, 1);
-        fChain->SetBranchAddress(branchName, address);
-    };
 
     cout << "[SKNanoLoader::Init] Initializing. Era = " << DataEra << " Run =  " << Run << endl;
     if (fChain->GetEntries() == 0)
@@ -93,26 +82,25 @@ void SKNanoLoader::Init()
         json j;
         json_file >> j;
         RVec<TString> not_in_tree;
-        for (auto &[key, value] : j.items())
-        {
-            cout << "[SKNanoLoader::Init] HLT Path: " << key << endl;
-            Bool_t *passHLT = new Bool_t();
-            TString key_str = key;
-            TriggerMap[key_str].first = passHLT;
-            TriggerMap[key_str].second = value["lumi"];
-            // if key_str is in tree, set branch address
-            if (fChain->GetBranch(key_str))
-            {
-                SafeSetBranchAddress(key_str, TriggerMap[key_str].first);
+        for (auto &[key, value] : j.items()) {
+
+            TString keyStr = key.c_str();             
+            auto   &wrapper = TriggerReaders[keyStr]; 
+
+            if (wrapper.init(*fReader, keyStr)) {     
+                TriggerMap[keyStr].first  =
+                    const_cast<Bool_t*>(&wrapper.get()); 
+                TriggerMap[keyStr].second = value["lumi"];
+                std::cout << "[Init] trigger '" << keyStr << "' linked\n";
             }
-            else if (key_str == "Full")
-            {
-                *TriggerMap[key_str].first = true;
+            else if (keyStr == "Full") {              
+                static Bool_t alwaysTrue = true;
+                TriggerMap[keyStr].first  = &alwaysTrue;
+                TriggerMap[keyStr].second = value["lumi"];
             }
-            else
-            {
-                not_in_tree.push_back(key_str);
-                TriggerMap.erase(key_str);
+            else {
+                not_in_tree.push_back(keyStr);
+                TriggerMap.erase(keyStr);
             }
         }
         if (not_in_tree.size() > 0)
