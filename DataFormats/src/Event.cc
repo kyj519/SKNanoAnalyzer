@@ -12,16 +12,21 @@ Event::Event() {
 
 Event::~Event() {}
 
-void Event::SetTrigger(const std::map<TString, pair<Bool_t*,float>>& TriggerMap) {
-    j_HLT_TriggerMapPtr = &(TriggerMap);
+void Event::SetTrigger(const TriggerMap_t& map) {
+    j_HLTmap = &map;
 }
 
 bool Event::PassTrigger(const TString trig) const {
-    if (j_HLT_TriggerMapPtr->find(trig) == j_HLT_TriggerMapPtr->end()) {
-        cout << "[Event::PassTrigger] WARNING:Trigger " << trig << " not found" << endl;
-        return false;
-    }
-    return *((j_HLT_TriggerMapPtr->at(trig)).first);
+    auto it = j_HLTmap->find(trig);
+        if (it == j_HLTmap->end()) {
+            std::cout << "[Event::PassTrigger] WARNING: " << trig
+                      << " not found\n";
+            return false;
+        }
+        const TriggerInfo& info = *it->second;
+        return info.alwaysTrue ? true :
+               (info.hlt && info.hlt->valid() ? static_cast<bool>(info.hlt->get())
+                                              : false);
 }
 
 bool Event::PassTrigger(const RVec<TString> trigs) const {
@@ -37,14 +42,21 @@ bool Event::PassTrigger(const RVec<TString> trigs) const {
 //               -u /pb -i /afs/cern.ch/user/c/choij/private/brilcalc/json/Run3/2023.json \
 //               --hltpath "HLT_IsoMu24_v*"
 // /cvmfs/cms-bril.cern.ch/cms-lumi-pog/Normtags/normtag_PHYSICS.json for 2022, normtag_BRIL.json for 2023 (2024.07.11)
-float Event::GetTriggerLumi(TString trig) {
-    if(j_HLT_TriggerMapPtr->find(trig) == j_HLT_TriggerMapPtr->end()) {
-        cerr << "[Event::GetTriggerLumi] Trigger " << trig << " not found" << endl;
-        return -999.;
+float Event::GetTriggerLumi(const TString& trig) const
+{
+    if (!j_HLTmap) {                     
+        std::cerr << "[Event::GetTriggerLumi] HLT map not set\n";
+        return -999.f;
     }
-    return (j_HLT_TriggerMapPtr->at(trig)).second;
-    // I put full trigger luminosity in HLT_Path.json
-    // If you are using prescaled one, you have to modify 
+
+    const auto it = j_HLTmap->find(trig);
+    if (it == j_HLTmap->end() || !it->second) {   
+        std::cerr << "[Event::GetTriggerLumi] Trigger " << trig
+                  << " not found\n";
+        return -999.f;
+    }
+
+    return it->second->lumi;             
 }
 
 bool Event::IsPDForTrigger(TString trig, TString PD) {

@@ -93,38 +93,27 @@ void SKNanoLoader::Init()
         json j;
         json_file >> j;
         RVec<TString> not_in_tree;
-        for (auto &[key, value] : j.items())
-        {
-            cout << "[SKNanoLoader::Init] HLT Path: " << key << endl;
-            Bool_t *passHLT = new Bool_t();
-            TString key_str = key;
-            TriggerMap[key_str].first = passHLT;
-            TriggerMap[key_str].second = value["lumi"];
-            // if key_str is in tree, set branch address
-            if (fChain->GetBranch(key_str))
-            {
-                SafeSetBranchAddress(key_str, TriggerMap[key_str].first);
-            }
-            else if (key_str == "Full")
-            {
-                *TriggerMap[key_str].first = true;
-            }
-            else
-            {
-                not_in_tree.push_back(key_str);
-                TriggerMap.erase(key_str);
-            }
+        for (auto &[key, value] : j.items()) {
+
+        auto info = std::make_unique<TriggerInfo>();
+        info->lumi = value["lumi"];
+
+        if (key == "Full") {
+            info->alwaysTrue = true;
+            TriggerMap.emplace(key, std::move(info));
+            continue;
         }
-        if (not_in_tree.size() > 0)
-        {
-            // print in yellow color
-            cout << "\033[1;33m[SKNanoLoader::Init] Following HLT Paths are not in the tree\033[0m" << endl;
-            for (auto &path : not_in_tree)
-            {
-                cout << "\033[1;33m" << path << "\033[0m" << endl;
-            }
+
+        if (info->hlt = std::make_unique<TTreeReaderValueWrapper<Bool_t>>();
+            info->hlt->init(fReader, key)) {
+            TriggerMap.emplace(key, std::move(info));
+
+        } else {                                
+            std::cout << "\033[1;33m[SKNanoLoader::Init] "
+                    << key << " branch not in tree – skipped\033[0m\n";
         }
     }
+
     else
         cerr << "[SKNanoLoader::Init] Cannot open " << json_path << endl;
 }
