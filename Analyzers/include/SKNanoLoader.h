@@ -957,14 +957,8 @@ public:
     // run
     TTreeReaderValueWrapper<UInt_t> RunNumber;
 
-<<<<<<< HEAD
-    //===============================================
-    std::map<TString, TTreeReaderValueWrapper<Bool_t>> TriggerReaders;
-    std::map<TString, pair<Bool_t *, float>> TriggerMap;
-=======
     //=================================================
     TriggerMap_t TriggerMap;
->>>>>>> NanoAODv15
 };
 
 #endif
