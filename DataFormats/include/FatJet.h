@@ -150,7 +150,6 @@ public:
     inline float neEmEF() const { return j_neEmEF; };
     inline float neHEF() const { return j_neHEF; }; 
 
-    bool PassID(TString ID) const;
     float GetTaggerResult(JetTagging::FatJetTagger tagger, JetTagging::FatJetTaggerScoreType scoreType) const;
 
 private:
