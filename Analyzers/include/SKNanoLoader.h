@@ -25,7 +25,7 @@ class TTreeReaderArrayWrapper {
 public:
     TTreeReaderArrayWrapper() = default;
 
-    [[nodiscard]]             
+    //[[nodiscard]]             
     bool init(TTreeReader& reader, const char* branchName) {
         auto* tree = reader.GetTree();
         if (!tree || !tree->GetBranch(branchName)) return false;
@@ -58,7 +58,7 @@ class TTreeReaderValueWrapper {
 public:
     TTreeReaderValueWrapper() = default;
 
-    [[nodiscard]]
+    //[[nodiscard]]
     bool init(TTreeReader& reader, const char* branchName) {
         auto* tree = reader.GetTree();
         if (!tree || !tree->GetBranch(branchName)) return false;
