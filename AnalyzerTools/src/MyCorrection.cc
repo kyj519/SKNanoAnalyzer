@@ -946,8 +946,8 @@ float MyCorrection::GetPileupJetIDSF(const RVec<Jet> &jets, const unordered_map<
 
 bool MyCorrection::PassJetID(const Jet &jet, const Jet::JetID &id) const{
     correction::Correction::Ref cset = nullptr;
+    float out;
     switch (id) {
-        float out;
         case Jet::JetID::TIGHT:
             cset = cset_jetid->at("AK4PUPPI_TightLeptonVeto");
             out = cset->evaluate({fabs(jet.Eta()), jet.chHEF(), jet.neHEF(), jet.chEmEF(), jet.neEmEF(), jet.muEF(),jet.chMultiplicity(), jet.neMultiplicity(), jet.chMultiplicity()+ jet.neMultiplicity()});
