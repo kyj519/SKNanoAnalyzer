@@ -968,7 +968,7 @@ bool MyCorrection::PassJetID(const Jet &jet, const Jet::JetID &id) const{
 }
 
 
-bool MyCorrection:: const{
+bool MyCorrection::PassFatJetID(const FatJet &fatjet, const FatJet::FatJetID &id) const{
     correction::Correction::Ref cset = nullptr;
     float out;
     switch (id) {
