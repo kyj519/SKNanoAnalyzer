@@ -5,10 +5,10 @@
 #include "TString.h"
 #include "TObject.h"
 #include "MyCorrection.h"
+#include "Triggerinfo.h"
 using namespace std;
 #include <map>
 
-struct TriggerInfo;   // forward declaration
 using TriggerMap_t = std::map<TString, std::unique_ptr<TriggerInfo>>;
 
 class Event: public TObject {
@@ -40,7 +40,7 @@ public:
     inline float nTrueInt() const { return j_nTrueInt; }
     void SetnPVsGood(int nPVsGood) { j_nPVsGood = nPVsGood;}
     inline int nPVsGood() const { return j_nPVsGood; }
-    void SetTrigger(const const TriggerMap_t& map);
+    void SetTrigger(const TriggerMap_t& map);
     void setRho(float rho) { j_fixedGridRhoFastjetAll = rho; }
     inline float GetRho() const { return j_fixedGridRhoFastjetAll; }
     //void SetTrigger(RVec<TString> HLT_TriggerName) { j_HLT_TriggerName = HLT_TriggerName; }
@@ -48,7 +48,7 @@ public:
 
     bool PassTrigger(TString trig) const;
     bool PassTrigger(RVec<TString> trigs) const;
-    float GetTriggerLumi(TString trig);
+    float GetTriggerLumi(const TString& trig) const;
     bool IsPDForTrigger(TString trig, TString PD);
 
     void SetMET(RVec<float> MET_pt, RVec<float> MET_phi);

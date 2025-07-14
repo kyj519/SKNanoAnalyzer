@@ -19,10 +19,6 @@ SKNanoLoader::SKNanoLoader()
 
 SKNanoLoader::~SKNanoLoader()
 {
-    for (auto &[key, value] : TriggerMap)
-    {
-        delete value.first;
-    }
     if (!fChain)
         return;
     if (fChain->GetCurrentFile())
@@ -61,17 +57,6 @@ void SKNanoLoader::Loop()
 
 void SKNanoLoader::Init()
 {
-    auto SafeSetBranchAddress = [this](const TString &branchName, void *address)
-    {
-        TBranch *branch = fChain->GetBranch(branchName);
-        if (!branch)
-        {
-            cout << "[SKNanoGenLoader::Init] Warning:Branch " << branchName << " not found" << endl;
-            return;
-        }
-        fChain->SetBranchStatus(branchName, 1);
-        fChain->SetBranchAddress(branchName, address);
-    };
 
     cout << "[SKNanoLoader::Init] Initializing. Era = " << DataEra << " Run =  " << Run << endl;
     if (fChain->GetEntries() == 0)
@@ -95,27 +80,30 @@ void SKNanoLoader::Init()
         RVec<TString> not_in_tree;
         for (auto &[key, value] : j.items()) {
 
-        auto info = std::make_unique<TriggerInfo>();
-        info->lumi = value["lumi"];
+            auto info = std::make_unique<TriggerInfo>();
+            info->lumi = value["lumi"];
 
-        if (key == "Full") {
-            info->alwaysTrue = true;
-            TriggerMap.emplace(key, std::move(info));
-            continue;
-        }
+            if (key == "Full") {
+                info->alwaysTrue = true;
+                TriggerMap.emplace(key, std::move(info));
+                continue;
+            }
 
-        if (info->hlt = std::make_unique<TTreeReaderValueWrapper<Bool_t>>();
-            info->hlt->init(fReader, key)) {
-            TriggerMap.emplace(key, std::move(info));
+            if (info->hlt = std::make_unique<TTreeReaderValueWrapper<Bool_t>>();
+                info->hlt->init(*fReader, key.c_str())) {
+                TriggerMap.emplace(key, std::move(info));
 
-        } else {                                
-            std::cout << "\033[1;33m[SKNanoLoader::Init] "
-                    << key << " branch not in tree – skipped\033[0m\n";
+            } else {                                
+                std::cout << "\033[1;33m[SKNanoLoader::Init] "
+                        << key << " branch not in tree – skipped\033[0m\n";
+            }
         }
     }
+    
 
     else
         cerr << "[SKNanoLoader::Init] Cannot open " << json_path << endl;
+
 }
 
 void SKNanoLoader::InitBranch()
