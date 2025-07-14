@@ -983,7 +983,7 @@ RVec<Jet> AnalyzerCore::SelectJets(const RVec<Jet> &jets, const Jet::JetID ID, c
 
 RVec<FatJet> AnalyzerCore::SelectFatJets(const RVec<FatJet> &fatjets, const FatJet::FatJetID ID, const float ptmin, const float fetamax) const
 {
-    RVec<Jet> selected_jets;
+    RVec<FatJet> selected_jets;
     for (const auto &fatjet : fatjets)
     {
         if (fatjet.Pt() < ptmin)
