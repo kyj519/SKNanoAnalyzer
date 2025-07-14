@@ -55,12 +55,6 @@ public:
         Tight = 1 << 1,
         TightLepVeto = 1 << 2
     };
-    //inline bool PassSelector(unsigned int s) const { return (j_jetId & s) == s; }
-    //TODO JetID need to be set
-    inline bool PassSelector(unsigned int s) const { return true; }
-    inline bool PassLoose() const { return PassSelector(Loose); }
-    inline bool PassTight() const { return PassSelector(Tight); }
-    inline bool PassTightLepVeto() const { return PassSelector(TightLepVeto); }
 
     void SetConstituents(short nNeu, short nCh, unsigned char nConst)
     {
@@ -68,9 +62,9 @@ public:
         j_neMultiplicity = nNeu;
         j_nConstituents = nConst;
     };
-    inline unsigned char NConstituents() const { return j_nConstituents; };
-    inline unsigned char NCh() const { return j_chMultiplicity; };
-    inline unsigned char NNeu() const { return j_neMultiplicity; };
+    inline unsigned char nConstituents() const { return j_nConstituents; };
+    inline unsigned char chMultiplicity() const { return j_chMultiplicity; };
+    inline unsigned char neMultiplicity() const { return j_neMultiplicity; };
 
     void SetParticleNetResult(RVec<float> pnet)
     {
@@ -148,6 +142,13 @@ public:
         j_neEmEF = neEmEF;
         j_neHEF = neHEF;
     };
+    inline float chEmEF() const { return j_chEmEF; };
+    inline float chHEF() const { return j_chHEF; };
+    inline float hfEmEF() const { return j_hfEmEF; };
+    inline float hfHEF() const { return j_hfHEF; };
+    inline float muEF() const { return j_muEF; };
+    inline float neEmEF() const { return j_neEmEF; };
+    inline float neHEF() const { return j_neHEF; }; 
 
     bool PassID(TString ID) const;
     float GetTaggerResult(JetTagging::FatJetTagger tagger, JetTagging::FatJetTaggerScoreType scoreType) const;
