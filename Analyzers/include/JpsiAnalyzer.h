@@ -29,6 +29,7 @@ public:
     unique_ptr<SystematicHelper> systHelper;
 
     RVec<Muon> Muons;
+    RVec<Jet> Jets;
 
     JpsiAnalyzer();
     ~JpsiAnalyzer();
