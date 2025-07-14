@@ -100,18 +100,6 @@ FatJet::~FatJet() {
 
 }
 
-bool FatJet::PassID(TString ID) const {
-
-    if (ID == "Loose")             return PassLoose();
-    else if (ID == "Tight")        return PassTight();
-    else if (ID == "TightLepVeto") return PassTightLepVeto();
-    else cout << "[FatJet::PassID] No id : " << ID << endl;
-    
-    exit(ENODATA);
-    return false;
-
-}
-
 float FatJet::GetTaggerResult(JetTagging::FatJetTagger tagger, JetTagging::FatJetTaggerScoreType scoreType) const{
     // First inspect correct tagger - score type is given
     // declare as null reference
