@@ -22,6 +22,7 @@ public:
     RVec<Muon::MuonID> MuonIDs;
     RVec<Muon> AllMuons;
     RVec<Jet> AllJets;
+    RVec<FatJet> AllFatJets;
     Event ev;
 
     float weight_Prefire;
@@ -30,6 +31,7 @@ public:
 
     RVec<Muon> Muons;
     RVec<Jet> Jets;
+    RVec<FatJet> FatJets;
 
     JpsiAnalyzer();
     ~JpsiAnalyzer();

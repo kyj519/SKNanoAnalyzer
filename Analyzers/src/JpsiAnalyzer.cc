@@ -27,6 +27,7 @@ void JpsiAnalyzer::executeEvent() {
 
     AllMuons = GetAllMuons();
     AllJets = GetAllJets();
+    AllFatJets = GetAllFatJets();
     ev = GetEvent();
     executeEventFromParameter();
     
@@ -43,6 +44,7 @@ void JpsiAnalyzer::executeEventFromParameter() {
     if (Muons[0].Charge() * Muons[1].Charge() > 0) return; // opposite sign
     Particle jpsi = Muons[0] + Muons[1];
     Jets = SelectJets(AllJets, Jet::JetID::TIGHT, 20., 2.5);
+    FatJets = SelectFatJets(AllFatJets, FatJet::FatJetID::TIGHT, 10., 2.5);
     //select back-to-back jets
     if (Jets.size() < 2) return;
 
@@ -81,7 +83,19 @@ void JpsiAnalyzer::executeEventFromParameter() {
     FillHist("dR_Jpsi_ClosestJet", jpsi.DeltaR(closestJet), 1., 50, 0.f, 1.f);
     FillHist("dPhi_ClosestJet_FarthestJet", closestJet.DeltaPhi(farthestJet), 1., 50, -3.14f, 3.14f);
     FillHist("Jpsi_Fragmentation", jpsi.Pt() / closestJet.Pt(), 1. , 50, 0.f, 1.5f);
-    
-    
+    FillHist("nFatJets", FatJets.size(), 1., 5, 0.f, 5.f);
+    if(FatJets.size() == 0) return; // no fat jets, exit
+    size_t closestFatJetIndex = 0;
+    float minFatJetDeltaR = 999.0;
+    for (size_t i = 0; i < FatJets.size(); ++i) {
+        float deltaR = jpsi.DeltaR(FatJets[i]);
+        if (deltaR < minFatJetDeltaR) {
+            minFatJetDeltaR = deltaR;
+            closestFatJetIndex = i;
+        }
+    }
+    FatJet closestFatJet = FatJets[closestFatJetIndex];
+    FillHist("dR_Jpsi_ClosestFatJet", jpsi.DeltaR(closestFatJet), 1., 50, 0.f, 1.f);
+    FillHist("ClosestFatJet_Pt", closestFatJet.Pt(), 1., 50, 20.f, 100.f);
 
 }
