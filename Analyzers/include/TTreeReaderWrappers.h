@@ -28,9 +28,10 @@ public:
     const T& operator[](std::size_t i) const {      
         switch (state_) {
             case State::Initialised:
-                if (i >= myArray->GetSize())
-                    std::string msg = "[TTreeReaderArrayWrapper::" + branch_ + "] Index out of range"
+                if (i >= myArray->GetSize()){
+                    std::string msg = "[TTreeReaderArrayWrapper::" + branch_ + "] Index out of range";
                     throw std::out_of_range(msg);
+                }   
                 return (*myArray)[i];
 
             case State::Uninitialised:

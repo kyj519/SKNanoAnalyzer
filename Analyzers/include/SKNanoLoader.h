@@ -959,6 +959,9 @@ public:
 
     //=================================================
     TriggerMap_t TriggerMap;
+
+    //=====Custom variables=====
+    
 };
 
 #endif
