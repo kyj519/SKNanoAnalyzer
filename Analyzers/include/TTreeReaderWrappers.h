@@ -29,18 +29,15 @@ public:
         switch (state_) {
             case State::Initialised:
                 if (i >= myArray->GetSize()){
-                    std::string msg = "[TTreeReaderArrayWrapper::" + branch_ + "] Index out of range";
-                    throw std::out_of_range(msg);
+                    throw std::out_of_range("[TTreeReaderArrayWrapper::" + branch_ + "] Index out of range");
                 }   
                 return (*myArray)[i];
 
             case State::Uninitialised:
-                std::string msg = "[TTreeReaderArrayWrapper::" + branch_ + "] Not initialised";
-                throw std::logic_error(msg);
+                throw std::logic_error("[TTreeReaderArrayWrapper::" + branch_ + "] Not initialised");
 
             case State::BranchMissing:
-                std::string msg = "[TTreeReaderArrayWrapper::" + branch_ + "] Your Analyzer is trying to access a branch that does not exist in the TTree";
-                throw std::runtime_error(msg);
+                throw std::runtime_error("[TTreeReaderArrayWrapper::" + branch_ + "] Your Analyzer is trying to access a branch that does not exist in the TTree");
         }
         // silences -Wreturn-type
         throw std::logic_error("Unknown state");
@@ -90,11 +87,9 @@ public:
             case State::Initialised:
                 return **myValue;  
             case State::Uninitialised:
-                std::string msg = "[TTreeReaderValueWrapper::" + branch_ + "] Not initialised";
-                throw std::logic_error(msg);
+                throw std::logic_error("[TTreeReaderValueWrapper::" + branch_ + "] Not initialised");
             case State::BranchMissing:
-                std::string msg = "[TTreeReaderValueWrapper::" + branch_ + "] Your Analyzer is trying to access a branch that does not exist in the TTree";
-                throw std::runtime_error(msg);
+                throw std::runtime_error("[TTreeReaderValueWrapper::" + branch_ + "] Your Analyzer is trying to access a branch that does not exist in the TTree");
         }
         throw std::logic_error("TTreeReaderValueWrapper::get(): unknown state.");
     }
