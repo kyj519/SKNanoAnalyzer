@@ -24,25 +24,29 @@ else
 fi
 
 # Set up environment
-if [[ $HOSTNAME == *"tamsa"* ]]; then
-    export SKNANO_HOME=`pwd`
-    export SKNANO_RUNLOG="/gv0/Users/$USER/SKNanoRunlog"
-    export SKNANO_OUTPUT="/data9/Users/$USER/SKNanoOutput"
-else
-    export SKNANO_HOME=`pwd`
-    export SKNANO_RUNLOG="$HOME/Sync/workspace/SKNanoRunlog"
-    export SKNANO_OUTPUT="$HOME/Sync/workspace/SKNanoOutput"
-fi
+export SKNANO_HOME=`pwd`
+export SKNANO_RUNLOG="/gv0/Users/$USER/SKNanoRunlog"
+export SKNANO_OUTPUT="/data9/Users/$USER/SKNanoOutput"
 echo "@@@@ Working Directory: $SKNANO_HOME"
 
+CONFIG_FILE="$SKNANO_HOME/config/config.$USER"
 # check configuration
-CONFIG_FILE=$SKNANO_HOME/config/config.$USER
 if [ -f "${CONFIG_FILE}" ]; then
     echo -e "\033[32m@@@@ Reading configuration from $CONFIG_FILE\033[0m"
     PACKAGE=$(grep '\[PACKAGE\]' "${CONFIG_FILE}" | cut -d' ' -f2)
     export TOKEN_TELEGRAMBOT=$(grep '\[TOKEN_TELEGRAMBOT\]' "${CONFIG_FILE}" | cut -d' ' -f2)
     export USER_CHATID=$(grep '\[USER_CHATID\]' "${CONFIG_FILE}" | cut -d' ' -f2)
     export SINGULARITY_IMAGE=$(grep '\[SINGULARITY_IMAGE\]' "${CONFIG_FILE}" | cut -d' ' -f2)
+    # override SKNANO_* environment variables if they are set in the config file
+    if grep -q '\[SKNANO_HOME\]' "${CONFIG_FILE}"; then
+        export SKNANO_HOME=$(grep '\[SKNANO_HOME\]' "${CONFIG_FILE}" | cut -d' ' -f2)
+    fi
+    if grep -q '\[SKNANO_RUNLOG\]' "${CONFIG_FILE}"; then
+        export SKNANO_RUNLOG=$(grep '\[SKNANO_RUNLOG\]' "${CONFIG_FILE}" | cut -d' ' -f2)
+    fi
+    if grep -q '\[SKNANO_OUTPUT\]' "${CONFIG_FILE}"; then
+        export SKNANO_OUTPUT=$(grep '\[SKNANO_OUTPUT\]' "${CONFIG_FILE}" | cut -d' ' -f2)
+    fi
 else
     echo -e "\033[31m@@@@ Configuration file $CONFIG_FILE not found\033[0m"
     echo -e "\033[3m@@@@ Please create a configuration file in config/ with your username\033[0m"
@@ -52,6 +56,9 @@ echo "@@@@ Package: $PACKAGE"
 echo "@@@@ Telegram Bot Token: $TOKEN_TELEGRAMBOT"
 echo "@@@@ Telegram Chat ID:   $USER_CHATID"
 echo "@@@@ Using singularity image: $SINGULARITY_IMAGE"
+echo "@@@@ SKNano Home: $SKNANO_HOME"
+echo "@@@@ SKNano Runlog: $SKNANO_RUNLOG"
+echo "@@@@ SKNano Output: $SKNANO_OUTPUT"
 
 # ROOT Package Settings
 if [ $PACKAGE = "conda" ]; then
@@ -169,6 +176,27 @@ echo "@@@@ Correction lib: $CORRECTION_LIB_DIR"
 
 # ROCCOR
 export ROCCOR_PATH=$SKNANO_HOME/external/RoccoR
+
+# Check and copy RoccoR template files if missing
+if [[ ! -f "$ROCCOR_PATH/CMakeLists.txt" ]] || [[ ! -f "$ROCCOR_PATH/RoccoR_LinkDef.hpp" ]]; then
+    echo -e "\033[32m@@@@ Missing RoccoR build files, copying from templates...\033[0m"
+    if [[ ! -f "$ROCCOR_PATH/CMakeLists.txt" ]]; then
+        if [[ -f "$SKNANO_HOME/templates/RoccoR/CMakeLists.txt" ]]; then
+            cp "$SKNANO_HOME/templates/RoccoR/CMakeLists.txt" "$ROCCOR_PATH/"
+            echo "@@@@ Copied CMakeLists.txt to external/RoccoR/"
+        else
+            echo -e "\033[31m@@@@ Template CMakeLists.txt not found in templates/RoccoR/\033[0m"
+        fi
+    fi
+    if [[ ! -f "$ROCCOR_PATH/RoccoR_LinkDef.hpp" ]]; then
+        if [[ -f "$SKNANO_HOME/templates/RoccoR/RoccoR_LinkDef.hpp" ]]; then
+            cp "$SKNANO_HOME/templates/RoccoR/RoccoR_LinkDef.hpp" "$ROCCOR_PATH/RoccoR_LinkDef.hpp"
+            echo "@@@@ Copied RoccoR_LinkDef.hpp to external/RoccoR/RoccoR_LinkDef.hpp"
+        else
+            echo -e "\033[31m@@@@ Template RoccoR_LinkDef.hpp not found in templates/RoccoR/\033[0m"
+        fi
+    fi
+fi
 
 # JSONPOG integration auto-update
 check_jsonpog_updates() {
