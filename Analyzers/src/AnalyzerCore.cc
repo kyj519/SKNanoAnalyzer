@@ -1,6 +1,7 @@
 #include "AnalyzerCore.h"
 #include <stdexcept>
 #include <cmath>
+#include <utility>
 
 AnalyzerCore::AnalyzerCore()
 {
@@ -467,40 +468,150 @@ Event AnalyzerCore::GetEvent()
     return ev;
 }
 
-RVec<Muon> AnalyzerCore::GetAllMuons()
+GenViewCollection AnalyzerCore::GetAllGenViews()
 {
-    RVec<Muon> muons;
-    muons.reserve(nMuon);
+    if (IsDATA)
+        return {};
+
+    auto storage = std::make_shared<GenSoA>();
+    storage->pt.bind(&GenPart_pt);
+    storage->eta.bind(&GenPart_eta);
+    storage->phi.bind(&GenPart_phi);
+    storage->mass.bind(&GenPart_mass);
+    storage->pdgId.bind(&GenPart_pdgId);
+    storage->status.bind(&GenPart_status);
+    storage->motherIdx.bind(&GenPart_genPartIdxMother);
+    storage->statusFlags.bind(&GenPart_statusFlags);
+    return GenViewCollection(std::move(storage));
+}
+
+MuonViewCollection AnalyzerCore::GetAllMuonViews()
+{
+    auto storage = std::make_shared<MuonSoA>();
+    storage->pt.bind(&Muon_pt);
+    storage->eta.bind(&Muon_eta);
+    storage->phi.bind(&Muon_phi);
+    storage->mass.bind(&Muon_mass);
+    storage->charge.bind(&Muon_charge);
+    storage->tkRelIso.bind(&Muon_tkRelIso);
+    storage->pfRelIso03.bind(&Muon_pfRelIso03_all);
+    storage->pfRelIso04.bind(&Muon_pfRelIso04_all);
+    storage->miniPFRelIsoAll.bind(&Muon_miniPFRelIso_all);
+    storage->dxy.bind(&Muon_dxy);
+    storage->dxyErr.bind(&Muon_dxyErr);
+    storage->dz.bind(&Muon_dz);
+    storage->dzErr.bind(&Muon_dzErr);
+    storage->ip3d.bind(&Muon_ip3d);
+    storage->sip3d.bind(&Muon_sip3d);
+    storage->highPtId.bind(&Muon_highPtId);
+    storage->looseId.bind(&Muon_looseId);
+    storage->mediumId.bind(&Muon_mediumId);
+    storage->mediumPromptId.bind(&Muon_mediumPromptId);
+    storage->tightId.bind(&Muon_tightId);
+    storage->softId.bind(&Muon_softId);
+    storage->softMvaId.bind(&Muon_softMvaId);
+    storage->triggerLooseId.bind(&Muon_triggerIdLoose);
+    storage->miniIsoId.bind(&Muon_miniIsoId);
+    storage->multiIsoId.bind(&Muon_multiIsoId);
+    storage->mvaMuId.bind(&Muon_mvaMuID_WP);
+    storage->pfIsoId.bind(&Muon_pfIsoId);
+    storage->puppiIsoId.bind(&Muon_puppiIsoId);
+    storage->tkIsoId.bind(&Muon_tkIsoId);
+    storage->nTrackerLayers.bind(&Muon_nTrackerLayers);
+    storage->softMva.bind(&Muon_softMva);
+    storage->mvaLowPt.bind(&Muon_mvaLowPt);
+    storage->mvaPrompt.bind(&Muon_promptMVA);
+    storage->genPartFlav.bind(&Muon_genPartFlav);
+    storage->genPartIdx.bind(&Muon_genPartIdx);
+    storage->jetIdx.bind(&Muon_jetIdx);
+
+    const std::size_t n = storage->pt.size();
+    storage->correctedPt.resize(n, 0.f);
+    storage->miniAODPt.resize(n, 0.f);
+    storage->momentumScaleUp.resize(n, 0.f);
+    storage->momentumScaleDown.resize(n, 0.f);
+
+    if (n == 0)
+        return MuonViewCollection(std::move(storage));
+
     RVec<Gen> truth;
     if (!IsDATA)
         truth = GetAllGens();
 
-    for (int i = 0; i < nMuon; i++) {
-        Muon muon;
-        muon.AttachLazyPayload(this, &AnalyzerCore::MuonEnsureThunk, i);
-        muon.SetPtEtaPhiM(Muon_pt[i], Muon_eta[i], Muon_phi[i], Muon_mass[i]);
-        muon.SetCharge(Muon_charge[i]);
+    for (std::size_t i = 0; i < n; ++i) {
+        Muon probe;
+        probe.SetPtEtaPhiM(storage->pt[i], storage->eta[i], storage->phi[i], storage->mass[i]);
+        probe.SetCharge(storage->charge[i]);
 
         float roccor = 1.f;
         float roccor_err = 0.f;
         if (IsDATA) {
-            roccor = myCorr->GetMuonScaleSF(muon, MyCorrection::variation::nom);
-            roccor_err = myCorr->GetMuonScaleSF(muon, MyCorrection::variation::up) - roccor;
+            roccor = myCorr->GetMuonScaleSF(probe, MyCorrection::variation::nom);
+            roccor_err = myCorr->GetMuonScaleSF(probe, MyCorrection::variation::up) - roccor;
         } else {
-            Gen matched_gen = GetGenMatchedMuon(muon, truth);
+            Gen matched_gen = GetGenMatchedMuon(probe, truth);
             float matched_pt = matched_gen.Pt();
-            roccor = myCorr->GetMuonScaleSF(muon, MyCorrection::variation::nom, matched_pt);
-            roccor_err = myCorr->GetMuonScaleSF(muon, MyCorrection::variation::up, matched_pt) - roccor;
+            roccor = myCorr->GetMuonScaleSF(probe, MyCorrection::variation::nom, matched_pt);
+            roccor_err = myCorr->GetMuonScaleSF(probe, MyCorrection::variation::up, matched_pt) - roccor;
         }
-        muon.SetMiniAODPt(muon.Pt());
-        muon.SetMomentumScaleUpDown(muon.Pt() * (roccor + roccor_err), muon.Pt() * (roccor - roccor_err));
-        muon.SetPtEtaPhiM(muon.Pt() * roccor, muon.Eta(), muon.Phi(), muon.M());
 
-        muons.push_back(muon);
+        const float miniAODPt = probe.Pt();
+        storage->miniAODPt[i] = miniAODPt;
+        storage->momentumScaleUp[i] = miniAODPt * (roccor + roccor_err);
+        storage->momentumScaleDown[i] = miniAODPt * (roccor - roccor_err);
+        storage->correctedPt[i] = miniAODPt * roccor;
     }
 
+    return MuonViewCollection(std::move(storage));
+}
+
+RVec<Muon> AnalyzerCore::GetAllMuons()
+{
+    MuonViewCollection view = GetAllMuonViews();
+    RVec<Muon> muons;
+    muons.reserve(view.size());
+    auto storage = view.storage();
+    for (std::size_t i = 0; i < view.size(); ++i) {
+        muons.emplace_back(storage, i);
+    }
     return muons;
 }
+
+std::vector<std::size_t> AnalyzerCore::SelectMuonIndices(const MuonViewCollection &muons, const TString ID, const float ptmin, const float fetamax) const
+{
+    std::vector<std::size_t> selected;
+    selected.reserve(muons.size());
+    for (std::size_t i = 0; i < muons.size(); ++i) {
+        const auto &mu = muons[i];
+        if (!(mu.Pt() > ptmin))
+            continue;
+        if (!(std::abs(mu.Eta()) < fetamax))
+            continue;
+        if (!mu.PassID(ID))
+            continue;
+        selected.push_back(i);
+    }
+    return selected;
+}
+
+std::vector<std::size_t> AnalyzerCore::SelectMuonIndices(const MuonViewCollection &muons, const Muon::MuonID ID, const float ptmin, const float fetamax) const
+{
+    const auto viewID = static_cast<MuonView::MuonID>(ID);
+    std::vector<std::size_t> selected;
+    selected.reserve(muons.size());
+    for (std::size_t i = 0; i < muons.size(); ++i) {
+        const auto &mu = muons[i];
+        if (!(mu.Pt() > ptmin))
+            continue;
+        if (!(std::abs(mu.Eta()) < fetamax))
+            continue;
+        if (!mu.PassID(viewID))
+            continue;
+        selected.push_back(i);
+    }
+    return selected;
+}
+
 
 RVec<Muon> AnalyzerCore::ScaleMuons(const RVec<Muon> &muons, const MyCorrection::variation &syst) {
     RVec<Muon> scaled_muons;
@@ -725,27 +836,20 @@ RVec<Electron> AnalyzerCore::SmearElectrons(const RVec<Electron> &electrons, con
     return smeared_electrons;
 }
 
-RVec<Gen> AnalyzerCore::GetAllGens(){
-    RVec<Gen> Gens;
+RVec<Gen> AnalyzerCore::GetAllGens()
+{
+    RVec<Gen> gens;
     if (IsDATA)
-        return Gens;
+        return gens;
 
-    for (int i = 0; i < nGenPart; i++)
-    {
-
-        Gen gen;
-
-        gen.SetIsEmpty(false);
-        gen.SetPtEtaPhiM(GenPart_pt[i], GenPart_eta[i], GenPart_phi[i], GenPart_mass[i]);
-        gen.SetIndexPIDStatus(i, GenPart_pdgId[i], GenPart_status[i]);
-
-        gen.SetMother(GenPart_genPartIdxMother[i]);
-        gen.SetGenStatusFlags(GenPart_statusFlags[i]);
-
-        Gens.push_back(gen);
+    GenViewCollection view = GetAllGenViews();
+    gens.reserve(view.size());
+    auto storage = view.storage();
+    for (std::size_t i = 0; i < view.size(); ++i) {
+        gens.emplace_back(storage, i);
     }
 
-    return Gens;
+    return gens;
 }
 
 RVec<LHE> AnalyzerCore::GetAllLHEs()
@@ -820,50 +924,122 @@ RVec<Tau> AnalyzerCore::SelectTaus(const RVec<Tau> &taus, const TString ID, cons
     return selected_taus;
 }
 
+JetViewCollection AnalyzerCore::GetAllJetViews()
+{
+    auto storage = std::make_shared<JetSoA>();
+    storage->pt.bind(&Jet_pt);
+    storage->eta.bind(&Jet_eta);
+    storage->phi.bind(&Jet_phi);
+    storage->mass.bind(&Jet_mass);
+    storage->rawFactor.bind(&Jet_rawFactor);
+    storage->area.bind(&Jet_area);
+    storage->chHEF.bind(&Jet_chHEF);
+    storage->neHEF.bind(&Jet_neHEF);
+    storage->neEmEF.bind(&Jet_neEmEF);
+    storage->chEmEF.bind(&Jet_chEmEF);
+    storage->muEF.bind(&Jet_muEF);
+    storage->partonFlavour.bind(&Jet_partonFlavour);
+    storage->hadronFlavour.bind(&Jet_hadronFlavour);
+    storage->chMultiplicity.bind(&Jet_chMultiplicity);
+    storage->neMultiplicity.bind(&Jet_neMultiplicity);
+    storage->nConstituents.bind(&Jet_nConstituents);
+    storage->nElectrons.bind(&Jet_nElectrons);
+    storage->nMuons.bind(&Jet_nMuons);
+    storage->nSVs.bind(&Jet_nSVs);
+    storage->electronIdx1.bind(&Jet_electronIdx1);
+    storage->electronIdx2.bind(&Jet_electronIdx2);
+    storage->muonIdx1.bind(&Jet_muonIdx1);
+    storage->muonIdx2.bind(&Jet_muonIdx2);
+    storage->svIdx1.bind(&Jet_svIdx1);
+    storage->svIdx2.bind(&Jet_svIdx2);
+    storage->genJetIdx.bind(&Jet_genJetIdx);
+    storage->deepFlavB.bind(&Jet_btagDeepFlavB);
+    storage->deepFlavCvB.bind(&Jet_btagDeepFlavCvB);
+    storage->deepFlavCvL.bind(&Jet_btagDeepFlavCvL);
+    storage->deepFlavQG.bind(&Jet_btagDeepFlavQG);
+    storage->pnetB.bind(&Jet_btagPNetB);
+    storage->pnetCvB.bind(&Jet_btagPNetCvB);
+    storage->pnetCvL.bind(&Jet_btagPNetCvL);
+    storage->pnetCvNotB.bind(&Jet_btagPNetCvNotB);
+    storage->pnetQvG.bind(&Jet_btagPNetQvG);
+    storage->pnetTauVJet.bind(&Jet_btagPNetTauVJet);
+    storage->uparTAK4B.bind(&Jet_btagUParTAK4B);
+    storage->uparTAK4CvB.bind(&Jet_btagUParTAK4CvB);
+    storage->uparTAK4CvL.bind(&Jet_btagUParTAK4CvL);
+    storage->uparTAK4CvNotB.bind(&Jet_btagUParTAK4CvNotB);
+    storage->uparTAK4Ele.bind(&Jet_btagUParTAK4Ele);
+    storage->uparTAK4Mu.bind(&Jet_btagUParTAK4Mu);
+    storage->uparTAK4QvG.bind(&Jet_btagUParTAK4QvG);
+    storage->uparTAK4SvCB.bind(&Jet_btagUParTAK4SvCB);
+    storage->uparTAK4SvUDG.bind(&Jet_btagUParTAK4SvUDG);
+    storage->uparTAK4TauVJet.bind(&Jet_btagUParTAK4TauVJet);
+    storage->uparTAK4UDG.bind(&Jet_btagUParTAK4UDG);
+    storage->uparTAK4ProbB.bind(&Jet_btagUParTAK4probb);
+    storage->uparTAK4ProbBB.bind(&Jet_btagUParTAK4probbb);
+    storage->pnetRegPtRawCorr.bind(&Jet_PNetRegPtRawCorr);
+    storage->pnetRegPtRawCorrNeutrino.bind(&Jet_PNetRegPtRawCorrNeutrino);
+    storage->pnetRegPtRawRes.bind(&Jet_PNetRegPtRawRes);
+    storage->uparTAK4RegPtRawCorr.bind(&Jet_UParTAK4RegPtRawCorr);
+    storage->uparTAK4RegPtRawCorrNeutrino.bind(&Jet_UParTAK4RegPtRawCorrNeutrino);
+    storage->uparTAK4RegPtRawRes.bind(&Jet_UParTAK4RegPtRawRes);
+    storage->uparTAK4V1RegPtRawCorr.bind(&Jet_UParTAK4V1RegPtRawCorr);
+    storage->uparTAK4V1RegPtRawCorrNeutrino.bind(&Jet_UParTAK4V1RegPtRawCorrNeutrino);
+    storage->uparTAK4V1RegPtRawRes.bind(&Jet_UParTAK4V1RegPtRawRes);
+    storage->puIdDisc.bind(&Jet_puIdDisc);
+    return JetViewCollection(std::move(storage));
+}
+
 RVec<Jet> AnalyzerCore::GetAllJets()
 {
+    JetViewCollection view = GetAllJetViews();
     RVec<Jet> Jets;
-    Jets.reserve(nJet);
-    for (int i = 0; i < nJet; i++) {
-        Jet jet;
-        jet.AttachLazyPayload(this, &AnalyzerCore::JetEnsureThunk, i);
-        const float rawPt = Jet_pt[i] * (1.f - Jet_rawFactor[i]);
-        const float rawMass = Jet_mass[i] * (1.f - Jet_rawFactor[i]);
-        const float JESSF = myCorr->GetJESSF(Jet_area[i], Jet_eta[i], rawPt, Jet_phi[i], Rho_fixedGridRhoFastjetAll, RunNumber);
+    Jets.reserve(view.size());
+    auto storage = view.storage();
+    for (std::size_t i = 0; i < view.size(); ++i) {
+        const auto &jetView = view[i];
+        Jet jet(storage, i);
+        const float rawPt = jetView.Pt() * (1.f - jetView.RawFactor());
+        const float rawMass = jetView.Mass() * (1.f - jetView.RawFactor());
+        const float JESSF = myCorr->GetJESSF(jetView.Area(), jetView.Eta(), rawPt, jetView.Phi(), Rho_fixedGridRhoFastjetAll, RunNumber);
         const float correctedPt = rawPt * JESSF;
         const float correctedMass = rawMass * JESSF;
-        jet.SetPtEtaPhiM(correctedPt, Jet_eta[i], Jet_phi[i], correctedMass);
+        jet.SetPtEtaPhiM(correctedPt, jetView.Eta(), jetView.Phi(), correctedMass);
         jet.SetRawPt(rawPt);
-        jet.SetOriginalPt(Jet_pt[i]);
-        jet.SetArea(Jet_area[i]);
-        jet.SetOriginalIndex(i);
-        jet.SetEnergyFractions(Jet_chHEF[i], Jet_neHEF[i], Jet_neEmEF[i], Jet_chEmEF[i], Jet_muEF[i]);
-        if(!IsDATA){
-            jet.SetJetFlavours(Jet_partonFlavour[i] ,Jet_hadronFlavour[i]);
+        jet.SetOriginalPt(jetView.Pt());
+        jet.SetArea(jetView.Area());
+        jet.SetOriginalIndex(static_cast<int>(i));
+        jet.SetEnergyFractions(jetView.ChHEF(), jetView.NeHEF(), jetView.NeEmEF(), jetView.ChEmEF(), jetView.MuEF());
+        if (!IsDATA) {
+            jet.SetJetFlavours(jetView.PartonFlavour(), jetView.HadronFlavour());
         }
 
-        jet.SetHadronMultiplicities(Jet_chMultiplicity[i], Jet_neMultiplicity[i]);
-        jet.SetMultiplicities(Jet_nConstituents[i], Jet_nElectrons[i], Jet_nMuons[i], Jet_nSVs[i]);
-        if (!IsDATA)
-        {
-            jet.SetMatchingIndices(Jet_electronIdx1[i], Jet_electronIdx2[i], Jet_muonIdx1[i], Jet_muonIdx2[i], Jet_svIdx1[i], Jet_svIdx2[i], Jet_genJetIdx[i]);
-        }
-        else
-        {
-            jet.SetMatchingIndices(Jet_electronIdx1[i], Jet_electronIdx2[i], Jet_muonIdx1[i], Jet_muonIdx2[i], Jet_svIdx1[i], Jet_svIdx2[i]);
+        jet.SetHadronMultiplicities(jetView.ChMultiplicity(), jetView.NeMultiplicity());
+        jet.SetMultiplicities(jetView.NConstituents(), jetView.NElectrons(), jetView.NMuons(), jetView.NSVs());
+        if (!IsDATA) {
+            jet.SetMatchingIndices(jetView.ElectronIdx1(), jetView.ElectronIdx2(), jetView.MuonIdx1(), jetView.MuonIdx2(), jetView.SvIdx1(), jetView.SvIdx2(), jetView.GenJetIdx());
+        } else {
+            jet.SetMatchingIndices(jetView.ElectronIdx1(), jetView.ElectronIdx2(), jetView.MuonIdx1(), jetView.MuonIdx2(), jetView.SvIdx1(), jetView.SvIdx2());
         }
 
-        RVec<float> corrs;
-        corrs = {Jet_PNetRegPtRawCorr[i], Jet_PNetRegPtRawCorrNeutrino[i], Jet_PNetRegPtRawRes[i], Jet_UParTAK4RegPtRawCorr[i], Jet_UParTAK4RegPtRawCorrNeutrino[i],
-                Jet_UParTAK4RegPtRawRes[i], Jet_UParTAK4V1RegPtRawCorr[i], Jet_UParTAK4V1RegPtRawCorrNeutrino[i], Jet_UParTAK4V1RegPtRawRes[i], Jet_rawFactor[i]};
+        RVec<float> corrs = {
+            jetView.PNetRegPtRawCorr(),
+            jetView.PNetRegPtRawCorrNeutrino(),
+            jetView.PNetRegPtRawRes(),
+            jetView.UParTAK4RegPtRawCorr(),
+            jetView.UParTAK4RegPtRawCorrNeutrino(),
+            jetView.UParTAK4RegPtRawRes(),
+            jetView.UParTAK4V1RegPtRawCorr(),
+            jetView.UParTAK4V1RegPtRawCorrNeutrino(),
+            jetView.UParTAK4V1RegPtRawRes(),
+            jetView.RawFactor()
+        };
 
-        jet.SetJetPuIDScore(Jet_puIdDisc[i]);
-        jet.SetEnergyFractions(Jet_chHEF[i], Jet_neHEF[i], Jet_neEmEF[i], Jet_chEmEF[i], Jet_muEF[i]);
+        jet.SetJetPuIDScore(jetView.PuIdDisc());
         jet.SetCorrections(corrs);
 
         const int nPFCand = static_cast<int>(nJetPFCand);
         for (int idx = 0; idx < nPFCand; ++idx) {
-            if (JetPFCand_jetIdx[idx] == i) {
+            if (JetPFCand_jetIdx[idx] == static_cast<int>(i)) {
                 JetConstituent constituent;
                 const auto pfCandTableidx = static_cast<std::size_t>(JetPFCand_pfCandIdx[idx]);
                 constituent.SetPtEtaPhiM(PFCand_pt[pfCandTableidx], PFCand_eta[pfCandTableidx], PFCand_phi[pfCandTableidx], PFCand_mass[pfCandTableidx]);
@@ -879,6 +1055,8 @@ RVec<Jet> AnalyzerCore::GetAllJets()
         Jets = SmearJets(Jets, GetAllGenJets());
     return Jets;
 }
+
+
 
 void AnalyzerCore::MuonEnsureThunk(void *ctx, Muon &muon, Muon::Property property)
 {

@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <string>
 #include <deque>
+#include <vector>
 
 #include "TFile.h"
 #include "TH1.h"
@@ -22,15 +23,16 @@
 #include "Particle.h"
 #include "Lepton.h"
 #include "Gen.h"
+#include "GenView.h"
 #include "LHE.h"
 #include "Muon.h"
+#include "MuonView.h"
 #include "Electron.h"
 #include "Jet.h"
+#include "JetView.h"
 #include "FatJet.h"
 #include "Tau.h"
 #include "Photon.h"
-#include "Gen.h"
-#include "Jet.h"
 #include "GenJet.h"
 #include "GenDressedLepton.h"
 #include "GenIsolatedPhoton.h"
@@ -90,7 +92,12 @@ public:
 
     // Get objects
     Event GetEvent();
+    MuonViewCollection GetAllMuonViews();
+    GenViewCollection GetAllGenViews();
+    JetViewCollection GetAllJetViews();
     RVec<Muon> GetAllMuons();
+    std::vector<std::size_t> SelectMuonIndices(const MuonViewCollection &muons, const TString ID, const float ptmin, const float fetamax) const;
+    std::vector<std::size_t> SelectMuonIndices(const MuonViewCollection &muons, const Muon::MuonID ID, const float ptmin, const float fetamax) const;
     RVec<Muon> GetMuons(const TString ID, const float ptmin, const float fetamax);
     RVec<Electron> GetAllElectrons();
     RVec<Jet> GetAllJets();

@@ -3,9 +3,11 @@
 
 #include <bitset>
 #include <memory>
+#include <limits>
 
 #include "TString.h"
 #include "Lepton.h"
+#include "MuonView.h"
 
 class AnalyzerCore;
 
@@ -20,6 +22,7 @@ class AnalyzerCore;
 class Muon: public Lepton {
 public:
     Muon();
+    Muon(std::shared_ptr<const MuonSoA> storage, std::size_t index);
     ~Muon();
 
     enum class Property {
@@ -184,6 +187,15 @@ private:
         mutable std::bitset<static_cast<std::size_t>(Property::Count)> loaded;
     };
 
+    void initializeMembers();
+    void materialize() const;
+    bool isMaterialized() const { return !storage_; }
+    void loadFromStorage(Property property) const;
+
+    std::shared_ptr<const MuonSoA> storage_;
+    std::size_t index_ = std::numeric_limits<std::size_t>::max();
+
+    mutable std::bitset<static_cast<std::size_t>(Property::Count)> cachedProperties_;
     mutable std::shared_ptr<LazyPayload> lazy_;
 
     bool j_isTracker, j_isStandalone, j_isGlobal;

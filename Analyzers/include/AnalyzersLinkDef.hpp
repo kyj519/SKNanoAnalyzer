@@ -6,6 +6,7 @@
 #pragma link C++ class SKNanoLoader+;
 #pragma link C++ class AnalyzerCore+;
 #pragma link C++ class ExampleRun+;
+#pragma link C++ class ExampleViewRun+;
 #pragma link C++ class GetEffLumi+;
 #pragma link C++ class MeasureJetTaggingEff+;
 #pragma link C++ class MeasureJetTaggingR+;

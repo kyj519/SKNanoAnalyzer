@@ -3,10 +3,12 @@
 
 #include <bitset>
 #include <memory>
+#include <limits>
 
 #include "Particle.h"
 #include "JetTaggingParameter.h"
 #include "JetConstituent.h"
+#include "JetView.h"
 
 class AnalyzerCore;
 
@@ -14,6 +16,7 @@ class Jet : public Particle
 {
 public:
   Jet();
+  Jet(std::shared_ptr<const JetSoA> storage, std::size_t index);
   ~Jet();
 
   enum class Property {
@@ -212,6 +215,10 @@ private:
   void ensureScore(JetTagging::JetFlavTagger tagger, JetTagging::JetFlavTaggerScoreType scoreType) const;
   static Property propertyFor(JetTagging::JetFlavTagger tagger, JetTagging::JetFlavTaggerScoreType scoreType);
 
+  void initializeMembers();
+  void materialize() const;
+  void loadFromStorage(Property property) const;
+
   struct LazyPayload {
     void *context = nullptr;
     EnsureCallback callback = nullptr;
@@ -219,6 +226,10 @@ private:
     mutable std::bitset<static_cast<std::size_t>(Property::Count)> loaded;
   };
 
+  std::shared_ptr<const JetSoA> storage_;
+  std::size_t index_ = std::numeric_limits<std::size_t>::max();
+
+  mutable std::bitset<static_cast<std::size_t>(Property::Count)> cachedProperties_;
   mutable std::shared_ptr<LazyPayload> lazy_;
 
   float jet_rawPt;

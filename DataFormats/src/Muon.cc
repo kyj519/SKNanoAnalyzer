@@ -1,11 +1,21 @@
 #include "Muon.h"
 #include <cmath>
+#include <limits>
 
 ClassImp(Muon)
 
-Muon::Muon() {
+void Muon::initializeMembers() {
+    storage_.reset();
+    index_ = std::numeric_limits<std::size_t>::max();
+    cachedProperties_.reset();
+    lazy_.reset();
+
     this->SetLeptonFlavour(MUON);
-    // boolean ID bits
+
+    j_isTracker = false;
+    j_isStandalone = false;
+    j_isGlobal = false;
+
     j_looseId = false;
     j_mediumId = false;
     j_mediumPromptId = false;
@@ -14,34 +24,60 @@ Muon::Muon() {
     j_softMvaId = false;
     j_triggerIdLoose = false;
 
-    // unsigned char ID bits
-    j_highPtId = 0;     // 1 = tracker high pT, 2 = global high pT
-    j_miniIsoId = 0;    // 1=Loose, 2=Medium, 3=Tight, 4=VeryTight
-    j_multiIsoId = 0;   // 1=Loose, 2=Medium
-    j_mvaMuId = 0;      // 2=Medium, 3=Tight
-    j_pfIsoId = 0;      // 1=VLoose, 2=Loose, 3=Medium, 4=Tight, 5=VTight, 6=VVTight
-    j_puppiIsoId = 0;   // 1=Loose, 2=Medium, 3=Tight
-    j_tkIsoId = 0;      // 1=Loose, 2=Tight
+    j_highPtId = 0;
+    j_miniIsoId = 0;
+    j_multiIsoId = 0;
+    j_mvaMuId = 0;
+    j_pfIsoId = 0;
+    j_puppiIsoId = 0;
+    j_tkIsoId = 0;
 
-    // MVA ID scores
-    j_softMva = -999.;
-    j_mvaLowPt = -999.;
-    j_mvaPrompt = -999.;
+    j_softMva = -999.f;
+    j_mvaLowPt = -999.f;
+    j_mvaPrompt = -999.f;
 
-    // jet matching
+    j_nTrackerLayers = -999;
+
+    j_miniAODPt = -999.f;
+    j_momentumScaleUp = -999.f;
+    j_momentumScaleDown = -999.f;
+
+    j_genPartIdx = -999;
+    j_genPartFlav = 0;
     j_jetIdx = -1;
+}
+
+Muon::Muon() {
+    initializeMembers();
 }
 
 Muon::~Muon() {}
 
+Muon::Muon(std::shared_ptr<const MuonSoA> storage, std::size_t index) {
+    initializeMembers();
+    storage_ = std::move(storage);
+    index_ = index;
+    if (storage_) {
+        const float correctedPt = storage_->correctedPt.empty() ? storage_->pt[index_] : storage_->correctedPt[index_];
+        SetPtEtaPhiM(correctedPt, storage_->eta[index_], storage_->phi[index_], storage_->mass[index_]);
+        SetCharge(storage_->charge[index_]);
+        if (!storage_->miniAODPt.empty())
+            SetMiniAODPt(storage_->miniAODPt[index_]);
+        if (!storage_->momentumScaleUp.empty())
+            SetMomentumScaleUpDown(storage_->momentumScaleUp[index_], storage_->momentumScaleDown[index_]);
+    }
+}
+
+
 void Muon::AttachLazyPayload(void *context, EnsureCallback callback, int index) const {
+    materialize();
     if (!lazy_) {
         lazy_ = std::make_shared<LazyPayload>();
     }
     lazy_->context = context;
     lazy_->callback = callback;
     lazy_->index = index;
-    lazy_->loaded.reset();
+    lazy_->loaded = cachedProperties_;
 }
 
 void Muon::DetachLazyPayload() const {
@@ -49,17 +85,158 @@ void Muon::DetachLazyPayload() const {
 }
 
 void Muon::ensure(Property property) const {
-    if (!lazy_) return;
     const auto bit = static_cast<std::size_t>(property);
-    if (lazy_->loaded.test(bit)) return;
-    if (!lazy_->callback) return;
+    if (cachedProperties_.test(bit))
+        return;
+
+    if (storage_) {
+        loadFromStorage(property);
+        return;
+    }
+
+    if (!lazy_ || !lazy_->callback)
+        return;
+
     lazy_->callback(lazy_->context, const_cast<Muon &>(*this), property);
-    lazy_->loaded.set(bit);
+    markLoaded(property);
 }
 
 void Muon::markLoaded(Property property) const {
-    if (!lazy_) return;
-    lazy_->loaded.set(static_cast<std::size_t>(property));
+    const auto bit = static_cast<std::size_t>(property);
+    cachedProperties_.set(bit);
+    if (lazy_)
+        lazy_->loaded.set(bit);
+}
+
+void Muon::materialize() const {
+    if (!storage_)
+        return;
+
+    auto self = const_cast<Muon *>(this);
+    const auto idx = index_;
+    const float correctedPt = storage_->correctedPt.empty() ? storage_->pt[idx] : storage_->correctedPt[idx];
+    self->SetPtEtaPhiM(correctedPt, storage_->eta[idx], storage_->phi[idx], storage_->mass[idx]);
+    self->SetCharge(storage_->charge[idx]);
+    if (!storage_->miniAODPt.empty())
+        self->SetMiniAODPt(storage_->miniAODPt[idx]);
+    if (!storage_->momentumScaleUp.empty())
+        self->SetMomentumScaleUpDown(storage_->momentumScaleUp[idx], storage_->momentumScaleDown[idx]);
+
+    for (std::size_t bit = 0; bit < static_cast<std::size_t>(Property::Count); ++bit) {
+        if (!cachedProperties_.test(bit))
+            loadFromStorage(static_cast<Property>(bit));
+    }
+
+    self->storage_.reset();
+    self->index_ = std::numeric_limits<std::size_t>::max();
+}
+
+void Muon::loadFromStorage(Property property) const {
+    if (!storage_)
+        return;
+
+    const auto idx = index_;
+    auto self = const_cast<Muon *>(this);
+
+    switch (property) {
+    case Property::TkRelIso:
+        self->SetTkRelIso(storage_->tkRelIso[idx]);
+        break;
+    case Property::PfRelIso03:
+        self->SetPfRelIso03(storage_->pfRelIso03[idx]);
+        break;
+    case Property::PfRelIso04:
+        self->SetPfRelIso04(storage_->pfRelIso04[idx]);
+        break;
+    case Property::MiniPFRelIso:
+        self->SetMiniPFRelIso(storage_->miniPFRelIsoAll[idx]);
+        break;
+    case Property::Dxy:
+        self->SetdXY(storage_->dxy[idx]);
+        break;
+    case Property::DxyErr:
+        self->SetdXYErr(storage_->dxyErr[idx]);
+        break;
+    case Property::Dz:
+        self->SetdZ(storage_->dz[idx]);
+        break;
+    case Property::DzErr:
+        self->SetdZErr(storage_->dzErr[idx]);
+        break;
+    case Property::Ip3d:
+        self->SetIP3D(storage_->ip3d[idx]);
+        break;
+    case Property::Sip3d:
+        self->SetSIP3D(storage_->sip3d[idx]);
+        break;
+    case Property::TrackerLayers:
+        self->SetNTrackerLayers(storage_->nTrackerLayers[idx]);
+        break;
+    case Property::GenPartFlav:
+        self->SetGenPartFlav(storage_->genPartFlav[idx]);
+        break;
+    case Property::GenPartIdx:
+        self->SetGenPartIdx(storage_->genPartIdx[idx]);
+        break;
+    case Property::JetIdx:
+        self->SetJetIdx(storage_->jetIdx[idx]);
+        break;
+    case Property::LooseId:
+        self->SetBIDBit(BooleanID::LOOSE, storage_->looseId[idx]);
+        break;
+    case Property::MediumId:
+        self->SetBIDBit(BooleanID::MEDIUM, storage_->mediumId[idx]);
+        break;
+    case Property::MediumPromptId:
+        self->SetBIDBit(BooleanID::MEDIUMPROMPT, storage_->mediumPromptId[idx]);
+        break;
+    case Property::TightId:
+        self->SetBIDBit(BooleanID::TIGHT, storage_->tightId[idx]);
+        break;
+    case Property::SoftId:
+        self->SetBIDBit(BooleanID::SOFT, storage_->softId[idx]);
+        break;
+    case Property::SoftMvaId:
+        self->SetBIDBit(BooleanID::SOFTMVA, storage_->softMvaId[idx]);
+        break;
+    case Property::TriggerLooseId:
+        self->SetBIDBit(BooleanID::TRIGGERLOOSE, storage_->triggerLooseId[idx]);
+        break;
+    case Property::HighPtId:
+        self->SetWIDBit(WorkingPointID::HIGHPT, storage_->highPtId[idx]);
+        break;
+    case Property::MiniIsoId:
+        self->SetWIDBit(WorkingPointID::MINIISO, storage_->miniIsoId[idx]);
+        break;
+    case Property::MultiIsoId:
+        self->SetWIDBit(WorkingPointID::MULTIISO, storage_->multiIsoId[idx]);
+        break;
+    case Property::MvaMuId:
+        self->SetWIDBit(WorkingPointID::MVAMU, storage_->mvaMuId[idx]);
+        break;
+    case Property::PfIsoId:
+        self->SetWIDBit(WorkingPointID::PFISO, storage_->pfIsoId[idx]);
+        break;
+    case Property::PuppiIsoId:
+        self->SetWIDBit(WorkingPointID::PUPPIISO, storage_->puppiIsoId[idx]);
+        break;
+    case Property::TkIsoId:
+        self->SetWIDBit(WorkingPointID::TKISO, storage_->tkIsoId[idx]);
+        break;
+    case Property::SoftMva:
+        self->SetMVAID(MVAID::SOFTMVA, storage_->softMva[idx]);
+        break;
+    case Property::MvaLowPt:
+        self->SetMVAID(MVAID::MVALOWPT, storage_->mvaLowPt[idx]);
+        break;
+    case Property::MvaPrompt:
+        self->SetMVAID(MVAID::MVAPROMPT, storage_->mvaPrompt[idx]);
+        break;
+    default:
+        break;
+    }
+
+    markLoaded(property);
 }
 
 void Muon::SetBIDBit(BooleanID id, bool idbit) {
