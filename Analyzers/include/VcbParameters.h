@@ -34,7 +34,9 @@ static inline std::unordered_map<std::string, float> Muon_Tight_Pt = {
     {"2022EE", 26.f},
     {"2022EE", 26.f},
     {"2023", 26.f},
-    {"2023BPix", 26.f}};
+    {"2023BPix", 26.f},
+    {"2024", 26.f},
+};
 
 static inline std::unordered_map<std::string, float> Electron_Tight_Pt = {
     {"2016preVFP", 35.f},
@@ -44,7 +46,9 @@ static inline std::unordered_map<std::string, float> Electron_Tight_Pt = {
     {"2022", 32.f},
     {"2022EE", 32.f},
     {"2023", 32.f},
-    {"2023BPix", 32.f}};
+    {"2023BPix", 32.f},
+    {"2024", 32.f}
+};
 
 static constexpr float Jet_Veto_DR = 0.4;
 
@@ -60,7 +64,8 @@ static inline std::unordered_map<std::string, JetTagging::JetFlavTagger> FlavTag
     {"2022", JetTagging::JetFlavTagger::ParT},
     {"2022EE", JetTagging::JetFlavTagger::ParT},
     {"2023", JetTagging::JetFlavTagger::ParT},
-    {"2023BPix", JetTagging::JetFlavTagger::ParT}};
+    {"2023BPix", JetTagging::JetFlavTagger::ParT},
+    {"2024", JetTagging::JetFlavTagger::ParT}};
 
 // FH part
 static inline std::unordered_map<std::string, int> category_for_training_FH = {
@@ -115,12 +120,6 @@ static inline std::unordered_map<std::string, float> FH_Jet_Pt_cut = {
 static constexpr JetTagging::JetFlavTaggerWP FH_BTag_WP = JetTagging::JetFlavTaggerWP::Medium;
 
 // SL part
-static inline std::unordered_map<std::string, int> category_for_training_SL = {
-    {"Vcb", 0},
-    {"TT+LF", 1},
-    {"TT+C", 2},
-    {"TT+B", 3},
-    {"Others", 4}};
 static inline std::unordered_map<std::string, TString> Mu_Trigger = {
     {"2016preVFP", "HLT_IsoMu24"},
     {"2016postVFP", "HLT_IsoMu24"},
@@ -129,7 +128,9 @@ static inline std::unordered_map<std::string, TString> Mu_Trigger = {
     {"2022", "HLT_IsoMu24"},
     {"2022EE", "HLT_IsoMu24"},
     {"2023", "HLT_IsoMu24"},
-    {"2023BPix", "HLT_IsoMu24"}};
+    {"2023BPix", "HLT_IsoMu24"},
+    {"2024", "HLT_IsoMu24"}
+    };
 
 static inline std::unordered_map<std::string, TString> Mu_Trigger_SF_Key = {
     {"2016preVFP", "NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight"},
@@ -139,7 +140,8 @@ static inline std::unordered_map<std::string, TString> Mu_Trigger_SF_Key = {
     {"2022", "NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight"},
     {"2022EE", "NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight"},
     {"2023", "NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight"},
-    {"2023BPix", "NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight"}
+    {"2023BPix", "NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight"},
+    {"2024", "NOTriggerSF"}
     };
 
 static inline std::unordered_map<std::string, TString> Mu_ID_SF_Key = {
@@ -150,7 +152,8 @@ static inline std::unordered_map<std::string, TString> Mu_ID_SF_Key = {
     {"2022", "NUM_TightID_DEN_TrackerMuons"},
     {"2022EE", "NUM_TightID_DEN_TrackerMuons"},
     {"2023", "NUM_TightID_DEN_TrackerMuons"},
-    {"2023BPix", "NUM_TightID_DEN_TrackerMuons"}
+    {"2023BPix", "NUM_TightID_DEN_TrackerMuons"},
+    {"2024", "NUM_TightID_DEN_TrackerMuons"}
     };
 
 static inline std::unordered_map<std::string, TString> Mu_Iso_SF_Key = {
@@ -161,7 +164,8 @@ static inline std::unordered_map<std::string, TString> Mu_Iso_SF_Key = {
     {"2022", "NUM_TightPFIso_DEN_TightID"},
     {"2022EE", "NUM_TightPFIso_DEN_TightID"},
     {"2023", "NUM_TightPFIso_DEN_TightID"},
-    {"2023BPix", "NUM_TightPFIso_DEN_TightID"}
+    {"2023BPix", "NUM_TightPFIso_DEN_TightID"},
+    {"2024", "NUM_TightPFIso_DEN_TightID"}
     };
 
 static inline std::unordered_map<std::string, TString> El_Trigger = {
@@ -172,7 +176,8 @@ static inline std::unordered_map<std::string, TString> El_Trigger = {
     {"2022", "HLT_Ele30_WPTight_Gsf"},
     {"2022EE", "HLT_Ele30_WPTight_Gsf"},
     {"2023", "HLT_Ele30_WPTight_Gsf"},
-    {"2023BPix", "HLT_Ele30_WPTight_Gsf"}
+    {"2023BPix", "HLT_Ele30_WPTight_Gsf"},
+    {"2024", "HLT_Ele30_WPTight_Gsf"}
     };
 
 static inline std::unordered_map<std::string, TString> El_Trigger_SF_Key = {
@@ -183,7 +188,8 @@ static inline std::unordered_map<std::string, TString> El_Trigger_SF_Key = {
     {"2022", "HLT_SF_Ele30_MVAiso80ID"},
     {"2022EE", "HLT_SF_Ele30_MVAiso80ID"},
     {"2023", "HLT_SF_Ele30_MVAiso80ID"},
-    {"2023BPix", "HLT_SF_Ele30_MVAiso80ID"}
+    {"2023BPix", "HLT_SF_Ele30_MVAiso80ID"},
+    {"2024", "NOTriggerSF"}
     };
 
 static inline std::unordered_map<std::string, TString> El_ID_SF_Key = {
@@ -194,7 +200,8 @@ static inline std::unordered_map<std::string, TString> El_ID_SF_Key = {
     {"2022", "wp80iso"},
     {"2022EE", "wp80iso"},
     {"2023", "wp80iso"},
-    {"2023BPix", "wp80iso"}
+    {"2023BPix", "wp80iso"},
+    {"2024", "wp80iso"}
     };
 
 static constexpr JetTagging::JetFlavTaggerWP SL_BTag_WP = JetTagging::JetFlavTaggerWP::Medium;
