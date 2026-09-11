@@ -11,3 +11,6 @@
 [submodule "Hadron_Analyzers"]
 	path = Hadron_Analyzers
 	url = git@github.com:kyj519/Hadron_Analyzers.git
+[submodule "Calibration_Analyzers"]
+	path = Calibration_Analyzers
+	url = git@github.com:kyj519/Calibration_Analyzers.git
