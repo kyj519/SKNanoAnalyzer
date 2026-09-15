@@ -98,41 +98,89 @@ bool AnalyzerCore::PassMetFilter(const JetViewCollection &AllJets,
   return PassNoiseFilter(AllJets, ev, met_type);
 }
 
+std::size_t AnalyzerCore::ScaleVariationIndex(
+    const MyCorrection::variation &muF_syst,
+    const MyCorrection::variation &muR_syst, std::size_t n_entries) {
+  auto slot = [](const MyCorrection::variation &v) {
+    switch (v) {
+    case MyCorrection::variation::down:
+      return 0;
+    case MyCorrection::variation::nom:
+      return 1;
+    case MyCorrection::variation::up:
+      return 2;
+    default:
+      throw SKNano::LogicError(
+          "[AnalyzerCore::ScaleVariationIndex] unsupported variation");
+    }
+  };
+  const int flat = slot(muR_syst) * 3 + slot(muF_syst);
+  if (n_entries >= 9)
+    return static_cast<std::size_t>(flat);
+  if (n_entries == 8)
+    return static_cast<std::size_t>(flat > 4 ? flat - 1 : flat);
+  throw SKNano::LogicError(
+      "[AnalyzerCore::ScaleVariationIndex] scale-variation array has " +
+      std::to_string(n_entries) + " entries; expected 8 or 9");
+}
+
 float AnalyzerCore::GetScaleVariation(const MyCorrection::variation &muF_syst,
                                       const MyCorrection::variation &muR_syst) {
   if (nLHEScaleWeight == 0)
     return 1.;
-  if (muF_syst == MyCorrection::variation::down &&
-      muR_syst == MyCorrection::variation::down)
-    return LHEScaleWeight[0];
-  else if (muF_syst == MyCorrection::variation::nom &&
-           muR_syst == MyCorrection::variation::down)
-    return LHEScaleWeight[1];
-  else if (muF_syst == MyCorrection::variation::up &&
-           muR_syst == MyCorrection::variation::down)
-    return LHEScaleWeight[2];
-  else if (muF_syst == MyCorrection::variation::down &&
-           muR_syst == MyCorrection::variation::nom)
-    return LHEScaleWeight[3];
-  else if (muF_syst == MyCorrection::variation::up &&
-           muR_syst == MyCorrection::variation::nom)
-    return LHEScaleWeight[4];
-  else if (muF_syst == MyCorrection::variation::down &&
-           muR_syst == MyCorrection::variation::up)
-    return LHEScaleWeight[5];
-  else if (muF_syst == MyCorrection::variation::nom &&
-           muR_syst == MyCorrection::variation::up)
-    return LHEScaleWeight[6];
-  else if (muF_syst == MyCorrection::variation::up &&
-           muR_syst == MyCorrection::variation::up)
-    return LHEScaleWeight[7];
-  else if (muF_syst == MyCorrection::variation::nom &&
-           muR_syst == MyCorrection::variation::nom)
-    return 1.f;
-  else {
+
+  // LHEScaleWeight is ordered with muR outer and muF inner:
+  //
+  //   (muR, muF) = (.5,.5) (.5,1) (.5,2) (1,.5) (1,1) (1,2) (2,.5) (2,1) (2,2)
+  //
+  // Producers ship it either with the (1,1) nominal included, giving 9
+  // entries, or with it dropped, giving 8.  This function used to assume the
+  // 8-entry form unconditionally.  On a 9-entry sample that silently shifts
+  // every index from the nominal onwards by one, so
+  //   - muF up  read index 4, which in the 9-entry form *is* the nominal, and
+  //     therefore returned exactly 1 for every event: half of the dominant
+  //     scale systematic was missing and nothing reported an error;
+  //   - muR up  read index 6 = (muR 2, muF 0.5), a real variation but the
+  //     wrong one;
+  //   - muF down and muR down happened to land correctly, which is why the
+  //     fault looked like "one branch is broken" rather than "the map is off".
+  //
+  // Measured on 2024 TTtoLNuCB NanoAODv15: nLHEScaleWeight = 9 with
+  // LHEScaleWeight[4] == 1 exactly.  Branch on the length instead of assuming.
+  const bool has_nominal = (nLHEScaleWeight >= 9);
+  if (nLHEScaleWeight != 8 && nLHEScaleWeight != 9)
     throw SKNano::LogicError(
-        "[AnalyzerCore::GetScaleVariation] requested variation is not implemented");
-  }
+        "[AnalyzerCore::GetScaleVariation] unexpected nLHEScaleWeight = " +
+        std::to_string(nLHEScaleWeight) + "; expected 8 or 9");
+
+  auto index = [has_nominal](int muR_slot, int muF_slot) {
+    // slot: 0 = 0.5, 1 = 1.0, 2 = 2.0
+    const int flat = muR_slot * 3 + muF_slot;
+    if (has_nominal)
+      return flat;
+    // the (1,1) nominal sits at flat index 4; everything after it shifts down
+    return flat > 4 ? flat - 1 : flat;
+  };
+  auto slot = [](const MyCorrection::variation &v) {
+    switch (v) {
+    case MyCorrection::variation::down:
+      return 0;
+    case MyCorrection::variation::nom:
+      return 1;
+    case MyCorrection::variation::up:
+      return 2;
+    default:
+      throw SKNano::LogicError(
+          "[AnalyzerCore::GetScaleVariation] requested variation is not "
+          "implemented");
+    }
+  };
+
+  const int muF_slot = slot(muF_syst);
+  const int muR_slot = slot(muR_syst);
+  if (muF_slot == 1 && muR_slot == 1)
+    return 1.f;
+  return LHEScaleWeight[index(muR_slot, muF_slot)];
 }
 
 float AnalyzerCore::GetPSWeight(const MyCorrection::variation &ISR_syst,

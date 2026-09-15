@@ -251,6 +251,46 @@ def combine(summaries: list[FileSummary], labels: list[Path]) -> tuple[
     return schemas, entries, histogram_schemas, histogram_entries
 
 
+def _reject_empty_rntuples(
+    totals: dict[str, int], inputs: list[Path], batch_size: int
+) -> None:
+    """Refuse a staged merge that carries an RNTuple with no entries anywhere.
+
+    ROOT aborts on it.  `RNTupleMerger::MergeSourceClusters` asserts
+    `!clusterIds.empty()` (RNTupleDescriptor.cxx:479) and the process dies with
+    SIGABRT, after the merge has already run to its final stage.
+
+    The trap is that it only fires when the merge is *staged*.  A single-stage
+    merge writes the empty RNTuple once and survives, so a small production
+    passes and a large one dies -- which is exactly backwards from how anyone
+    tests.  Observed 2026-09-14: a 27-shard signal sample merged cleanly while
+    its 395-shard background counterpart aborted, losing the whole production
+    at the very last step even though every analyzer job had succeeded.
+
+    An RNTuple that is empty in every shard carries no data, so nothing is lost
+    by not booking it.  Fail here, before hours of merging, and say which tree
+    and what to do about it.
+    """
+    empty = sorted(name for name, count in totals.items() if count == 0)
+    if not empty:
+        return
+    staged = len(inputs) > batch_size
+    listing = ", ".join(empty)
+    advice = (
+        f"RNTuple(s) with zero entries in every one of the {len(inputs)} "
+        f"shards: {listing}.\n"
+        "ROOT's RNTuple merger aborts on an empty ntuple once the merge is "
+        "staged, so this would die with SIGABRT at the final stage.\n"
+        "Fix it in the analyzer: book only the trees the run actually fills "
+        "(e.g. guard Output().Book(...) on the userflag that selects the "
+        "output), then resubmit.  The existing shards are intact and can be "
+        "re-merged without rerunning the jobs."
+    )
+    if staged:
+        raise RuntimeError(advice)
+    print(f"sknano-merge: WARNING: {advice}", flush=True)
+
+
 def _run_hadd(
     output: Path,
     inputs: list[Path],
@@ -652,6 +692,7 @@ def main() -> int:
 
     summaries = _inspect_many(root, inputs, args.jobs)
     schemas, totals, histogram_schemas, histogram_totals = combine(summaries, inputs)
+    _reject_empty_rntuples(totals, inputs, args.batch_size)
 
     if args.mode == "index":
         return _publish_index(

@@ -455,6 +455,15 @@ public:
     }
     // Functions
     float GetScaleVariation(const MyCorrection::variation &muF_syst, const MyCorrection::variation &muR_syst);
+    //! Index into a `patch_ScaleVariation` / `sumScaleVariation` array for one
+    //! (muF, muR) pair.  These arrays follow the LHEScaleWeight ordering (muR
+    //! outer, muF inner) and are 9 long when the producer kept the (1,1)
+    //! nominal, 8 when it dropped it.  Call sites used to hard-code the
+    //! 8-entry indices, which on a 9-entry sample silently read the nominal
+    //! for muF-up and the wrong cell for muR-up.  Pass the array's own size.
+    static std::size_t ScaleVariationIndex(const MyCorrection::variation &muF_syst,
+                                           const MyCorrection::variation &muR_syst,
+                                           std::size_t n_entries);
     float GetPSWeight(const MyCorrection::variation &ISR_syst, const MyCorrection::variation &FSR_syst);
     inline float GetBTaggingWP(const JetTagging::JetFlavTagger &tagger, const JetTagging::JetFlavTaggerWP &wp) { return myCorr->GetBTaggingWP(tagger, wp); }
     inline pair<float, float> GetCTaggingWP(const JetTagging::JetFlavTagger &tagger, const JetTagging::JetFlavTaggerWP &wp) { return myCorr->GetCTaggingWP(tagger, wp); }
