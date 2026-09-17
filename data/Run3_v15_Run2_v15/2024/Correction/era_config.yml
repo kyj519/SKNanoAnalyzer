@@ -30,14 +30,17 @@ campaign: Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15
 #
 # Non-dated variant branches (EGM/heep-id, JME/newJERFormats,
 # MUO/muon_2024_low_pt_SF) are valid values here too.
+#
+# Pinned 2026-09-17 to the dated directories whose files are md5-identical to
+# what "latest" held that day, so numbers are unchanged by the pin.
 snapshots:
   default: latest
-  MUO: latest
-  LUM: latest
-  BTV: latest
-  EGM: latest
-  JME: latest
-  TAU: latest
+  MUO: 2026-06-18
+  LUM: 2026-04-15
+  BTV: 2026-03-10
+  EGM: 2025-12-15
+  JME: 2026-07-16
+  TAU: 2026-01-14
 
 # Printed in red at startup. Use for known-wrong inputs we are living with.
 warnings:
