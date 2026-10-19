@@ -348,7 +348,25 @@ public:
     // Event-scoped, read-only input access. Selections retain raw indices.
     Event GetEvent();
     MuonViewCollection GetAllMuonViews();
+    // Lazy correction stages. Each SoA binds these and materialises one on
+    // the first access to a lane it owns, so the nominal path never pays for
+    // a variation it does not read.
     void PopulateMuonMomentum(MuonSoA &storage);
+    void PopulateMuonMomentumVariations(MuonSoA &storage);
+    void PopulateMuonHighPt(MuonSoA &storage);
+    void PopulateMuonHighPtVariations(MuonSoA &storage);
+    float MuonRochesterMatchedGenPt(const MuonSoA &storage, std::size_t index,
+                                    GenViewCollection &truth, bool &truthLoaded);
+    void PopulateElectronMomentum(ElectronSoA &storage);
+    void PopulateElectronMomentumVariations(ElectronSoA &storage);
+    void PopulateFatJetNominal(FatJetSoA &storage);
+    void PopulateFatJetJerVariations(FatJetSoA &storage);
+    void PopulateFatJetJesVariations(FatJetSoA &storage);
+    float FatJetSmearFactor(const FatJetSoA &storage, std::size_t index,
+                            MyCorrection::variation syst) const;
+    float FatJetSoftDropRatio(const FatJetSoA &storage, std::size_t index,
+                              MyCorrection::variation jesVar,
+                              MyCorrection::variation jerVar) const;
     GenViewCollection GetAllGenViews();
     JetViewCollection GetAllJetViews();
     SelectedJetViewCollection SelectJetViews(
@@ -377,9 +395,18 @@ public:
     GenVisTauViewCollection GetAllGenVisTauViews();
     std::vector<std::size_t> SelectMuonIndices(const MuonViewCollection &muons, const std::vector<std::size_t> &seed_indices, const MuonView::MuonID ID, const float ptmin, const float fetamax) const;
     std::vector<std::size_t> SelectMuonIndices(const MuonViewCollection &muons, const MuonView::MuonID ID, const float ptmin, const float fetamax) const;
+    // High-pT muon selection (MUO POG "High pT" prescription). Cuts on
+    // MuonView::HighPtPt() instead of Pt(), so muons past ~200 GeV are judged
+    // on TuneP with the Generalized Endpoint scale. Opt-in: SelectMuonIndices
+    // above is unchanged.
+    std::vector<std::size_t> SelectHighPtMuonIndices(const MuonViewCollection &muons, const std::vector<std::size_t> &seed_indices, const MuonView::MuonID ID, const float ptmin, const float fetamax) const;
+    std::vector<std::size_t> SelectHighPtMuonIndices(const MuonViewCollection &muons, const MuonView::MuonID ID, const float ptmin, const float fetamax) const;
     MuonViewCollection SelectMuonViews(const MuonViewCollection &muons,
         std::vector<std::size_t> indices, bool sortByPt = true) const;
-    ElectronViewCollection GetAllElectronViews();
+    // skipCrack drops electrons in the ECAL gap up front. Off by default, which
+    // keeps the collection as NanoAOD delivers it; PassID rejects gap
+    // electrons anyway, so this only matters when counting with NOCUT.
+    ElectronViewCollection GetAllElectronViews(bool skipCrack = false);
     std::vector<std::size_t> SelectElectronIndices(const ElectronViewCollection &electrons, const std::vector<size_t> &seed_indices, const ElectronView::ElectronID ID, const float ptmin, const float fetamax, bool vetoHEM = false) const;
     std::vector<std::size_t> SelectElectronIndices(const ElectronViewCollection &electrons, const ElectronView::ElectronID ID, const float ptmin, const float fetamax, bool vetoHEM = false) const;
     ElectronViewCollection SelectElectronViews(
@@ -397,9 +424,13 @@ public:
     // Select objects
     std::vector<std::size_t> SelectJetIndices(const JetViewCollection &jets, const std::vector<size_t> &seed_indices, const JetView::JetID, const float ptmin, const float fetamax, const MyCorrection::variation &JESVariation = MyCorrection::variation::nom, const MyCorrection::variation &JERVariation = MyCorrection::variation::nom) const;
     std::vector<std::size_t> SelectJetIndices(const JetViewCollection &jets, const JetView::JetID, const float ptmin, const float fetamax, const MyCorrection::variation &JESVariation = MyCorrection::variation::nom, const MyCorrection::variation &JERVariation = MyCorrection::variation::nom) const;
+    // Cuts on the corrected/smeared AK8 momentum, matching SelectJetIndices.
+    // JES and JER cannot both be varied in one call.
     FatJetViewCollection SelectFatJets(const FatJetViewCollection &fatjets,
                                        FatJetView::ID id, float ptmin,
-                                       float fetamax) const;
+                                       float fetamax,
+                                       const MyCorrection::variation &JESVariation = MyCorrection::variation::nom,
+                                       const MyCorrection::variation &JERVariation = MyCorrection::variation::nom) const;
     std::vector<std::size_t> JetsVetoLeptonInside(const JetViewCollection& jets,
                                    const std::vector<std::size_t>& jet_indices,
                                    const ElectronViewCollection& electrons,
@@ -650,6 +681,8 @@ protected:
     std::shared_ptr<JetSoA> CreateJetSoA() const;
     void PopulateJetNominal(const std::shared_ptr<JetSoA> &storage);
     void PopulateJetJERVariations(const std::shared_ptr<JetSoA> &storage);
+    void PopulateJetJESVariations(const std::shared_ptr<JetSoA> &storage,
+                                  const TString &source = "total") const;
     void InitialiseJetSystematics(JetSoA &storage) const;
     void PopulateJetStorageWithoutCorrections(JetSoA &storage) const;
     void ApplyJetEnergyCorrections(JetSoA &storage, float rho);
