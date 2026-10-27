@@ -102,7 +102,11 @@ scripts/sknano_friend.py status   -p hadron_av6 -e 2024 -i TTLJ_powheg
 `<production>/_index/`, picks the aux files covering each central file, and
 runs the builder locally or as one condor job per central file
 (`condor_submit` must be on `PATH`; on ai-tamsa1 use the ssh shim the Hadron
-module ships). Existing friends are skipped unless `--force`. `validate`
+module ships). Existing friends are skipped unless `--force`. The stage
+files are LZ4-compressed and written to the job's scratch directory; on the
+SNU workers both `/tmp` and the scratch are RAM-backed, so their size counts
+against the job's memory limit (`--memory`, 6 GB by default; a 243k-entry
+TTLJ file needs about 4.5 GB). `validate`
 requires every central file to have its friend and its `.build.json`, and
 writes `<production>/<era>/<sample>/friend_summary.json` with the status
 totals, the never-processed lumis and the missing `sumW`/`sumsign`. For data

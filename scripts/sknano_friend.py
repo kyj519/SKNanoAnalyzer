@@ -120,7 +120,9 @@ def aux_index(production: fc.FriendProduction, era: str, pd: str) -> tuple[list[
 def build_command(production, central, aux, out, is_mc, args) -> list[str]:
     command = [BINARY, "build", "--central", central, "--out", out,
                "--production", production.name, "--report", out + ".build.json",
-               "--scratch", args.scratch, "--chunk", str(args.chunk)]
+               "--chunk", str(args.chunk)]
+    if not args.condor:  # condor jobs stage in the job's own scratch, see run.sh
+        command += ["--scratch", args.scratch]
     for file in aux:
         command += ["--aux", file]
     for collection in production.overrides:
@@ -173,7 +175,10 @@ def run_condor(production, era, sample, jobs):
     with open(runner, "w", encoding="utf-8") as handle:
         handle.write(f"""#!/bin/bash
 source "{SKNANO_HOME}/setup.sh" > /dev/null 2>&1
-exec "{BINARY}" "$@"
+# Stage files go to the job's scratch directory, which condor cleans up and
+# which is local disk; /tmp on a worker may be RAM-backed and then counts
+# against the job's memory limit.
+exec "{BINARY}" "$@" --scratch "${{_CONDOR_SCRATCH_DIR:-${{TMPDIR:-/tmp}}}}"
 """)
     os.chmod(runner, 0o755)
     submit = os.path.join(job_dir, "submit.sub")

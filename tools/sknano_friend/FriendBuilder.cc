@@ -9,6 +9,7 @@
 #include <ROOT/RNTupleTypes.hxx>
 #include <ROOT/RNTupleWriteOptions.hxx>
 #include <ROOT/RNTupleWriter.hxx>
+#include <Compression.h>
 #include <TFile.h>
 
 #include <algorithm>
@@ -348,8 +349,11 @@ BuildReport BuildFriend(const BuildOptions &options) {
     std::vector<std::pair<std::string, std::string>> storedFields;
     for (const auto &[name, type] : selected)
         storedFields.emplace_back(name, StorageType(type));
+    // LZ4 rather than uncompressed: the stage files are read back once,
+    // sequentially, and on a worker whose scratch is RAM-backed their size
+    // is what the job's memory limit sees (5 GB per 243k-entry file raw).
     ROOT::RNTupleWriteOptions stageOptions;
-    stageOptions.SetCompression(0);
+    stageOptions.SetCompression(ROOT::RCompressionSetting::EAlgorithm::kLZ4, 1);
     stageOptions.SetApproxZippedClusterSize(16 * 1024 * 1024);
     for (std::uint32_t c = 0; c < chunks.size(); ++c) {
         auto &chunk = chunks[c];
