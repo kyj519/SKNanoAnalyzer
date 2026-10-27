@@ -76,13 +76,6 @@ int SKNanoLoader::AddFile(TString filename, const std::vector<std::string> &frie
     return 1;
 }
 
-std::uint8_t SKNanoLoader::FriendStatus() const
-{
-    if (!rntupleSource || rntupleSource->friendCount() == 0 || currentLocalEntry < 0)
-        return 0;
-    return rntupleSource->friendStatus(static_cast<std::uint64_t>(currentLocalEntry));
-}
-
 void SKNanoLoader::PrepareRNTupleFiles()
 {
     if (rntupleTotalEntries >= 0)
@@ -242,20 +235,20 @@ void SKNanoLoader::Loop()
         if (globalEntry < skipEntries)
             continue;
 
-        // A friend that never processed this lumi has nothing for the event;
-        // the submission already subtracted such events from the sample's
-        // normalisation, so they must not reach the analyzer either.
+        // An event the friend does not hold is out of the sample: a filtered
+        // production rejected it (its normalisation is the producer's
+        // pre-filter sum), or an unfiltered one lost it (its genWeight was
+        // subtracted at submission).  Either way it must not be analysed.
         if (rntupleSource->friendCount() > 0)
         {
             const auto status = rntupleSource->friendStatus(
                 static_cast<std::uint64_t>(currentLocalEntry));
-            if (status == 2)
+            if (status != 0)
             {
-                performanceTelemetry.addCounter("friend_missing_events");
+                performanceTelemetry.addCounter(
+                    status == 1 ? "friend_filtered_events" : "friend_missing_events");
                 continue;
             }
-            if (status == 1)
-                performanceTelemetry.addCounter("friend_filtered_events");
         }
 
         int current_percent = (entriesToProcess > 0) ? (processed * 100) / entriesToProcess : 100;

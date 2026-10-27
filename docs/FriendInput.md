@@ -24,11 +24,10 @@ leading slash). The pairing is by path, never by position.
 - `run`, `luminosityBlock`, `event` copied from the central file. The loader
   compares them with the central values on every entry and aborts the job on
   the first mismatch. They are never served to analyzers from the friend.
-- `SKFriend_status` (uint8): `0` present; `1` the producer processed the lumi
-  but the event is absent (its event filter rejected it); `2` the lumi was
-  never processed. Status 2 entries never reach `executeEvent()`; status 1
-  entries do, with every friend column empty. `SKNanoLoader::FriendStatus()`
-  returns the current event's status.
+- `SKFriend_status` (uint8): `0` present; `1` absent from a filtered
+  production (its filter rejected the event); `2` absent from an unfiltered
+  production (lost). Entries with a non-zero status never reach
+  `executeEvent()`; their friend columns are empty.
 - every top-level field of the production that the central file does not
   have, plus the complete collections listed as overrides. Cardinality fields
   (`nX`) are stored as plain `std::uint32_t`.
@@ -45,6 +44,33 @@ is served from the friend only when its collection (`X` for `X_y` and `nX`) is
 in `overrides`, otherwise the job fails with a configuration error; two
 friends may not provide the same field.
 
+## Filtered and unfiltered productions
+
+What an event absent from the private production means, and therefore how
+the sample is normalised, depends on whether the producer filters events:
+
+- **Unfiltered** (`filtered: false`, the default). Every central event should
+  be there, so an absent one is lost. MC drops lost events one by one and
+  subtracts their genWeight from the registry `sumW`/`sumsign`, which is
+  exact. Data can only subtract luminosity per lumi, so a lumi that lost any
+  event is dropped whole and listed for brilcalc. A data production with
+  events missing in more than 1 % of a file's lumis is refused as looking
+  filtered.
+- **Filtered** (`filtered: true`). Assumed lossless: an absent event was
+  rejected by the filter. MC is normalised to the sum of the aux files'
+  `Runs.genEventSumw` (recorded before the filter), not to the registry, so
+  the analysed events and the normalisation describe the same processed
+  sample — the same as reading the private copy directly. `sumsign` is not
+  stored in `Runs` and is taken as `sumw·√(N/sumw2)`, exact for generators
+  whose weights have one magnitude. Data uses the usual golden-JSON
+  luminosity. The analysis selection has to stay inside the producer's
+  filter, as it had to for the private copy.
+
+For MC the declaration is checked: the builder compares each aux file's
+`Runs.genEventCount` (events read) with the events it wrote and refuses a
+production whose filtering does not match `filtered`. Data has no such count,
+so its declaration is trusted.
+
 ## Declaring a production: `<module>/friends.yml`
 
 The file lives at the module root or one directory below it, where the
@@ -56,7 +82,8 @@ hadron_av6:
   eras: ["2024"]                  # optional, every era when omitted
   overrides: [GenPart]            # central collections replaced by the friend
   exclude_prefixes: [LambdaCToPKPiLoose, D0ToKPiLoose]
-  filter_note: "HLT_IsoMu24 || HLT_Ele30_WPTight_Gsf prefilter on data"
+  filtered: false                 # true when the producer applies an event filter
+  filter_note: ""                 # what that filter is, recorded in every friend
   sources:                        # builder only; {era} and {PD} are substituted
     - /gv0/DATA/SKNano/CustomNanoAODv15/hadron_av6_rntuple640/{era}/{PD}/**/*.root
   samples: [TTLJ_powheg, Muon0]   # optional allowlist of registry names
@@ -79,9 +106,9 @@ sknano_friend build --central tree_1.root --aux NANO_1.root --aux NANO_2.root \
 sknano_friend check <friend> <central>
 ```
 
-It reads the central event keys, indexes the aux files' `LuminosityBlocks`
-and `Events` keys (a duplicate key is fatal), assigns the status of every
-central entry, and copies the selected fields. The aux files are read in their
+It reads the central event keys, indexes the aux files' `Events` keys (a
+duplicate key is fatal), checks the filter declaration against `Runs` for MC,
+assigns the status of every central entry, and copies the selected fields. The aux files are read in their
 own order and staged in chunks sorted by central entry on local scratch, then
 merged in central order, so all I/O is sequential: a multi-threaded `cmsRun`
 scatters events, and reading the aux files in central order would load a
@@ -112,9 +139,11 @@ job's memory. `--max-running` (100) bounds how many jobs read the input
 filesystem at once; `--memory` (6 GB) is the request per job. `validate`
 requires every central file to have its friend and its `.build.json`, and
 writes `<production>/<era>/<sample>/friend_summary.json` with the status
-totals, the never-processed lumis and the missing `sumW`/`sumsign`. For data
-with missing lumis it also writes `missing_lumis.json` in the run → lumi-range
-form `brilcalc -i` and the golden json use.
+totals and, for an unfiltered production, the lumis that lost events and the
+lost `sumW`/`sumsign`; for a filtered MC production it holds `norm`, the
+`Runs` sums of every aux file the friends were built from, each counted once.
+For data with lost lumis it also writes `missing_lumis.json` in the
+run → lumi-range form `brilcalc -i` and the golden json use.
 
 ## What a submission does
 
@@ -123,10 +152,11 @@ friend with every central file (`module.AddFile(central, {friend})` in the
 generated job), fails the submission when a file or the sample summary is
 missing (`on_missing: error`), and
 
-- MC: subtracts the summary's `missing_sumw`/`missing_sumsign` from the
-  registry `sumW`/`sumsign` before writing them into the job;
-- data: prints how many lumis were never processed; those events are skipped
-  in the loop, and the recorded luminosity of `missing_lumis.json` has to be
+- MC, unfiltered: subtracts the summary's `missing_sumw`/`missing_sumsign`
+  from the registry `sumW`/`sumsign` before writing them into the job;
+- MC, filtered: writes the summary's `norm` instead of the registry values;
+- data: prints how many lumis lost events; those events are skipped in the
+  loop, and the recorded luminosity of `missing_lumis.json` has to be
   subtracted from the trigger luminosity by hand (brilcalc).
 
 The resolved friend paths go into
@@ -141,10 +171,12 @@ alone. The performance report counts `friend_missing_events` and
 
 - Skims (`SnapshotSelectedInput`) copy the central columns only; a skim of a
   friend-attached sample needs its own friend build against the skim files.
-- A friend lumi is either fully processed or absent: a lumi that a CRAB job
-  processed partially (one of the files holding it missing from the private
-  production) cannot be told from a filtered one, and its lost events come out
-  as status 1, so they stay in the normalisation. Recording the
-  pre-filter event count per lumi in the producer would close that gap.
+- A filtered production is assumed lossless. A lost file of it would drop
+  its events from the analysis while its `Runs` sums also leave the
+  normalisation, so MC stays consistent; data would silently lose luminosity.
+  A per-lumi pre-filter event count from the producer would make losses
+  visible there as well.
+- Only local paths are supported; central files, aux files and friends on
+  another site (xrootd) are a follow-up.
 - Dropping the standard tables in the producer itself would shrink the
   private production on disk; the builder only needs the custom fields.

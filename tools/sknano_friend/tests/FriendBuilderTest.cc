@@ -73,6 +73,7 @@ struct AuxSpec {
     std::vector<std::uint32_t> lumis;        // lumis this file processed
     std::vector<Event> events;               // in scrambled order
     std::uint64_t jetMismatchEvent = 0;      // write three jets for this event
+    std::int64_t filtered = 0;               // events read but not written (Runs.genEventCount)
 };
 
 void WriteAux(const std::string &path, const AuxSpec &spec) {
@@ -117,6 +118,18 @@ void WriteAux(const std::string &path, const AuxSpec &spec) {
         writer->Fill();
     }
     writer.reset();
+    auto runsModel = ROOT::RNTupleModel::Create();
+    auto runsRun = runsModel->MakeField<std::uint32_t>("run");
+    auto genEventCount = runsModel->MakeField<std::int64_t>("genEventCount");
+    auto genEventSumw = runsModel->MakeField<double>("genEventSumw");
+    auto genEventSumw2 = runsModel->MakeField<double>("genEventSumw2");
+    auto runsWriter = ROOT::RNTupleWriter::Append(std::move(runsModel), "Runs", *file);
+    *runsRun = kRun;
+    *genEventCount = static_cast<std::int64_t>(spec.events.size()) + spec.filtered;
+    *genEventSumw = static_cast<double>(*genEventCount);
+    *genEventSumw2 = static_cast<double>(*genEventCount);
+    runsWriter->Fill();
+    runsWriter.reset();
     file->Close();
 }
 
@@ -180,19 +193,20 @@ protected:
     std::vector<Event> first_;
 };
 
+// Lumi 12 (events 110..114) and event 103 (lumi 10) are not in the production.
 TEST_F(FriendBuilderTest, BuildsAnAlignedFriendWithStatusAndNormalisation) {
     const auto options = Options();
     const auto report = sknano_friend::BuildFriend(options);
     EXPECT_EQ(report.centralEntries, 20U);
     EXPECT_EQ(report.nStatus[0], 14U);
-    EXPECT_EQ(report.nStatus[1], 1U);
-    EXPECT_EQ(report.nStatus[2], 5U);
+    EXPECT_EQ(report.nStatus[1], 0U);
+    EXPECT_EQ(report.nStatus[2], 6U);
     EXPECT_EQ(report.auxOnly, 1U);
-    ASSERT_EQ(report.missingLumis.size(), 1U);
-    EXPECT_EQ(report.missingLumis[0], std::make_pair(kRun, 12U));
-    EXPECT_EQ(report.missingCount, 5U);
+    EXPECT_EQ(report.missingLumis,
+              (std::vector<std::pair<std::uint32_t, std::uint32_t>>{{kRun, 10U}, {kRun, 12U}}));
+    EXPECT_EQ(report.missingCount, 6U);
     float sumW = 0.f, sumSign = 0.f;
-    for (std::uint64_t e = 110; e < 115; ++e) {
+    for (std::uint64_t e : {103, 110, 111, 112, 113, 114}) {
         sumW += Weight(e);
         sumSign += Weight(e) > 0 ? 1.f : -1.f;
     }
@@ -207,7 +221,7 @@ TEST_F(FriendBuilderTest, BuildsAnAlignedFriendWithStatusAndNormalisation) {
     EXPECT_EQ(check.mismatches, 0U);
     EXPECT_EQ(check.nStatus[0], 14U);
     EXPECT_EQ(check.info["production"], "test");
-    EXPECT_EQ(check.info["missing_lumis"], nlohmann::json({12}));
+    EXPECT_EQ(check.info["missing_lumis"], nlohmann::json({10, 12}));
 
     SKNano::RNTupleSource source;
     source.open("Events", central_);
@@ -223,10 +237,8 @@ TEST_F(FriendBuilderTest, BuildsAnAlignedFriendWithStatusAndNormalisation) {
         const auto status = source.friendStatus(i);
         unsigned int count = 99;
         nLambda->read(i, &count);
-        if (events[i].lumi == 12) {
+        if (events[i].lumi == 12 || events[i].event == 103) {
             EXPECT_EQ(status, 2);
-        } else if (events[i].event == 103) {
-            EXPECT_EQ(status, 1);
         } else {
             EXPECT_EQ(status, 0);
             EXPECT_EQ(Read(*lambdaPt, i), std::vector<float>{LambdaPt(events[i].event)});
@@ -257,18 +269,60 @@ TEST_F(FriendBuilderTest, LumiSplitOverAuxFilesIsJoinedWhenAllPartsAreGiven) {
     options.aux = {part0, aux1_, part2};
     const auto report = sknano_friend::BuildFriend(options);
     EXPECT_EQ(report.nStatus[0], 14U);
-    EXPECT_EQ(report.nStatus[1], 1U);
-    EXPECT_EQ(report.nStatus[2], 5U);
+    EXPECT_EQ(report.nStatus[2], 6U);
     EXPECT_EQ(sknano_friend::CheckFriend(options.out, central_).mismatches, 0U);
 
-    // Leaving a part out cannot be told from the producer's filter: those
-    // events come out as status 1, not 2 (docs/FriendInput.md, limitations).
+    // Without the second part its events are simply lost.
     options.aux = {part0, aux1_};
     options.out = (dir_ / "out" / "partial.root").string();
     const auto partial = sknano_friend::BuildFriend(options);
     EXPECT_EQ(partial.nStatus[0], 11U);
-    EXPECT_EQ(partial.nStatus[1], 4U);
-    EXPECT_EQ(partial.nStatus[2], 5U);
+    EXPECT_EQ(partial.nStatus[2], 9U);
+}
+
+TEST_F(FriendBuilderTest, DataDropsEveryLumiThatLostAnEvent) {
+    auto options = Options();
+    options.isMC = false;
+    const auto report = sknano_friend::BuildFriend(options);
+    EXPECT_EQ(report.nStatus[0], 10U); // lumi 10 lost event 103, so all of lumi 10 goes
+    EXPECT_EQ(report.nStatus[2], 10U);
+    EXPECT_EQ(report.missingLumis,
+              (std::vector<std::pair<std::uint32_t, std::uint32_t>>{{kRun, 10U}, {kRun, 12U}}));
+    EXPECT_EQ(report.missingSumW, 0.);
+}
+
+TEST_F(FriendBuilderTest, FilteredProductionMarksRejectedEventsAndRecordsRuns) {
+    // Same events, but aux0 read one more than it wrote (event 103 rejected)
+    // and the lumi-12 file read five and wrote none.
+    const auto f0 = (dir_ / "filtered0.root").string();
+    const auto f1 = (dir_ / "filtered1.root").string();
+    std::vector<Event> second;
+    for (const auto &e : CentralEvents())
+        if (e.lumi == 13)
+            second.push_back(e);
+    WriteAux(f0, {{10, 11, 50}, first_, 0, 1});
+    WriteAux(f1, {{12, 13}, second, 0, 5});
+    auto options = Options();
+    options.aux = {f0, f1};
+    options.filtered = true;
+    const auto report = sknano_friend::BuildFriend(options);
+    EXPECT_EQ(report.nStatus[0], 14U);
+    EXPECT_EQ(report.nStatus[1], 6U);
+    EXPECT_EQ(report.nStatus[2], 0U);
+    EXPECT_EQ(report.missingSumW, 0.);
+    ASSERT_EQ(report.auxRuns.size(), 2U);
+    EXPECT_EQ(report.auxRuns.at(f0).count, static_cast<std::int64_t>(first_.size()) + 1);
+    EXPECT_EQ(report.auxRuns.at(f1).count, static_cast<std::int64_t>(second.size()) + 5);
+    EXPECT_EQ(report.toJson()["filtered"], true);
+
+    // The declaration is checked against the Runs table both ways.
+    options.filtered = false;
+    options.out = (dir_ / "out" / "undeclared.root").string();
+    EXPECT_THROW(sknano_friend::BuildFriend(options), std::runtime_error);
+    auto unfiltered = Options();
+    unfiltered.filtered = true;
+    unfiltered.out = (dir_ / "out" / "overdeclared.root").string();
+    EXPECT_THROW(sknano_friend::BuildFriend(unfiltered), std::runtime_error);
 }
 
 TEST_F(FriendBuilderTest, DuplicateEventAcrossAuxFilesIsFatal) {

@@ -20,6 +20,7 @@ import argparse
 import datetime
 import glob
 import json
+import math
 import os
 import re
 import shutil
@@ -138,6 +139,8 @@ def build_command(production, central, aux, out, is_mc, args) -> list[str]:
         command += ["--exclude-prefix", collection]
     if is_mc:
         command.append("--mc")
+    if production.filtered:
+        command.append("--filtered")
     if production.filter_note:
         command += ["--filter-note", production.filter_note]
     return command
@@ -158,6 +161,11 @@ def plan_sample(production, era, sample, registry, args):
             continue
         aux = sorted({aux_files[i] for key in lumi_table(central) for i in index.get(key, ())})
         if not aux:
+            if production.filtered:
+                # A filtered production is assumed lossless and normalised to
+                # its own Runs sums; a whole central file it never saw breaks that.
+                raise SystemExit(f"no aux file covers any lumi of {central}, but "
+                                 f"'{production.name}' is filtered and assumed lossless")
             print(f"\033[93mWarning: no aux file covers any lumi of {central}; "
                   "every event will carry status 2\033[0m")
             aux = [aux_files[0]]  # still build: the friend then records the missing lumis
@@ -255,6 +263,7 @@ def cmd_validate(args):
         is_mc = bool(spec.get("isMC"))
         central_files = resolve_sample_paths(spec, args.era, period)
         files, missing_files, missing = {}, [], set()
+        aux_runs: dict[str, dict] = {}  # each aux file once, however many friends read it
         totals = {"n_status": [0, 0, 0], "missing_sumw": 0., "missing_sumsign": 0.,
                   "missing_count": 0, "central_entries": 0, "aux_only": 0}
         for central in central_files:
@@ -265,6 +274,11 @@ def cmd_validate(args):
                 continue
             with open(report_path, encoding="utf-8") as handle:
                 report = json.load(handle)
+            if bool(report.get("filtered", False)) != production.filtered:
+                failed = True
+                print(f"\033[91m{out} was built with filtered={report.get('filtered', False)}, "
+                      f"friends.yml says {production.filtered}; rebuild with --force\033[0m")
+            aux_runs.update(report.get("aux_runs", {}))
             files[out] = {"central": central, "n_status": report["n_status"],
                           "missing_lumis": report["missing_lumis"],
                           "missing_sumw": report["missing_sumw"],
@@ -280,9 +294,20 @@ def cmd_validate(args):
             print(f"\033[91m{status}, {len(missing_files)} missing, e.g. {missing_files[0]}\033[0m")
             continue
         summary = dict(totals, era=args.era, sample=sample, production=production.name,
-                       is_mc=is_mc, files=files,
+                       is_mc=is_mc, filtered=production.filtered, files=files,
                        missing_lumis=[list(x) for x in sorted(missing)],
                        validated_at=datetime.datetime.now().isoformat(timespec="seconds"))
+        if is_mc and production.filtered:
+            # Lossless by assumption, so the sample is what the aux files read:
+            # their pre-filter Runs sums.  sumsign is not stored; with weights of
+            # constant magnitude +-w0, sumw=(N+ - N-)w0 and sumw2=N w0^2 give
+            # sumsign = sumw*sqrt(N/sumw2) (Hadron docs/CustomBPHInput.md).
+            nmc = sum(r["count"] for r in aux_runs.values())
+            sumw = sum(r["sumw"] for r in aux_runs.values())
+            sumw2 = sum(r["sumw2"] for r in aux_runs.values())
+            summary["norm"] = {"nmc": nmc, "sumw": sumw,
+                               "sumsign": sumw * math.sqrt(nmc / sumw2) if sumw2 > 0 else 0.,
+                               "source": f"Runs of {len(aux_runs)} aux files"}
         sample_dir = production.sample_dir(args.era, sample)
         os.makedirs(sample_dir, exist_ok=True)
         if missing and not is_mc:
@@ -295,8 +320,10 @@ def cmd_validate(args):
         with open(production.summary_path(args.era, sample), "w", encoding="utf-8") as handle:
             json.dump(summary, handle, indent=2)
         note = f"{status}, status counts {totals['n_status']}"
-        if missing:
-            note += f", {len(missing)} lumis never processed"
+        if summary.get("norm"):
+            note += f", normalised to {summary['norm']['sumw']} ({summary['norm']['source']})"
+        elif missing:
+            note += f", events lost in {len(missing)} lumis"
             note += (f", missing sumW {totals['missing_sumw']}" if is_mc else
                      f", mask {summary['missing_lumis_json']}")
         print(note)

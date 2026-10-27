@@ -117,8 +117,8 @@ public:
     // exposed from the friend.  Call after open(), before the first read.
     void addFriend(const std::string &fileName);
     std::size_t friendCount() const noexcept;
-    // SKFriend_status of the entry: 0 present, 1 absent from a lumi the
-    // producer processed (its event filter), 2 lumi never processed.  The
+    // SKFriend_status of the entry: 0 present, 1 rejected by a filtered
+    // production's event filter, 2 lost from an unfiltered production.  The
     // maximum over all friends; 0 without friends.
     std::uint8_t friendStatus(std::uint64_t localEntry) const;
 

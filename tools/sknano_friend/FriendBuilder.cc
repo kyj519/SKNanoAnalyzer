@@ -163,7 +163,12 @@ nlohmann::json BuildReport::toJson() const {
     nlohmann::json lumis = nlohmann::json::array();
     for (const auto &[run, lumi] : missingLumis)
         lumis.push_back({run, lumi});
+    nlohmann::json runs = nlohmann::json::object();
+    for (const auto &[file, sums] : auxRuns)
+        runs[file] = {{"count", sums.count}, {"sumw", sums.sumw}, {"sumw2", sums.sumw2}};
     return {
+        {"filtered", filtered},
+        {"aux_runs", runs},
         {"central_entries", centralEntries},
         {"n_status", {nStatus[0], nStatus[1], nStatus[2]}},
         {"aux_only", auxOnly},
@@ -191,6 +196,7 @@ BuildReport BuildFriend(const BuildOptions &options) {
     const auto started = std::chrono::steady_clock::now();
     BuildReport report;
     report.sourceFiles = options.aux;
+    report.filtered = options.filtered;
     if (options.aux.empty())
         throw std::runtime_error("no aux files given");
 
@@ -210,22 +216,37 @@ BuildReport BuildFriend(const BuildOptions &options) {
     for (std::uint64_t i = 0; i < entries; ++i)
         centralLumis.emplace(runs[i], lumis[i]);
 
-    // 2. Aux files: which lumis they processed, where each of our events is.
-    std::unordered_set<Lumi, LumiHash> auxLumis;
+    // 2. Aux files: where each of our events is.  For MC the Runs table counts
+    //    the events read before any filter; comparing it with the events
+    //    written checks the production's declared filtering, and its sums are
+    //    the normalisation of a filtered production.
     std::unordered_map<Key, Loc, KeyHash> locations;
     locations.reserve(entries);
     std::map<std::string, std::string> auxTypes;
+    std::int64_t auxRead = 0, auxWritten = 0;
     for (std::uint32_t a = 0; a < options.aux.size(); ++a) {
         const auto &file = options.aux[a];
-        {
-            auto lumiTable = ROOT::RNTupleReader::Open("LuminosityBlocks", file,
-                                                       SequentialOptions());
-            auto run = lumiTable->GetView<std::uint32_t>("run");
-            auto lumi = lumiTable->GetView<std::uint32_t>("luminosityBlock");
-            for (std::uint64_t i = 0; i < lumiTable->GetNEntries(); ++i)
-                auxLumis.emplace(run(i), lumi(i));
-        }
         auto reader = ROOT::RNTupleReader::Open(options.ntupleName, file, SequentialOptions());
+        if (options.isMC) {
+            auto runsTable = ROOT::RNTupleReader::Open("Runs", file, SequentialOptions());
+            auto count = runsTable->GetView<std::int64_t>("genEventCount");
+            auto sumw = runsTable->GetView<double>("genEventSumw");
+            auto sumw2 = runsTable->GetView<double>("genEventSumw2");
+            RunsSums sums;
+            for (std::uint64_t i = 0; i < runsTable->GetNEntries(); ++i) {
+                sums.count += count(i);
+                sums.sumw += sumw(i);
+                sums.sumw2 += sumw2(i);
+            }
+            report.auxRuns[file] = sums;
+            auxRead += sums.count;
+            auxWritten += static_cast<std::int64_t>(reader->GetNEntries());
+            if (!options.filtered && sums.count != static_cast<std::int64_t>(reader->GetNEntries()))
+                throw std::runtime_error(
+                    file + " read " + std::to_string(sums.count) + " events but wrote " +
+                    std::to_string(reader->GetNEntries()) +
+                    ": the production filters events; declare it filtered");
+        }
         auto types = TopLevelTypes(*reader);
         if (a == 0)
             auxTypes = std::move(types);
@@ -280,30 +301,62 @@ BuildReport BuildFriend(const BuildOptions &options) {
         centralCounts.push_back(ReadCount(*central, count, centralTypes.at(count)));
     central.reset();
 
-    // 4. Status of every central entry.
+    if (options.isMC && options.filtered && auxRead == auxWritten)
+        throw std::runtime_error(
+            "declared filtered, but the aux files wrote every event they read (" +
+            std::to_string(auxRead) + ")");
+
+    // 4. Status of every central entry: 0 present; 1 absent from a filtered
+    //    production, i.e. rejected by its filter (no loss is assumed there);
+    //    2 absent from an unfiltered one, i.e. lost.  MC drops lost events one
+    //    by one and subtracts their genWeight; data can only subtract
+    //    luminosity per lumi, so a lumi missing any event is dropped whole.
     std::vector<std::uint8_t> status(entries, 0);
     std::vector<Loc> target(entries);
     std::set<Lumi> missingLumis;
+    std::uint64_t matched = 0;
     for (std::uint64_t i = 0; i < entries; ++i) {
         const auto found = locations.find(Key{runs[i], lumis[i], events[i]});
         if (found != locations.end()) {
             target[i] = found->second;
-            ++report.nStatus[0];
-        } else if (auxLumis.count(Lumi{runs[i], lumis[i]})) {
+            ++matched;
+        } else if (options.filtered) {
             status[i] = 1;
-            ++report.nStatus[1];
         } else {
             status[i] = 2;
-            ++report.nStatus[2];
             missingLumis.emplace(runs[i], lumis[i]);
-            ++report.missingCount;
-            if (!genWeight.empty()) {
-                report.missingSumW += genWeight[i];
-                report.missingSumSign += genWeight[i] > 0 ? 1. : (genWeight[i] < 0 ? -1. : 0.);
-            }
         }
     }
-    report.auxOnly = locations.size() - report.nStatus[0];
+    if (!options.isMC && !missingLumis.empty()) {
+        std::set<Lumi> partial;
+        for (std::uint64_t i = 0; i < entries; ++i) {
+            const Lumi id{runs[i], lumis[i]};
+            if (status[i] == 0 && missingLumis.count(id)) {
+                partial.insert(id);
+                status[i] = 2;
+            }
+        }
+        // ponytail: data has no pre-filter event count, so a filtered data
+        // production is recognised only by the pattern it leaves -- missing
+        // events in many lumis rather than whole lumis lost with a failed job.
+        // A per-lumi count from the producer would make this exact.
+        if (partial.size() > std::max<std::size_t>(5, centralLumis.size() / 100))
+            throw std::runtime_error(
+                std::to_string(partial.size()) + " of " + std::to_string(centralLumis.size()) +
+                " lumis of " + options.central + " are only partly in the production: "
+                "it looks filtered, and friends require an unfiltered one");
+    }
+    for (std::uint64_t i = 0; i < entries; ++i) {
+        ++report.nStatus[status[i]];
+        if (status[i] != 2)
+            continue;
+        ++report.missingCount;
+        if (!genWeight.empty()) {
+            report.missingSumW += genWeight[i];
+            report.missingSumSign += genWeight[i] > 0 ? 1. : (genWeight[i] < 0 ? -1. : 0.);
+        }
+    }
+    report.auxOnly = locations.size() - matched;
     report.missingLumis.assign(missingLumis.begin(), missingLumis.end());
     locations.clear();
 

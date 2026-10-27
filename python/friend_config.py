@@ -8,7 +8,8 @@ A module that needs custom columns next to the central NanoAOD ships one
       eras: [2024]                    # optional, every era when omitted
       overrides: [GenPart]            # central collections replaced by the friend
       exclude_prefixes: [D0ToKPiLoose]
-      filter_note: "HLT prefilter"    # what the producer's event filter was
+      filtered: false                 # does the producer apply an event filter?
+      filter_note: "HLT prefilter"    # what that filter was
       sources:                        # builder only: aux file globs, {PD}/{era}
         - /gv0/DATA/SKNano/CustomNanoAODv15/hadron_av6_rntuple640/{era}/{PD}/**/*.root
       samples: [TTLJ_powheg, Muon0]   # optional allowlist of registry names
@@ -18,6 +19,11 @@ A module that needs custom columns next to the central NanoAOD ships one
 The submission and the builder read the same file, so the production is
 described once.  Friend files mirror the central file's path below
 ``<root>/<production>/`` and are paired by that path, never by position.
+
+Normalisation: an unfiltered production's lost events are skipped and their
+genWeight leaves the central sumW; a filtered production is assumed lossless,
+its rejected events are skipped, and the sample is normalised to the sumW its
+Runs tables record before the filter.
 """
 
 import glob
@@ -34,8 +40,8 @@ FRIENDS_FILENAME = "friends.yml"
 SUMMARY_FILENAME = "friend_summary.json"
 PRODUCTION_FILENAME = "friend_production.json"
 
-_KNOWN_KEYS = {"analyzers", "eras", "overrides", "exclude_prefixes", "filter_note",
-               "sources", "samples", "on_missing", "root"}
+_KNOWN_KEYS = {"analyzers", "eras", "overrides", "exclude_prefixes", "filtered",
+               "filter_note", "sources", "samples", "on_missing", "root"}
 
 
 def friend_root() -> str:
@@ -57,6 +63,12 @@ def _as_list(value: Any, key: str, production: str) -> list[str]:
     return list(value)
 
 
+def _as_bool(value: Any, key: str, production: str) -> bool:
+    if not isinstance(value, bool):
+        raise ValueError(f"friend '{production}': '{key}' must be true or false")
+    return value
+
+
 @dataclass
 class FriendProduction:
     name: str
@@ -69,6 +81,7 @@ class FriendProduction:
     sources: list[str] = field(default_factory=list)
     samples: list[str] = field(default_factory=list)
     on_missing: str = "error"
+    filtered: bool = False
     root_override: Optional[str] = None
 
     @property
@@ -150,6 +163,7 @@ def load_module_friends(module_dir: str) -> list[FriendProduction]:
             sources=_as_list(spec.get("sources"), "sources", name),
             samples=_as_list(spec.get("samples"), "samples", name),
             on_missing=on_missing,
+            filtered=_as_bool(spec.get("filtered", False), "filtered", name),
             root_override=spec.get("root") or None))
     return productions
 
@@ -190,8 +204,14 @@ class PairedFriends:
     """What the submission attaches to one sample."""
     paths: list[list[str]]          # per central file, the friend files
     attached: list[dict]            # per production: provenance and normalisation
-    missing_sumw: float = 0.
+    missing_sumw: float = 0.        # unfiltered: subtract from the central sumW
     missing_sumsign: float = 0.
+    norm: Optional[dict] = None     # filtered: {"sumw", "sumsign", "nmc"} replaces it
+
+    def normalisation(self, sumw: float, sumsign: float) -> tuple[float, float]:
+        if self.norm:
+            return self.norm["sumw"], self.norm["sumsign"]
+        return sumw - self.missing_sumw, sumsign - self.missing_sumsign
 
 
 def pair_friends(productions: list[FriendProduction], central_paths: list[str],
@@ -223,10 +243,21 @@ def pair_friends(productions: list[FriendProduction], central_paths: list[str],
             "root": production.root,
             "summary": production.summary_path(era, sample),
             "overrides": production.overrides,
+            "filtered": production.filtered,
             "n_status": summary.get("n_status", [0, 0, 0]),
             "missing_lumis": len(summary.get("missing_lumis", [])),
         }
-        if is_mc:
+        if is_mc and production.filtered:
+            if not summary.get("norm"):
+                raise RuntimeError(
+                    f"friend '{production.name}' is filtered but its {SUMMARY_FILENAME} for "
+                    f"{era}/{sample} has no 'norm'; re-run sknano_friend.py validate")
+            if paired.norm:
+                raise RuntimeError(
+                    f"two filtered friends normalise {era}/{sample}; attach at most one")
+            paired.norm = dict(summary["norm"])
+            entry["norm"] = paired.norm
+        elif is_mc:
             entry["missing_sumw"] = float(summary.get("missing_sumw", 0.))
             entry["missing_sumsign"] = float(summary.get("missing_sumsign", 0.))
             paired.missing_sumw += entry["missing_sumw"]

@@ -109,6 +109,27 @@ class FriendConfigTest(unittest.TestCase):
         self.assertEqual(paired.missing_sumsign, 1.0)
         self.assertEqual(paired.attached[0]["production"], "hadron_av6")
 
+    def test_filtered_production_replaces_the_normalisation(self):
+        p = self.production()
+        p.filtered = True
+        friend_paths = [p.friend_path(c) for c in self.central]
+        self._publish(p, friend_paths, missing_sumw=2.5)
+        summary = p.summary_path("2024", "TTLJ_powheg")
+        with self.assertRaises(RuntimeError):  # no 'norm' yet
+            fc.pair_friends([p], self.central, "2024", "TTLJ_powheg", True)
+        payload = json.loads(Path(summary).read_text(encoding="utf-8"))
+        payload["norm"] = {"nmc": 10, "sumw": 7.0, "sumsign": 6.0}
+        Path(summary).write_text(json.dumps(payload), encoding="utf-8")
+        paired = fc.pair_friends([p], self.central, "2024", "TTLJ_powheg", True)
+        self.assertEqual(paired.normalisation(100.0, 90.0), (7.0, 6.0))
+        p.filtered = False
+        paired = fc.pair_friends([p], self.central, "2024", "TTLJ_powheg", True)
+        self.assertEqual(paired.normalisation(100.0, 90.0), (97.5, 89.0))
+        (self.module / fc.FRIENDS_FILENAME).write_text(
+            "x:\n  analyzers: [A]\n  filtered: yes please\n", encoding="utf-8")
+        with self.assertRaises(ValueError):
+            fc.load_module_friends(str(self.module))
+
     def test_missing_files_follow_on_missing(self):
         p = self.production()
         paired = fc.pair_friends([p], self.central, "2024", "TTLJ_powheg", True)

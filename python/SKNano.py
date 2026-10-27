@@ -521,6 +521,7 @@ def snapshotFriends(master_dir, era, sample, paired, sumw_used, sumsign_used):
         json.dump({"era": era, "sample": sample, "productions": paired.attached,
                    "missing_sumw": paired.missing_sumw,
                    "missing_sumsign": paired.missing_sumsign,
+                   "norm": paired.norm,
                    "sumw_used": sumw_used, "sumsign_used": sumsign_used},
                   handle, indent=2)
     return target
@@ -915,17 +916,19 @@ def jobProducer(era, sample, argparse, masterJobDirectory, userflags, isample, t
     paired = pair_friends(friend_productions, samplePaths, era, submitted_sample, isMC)
     metadata_snapshot_files.append(
         snapshotResolvedInputs(masterJobDirectory, era, submitted_sample, samplePaths, paired.paths))
-    sumW = sampleInfo["sumW"] - paired.missing_sumw if isMC else None
-    sumSign = sampleInfo["sumsign"] - paired.missing_sumsign if isMC else None
+    sumW, sumSign = (paired.normalisation(sampleInfo["sumW"], sampleInfo["sumsign"])
+                     if isMC else (None, None))
     if paired.attached:
         metadata_snapshot_files.append(
             snapshotFriends(masterJobDirectory, era, submitted_sample, paired, sumW, sumSign))
         for item in paired.attached:
             note = f"friend {item['production']} attached to {era}/{submitted_sample}: status counts {item['n_status']}"
-            if item['missing_lumis']:
-                note += f", {item['missing_lumis']} lumis never processed"
+            if item.get('norm'):
+                note += f", filtered: normalised to its own Runs sumW {sumW} (registry {sampleInfo['sumW']})"
+            elif item['missing_lumis']:
+                note += f", events lost in {item['missing_lumis']} lumis"
                 note += (f" (sumW {sampleInfo['sumW']} -> {sumW})" if isMC else
-                         "; subtract them from the luminosity, see friend_summary.json")
+                         "; subtract those lumis from the luminosity, see friend_summary.json")
             print(note)
 
     samplePaths = jobFileDivider(list(zip(samplePaths, paired.paths)), njobs)
