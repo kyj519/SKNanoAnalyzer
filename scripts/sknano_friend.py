@@ -172,13 +172,16 @@ def run_condor(production, era, sample, jobs):
         for command in jobs:
             handle.write(" ".join(condor_arg(part) for part in command[1:]) + "\n")
     runner = os.path.join(job_dir, "run.sh")
+    # The stage files go to the shared friend root, not the worker: on the
+    # SNU workers /tmp and the condor scratch are tmpfs, so a stage written
+    # there is charged to the job's memory (a 243k-entry file was held at
+    # 7 GB).  The builder removes its stage directory when it finishes.
+    scratch = os.path.join(production.production_dir, "_scratch")
+    os.makedirs(scratch, exist_ok=True)
     with open(runner, "w", encoding="utf-8") as handle:
         handle.write(f"""#!/bin/bash
 source "{SKNANO_HOME}/setup.sh" > /dev/null 2>&1
-# Stage files go to the job's scratch directory, which condor cleans up and
-# which is local disk; /tmp on a worker may be RAM-backed and then counts
-# against the job's memory limit.
-exec "{BINARY}" "$@" --scratch "${{_CONDOR_SCRATCH_DIR:-${{TMPDIR:-/tmp}}}}"
+exec "{BINARY}" "$@" --scratch "{scratch}"
 """)
     os.chmod(runner, 0o755)
     submit = os.path.join(job_dir, "submit.sub")
@@ -188,6 +191,7 @@ arguments = "$(args)"
 getenv = True
 request_memory = {args_memory_mb} MB
 request_cpus = 1
+max_materialize = {args_max_running}
 log = {job_dir}/logs/job.$(Process).log
 output = {job_dir}/logs/job.$(Process).out
 error = {job_dir}/logs/job.$(Process).err
@@ -342,14 +346,19 @@ def main():
     parser.add_argument("--memory", type=int, default=6000,
                         help="condor request_memory in MB; the TTLJ hadron_av6 builds measured "
                              "2.2-3.2 GB under the startd's cgroup accounting")
-    parser.add_argument("--scratch", default=os.environ.get("TMPDIR", "/tmp"))
+    parser.add_argument("--scratch", default=os.environ.get("TMPDIR", "/tmp"),
+                        help="stage directory for local builds (condor jobs stage under <production>/_scratch)")
+    parser.add_argument("--max-running", type=int, default=100,
+                        help="condor max_materialize: jobs in the queue at once, which bounds the "
+                             "concurrent readers on the input filesystem")
     parser.add_argument("--chunk", type=int, default=5000, help="aux entries buffered per stage file")
     parser.add_argument("--force", action="store_true", help="rebuild friends that already exist")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-    global registry_era, args_memory_mb
+    global registry_era, args_memory_mb, args_max_running
     registry_era = args.era
     args_memory_mb = args.memory
+    args_max_running = args.max_running
     if args.command != "status" and not os.path.isfile(BINARY) and args.command == "build":
         raise SystemExit(f"{BINARY} not found; build the framework first")
     {"build": cmd_build, "validate": cmd_validate, "status": cmd_status}[args.command](args)
