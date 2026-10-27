@@ -334,8 +334,9 @@ def main():
     parser.add_argument("-i", "--samples", required=True, help="comma-separated registry names")
     parser.add_argument("--period", default="", help="data period, e.g. C or I_v2")
     parser.add_argument("--condor", action="store_true", help="one condor job per central file")
-    parser.add_argument("--memory", type=int, default=3000,
-                        help="condor request_memory in MB (a 356-field build peaks at 1.6 GB)")
+    parser.add_argument("--memory", type=int, default=6000,
+                        help="condor request_memory in MB; the TTLJ hadron_av6 builds measured "
+                             "2.2-3.2 GB under the startd's cgroup accounting")
     parser.add_argument("--scratch", default=os.environ.get("TMPDIR", "/tmp"))
     parser.add_argument("--chunk", type=int, default=5000, help="aux entries buffered per stage file")
     parser.add_argument("--force", action="store_true", help="rebuild friends that already exist")
