@@ -61,13 +61,26 @@ void SKNanoLoader::SetRNTupleName(TString name)
 
 int SKNanoLoader::AddFile(TString filename)
 {
+    return AddFile(filename, {});
+}
+
+int SKNanoLoader::AddFile(TString filename, const std::vector<std::string> &friends)
+{
     const std::string path = filename.Data();
     if (path.empty())
         return 0;
     inputFiles.push_back(path);
+    inputFriends.push_back(friends);
     rntupleFileRanges.clear();
     rntupleTotalEntries = -1;
     return 1;
+}
+
+std::uint8_t SKNanoLoader::FriendStatus() const
+{
+    if (!rntupleSource || rntupleSource->friendCount() == 0 || currentLocalEntry < 0)
+        return 0;
+    return rntupleSource->friendStatus(static_cast<std::uint64_t>(currentLocalEntry));
 }
 
 void SKNanoLoader::PrepareRNTupleFiles()
@@ -107,6 +120,8 @@ void SKNanoLoader::OpenRNTupleFile(std::size_t index)
     next->open(inputDatasetName, rntupleFileRanges[index].fileName,
                rntupleMetrics, rntupleClusterCache, rntuplePrefetchClusters,
                &branchManager.getActiveBranches());
+    for (const auto &friendFile : inputFriends[index])
+        next->addFriend(friendFile);
     // attachRNTuple clears views into the previous reader before the old
     // RNTupleSource is destroyed by the unique_ptr move below.
     branchManager.attachRNTuple(next.get());
@@ -226,6 +241,22 @@ void SKNanoLoader::Loop()
 
         if (globalEntry < skipEntries)
             continue;
+
+        // A friend that never processed this lumi has nothing for the event;
+        // the submission already subtracted such events from the sample's
+        // normalisation, so they must not reach the analyzer either.
+        if (rntupleSource->friendCount() > 0)
+        {
+            const auto status = rntupleSource->friendStatus(
+                static_cast<std::uint64_t>(currentLocalEntry));
+            if (status == 2)
+            {
+                performanceTelemetry.addCounter("friend_missing_events");
+                continue;
+            }
+            if (status == 1)
+                performanceTelemetry.addCounter("friend_filtered_events");
+        }
 
         int current_percent = (entriesToProcess > 0) ? (processed * 100) / entriesToProcess : 100;
 

@@ -1,0 +1,260 @@
+#include <gtest/gtest.h>
+
+#include <algorithm>
+#include <cstdint>
+#include <filesystem>
+#include <memory>
+#include <random>
+#include <string>
+#include <typeindex>
+#include <unistd.h>
+#include <vector>
+
+#include <ROOT/RNTupleModel.hxx>
+#include <ROOT/RNTupleWriter.hxx>
+#include <ROOT/RVec.hxx>
+#include <TFile.h>
+
+#include <AnalyzerFramework/RNTupleSource.h>
+
+#include "FriendBuilder.h"
+
+// A central file sorted by event number, two aux files in scrambled order with
+// one lumi never processed, one event filtered away and one aux-only event;
+// the friend must come out aligned with the central file and readable through
+// the framework's RNTupleSource.
+namespace {
+
+namespace fs = std::filesystem;
+using ROOT::VecOps::RVec;
+
+constexpr std::uint32_t kRun = 1;
+
+struct Event {
+    std::uint32_t lumi;
+    std::uint64_t event;
+};
+
+float Weight(std::uint64_t event) { return event % 7 == 0 ? -1.f : 1.f; }
+float LambdaPt(std::uint64_t event) { return 0.5f * static_cast<float>(event); }
+
+std::vector<Event> CentralEvents() {
+    std::vector<Event> events;
+    for (std::uint64_t e = 100; e < 120; ++e)
+        events.push_back({10 + static_cast<std::uint32_t>((e - 100) / 5), e});
+    return events; // lumis 10..13, five events each, sorted by event
+}
+
+void WriteCentral(const std::string &path) {
+    auto model = ROOT::RNTupleModel::Create();
+    auto run = model->MakeField<std::uint32_t>("run");
+    auto lumi = model->MakeField<std::uint32_t>("luminosityBlock");
+    auto event = model->MakeField<std::uint64_t>("event");
+    auto genWeight = model->MakeField<float>("genWeight");
+    auto nJet = model->MakeField<std::uint32_t>("nJet");
+    auto jetPt = model->MakeField<RVec<float>>("Jet_pt");
+    auto nGenPart = model->MakeField<std::uint32_t>("nGenPart");
+    auto genPt = model->MakeField<RVec<float>>("GenPart_pt");
+    auto writer = ROOT::RNTupleWriter::Recreate(std::move(model), "Events", path);
+    for (const auto &e : CentralEvents()) {
+        *run = kRun;
+        *lumi = e.lumi;
+        *event = e.event;
+        *genWeight = Weight(e.event);
+        *jetPt = {1.f * e.event, 2.f * e.event};
+        *nJet = 2;
+        *genPt = {10.f};
+        *nGenPart = 1;
+        writer->Fill();
+    }
+}
+
+struct AuxSpec {
+    std::vector<std::uint32_t> lumis;        // lumis this file processed
+    std::vector<Event> events;               // in scrambled order
+    std::uint64_t jetMismatchEvent = 0;      // write three jets for this event
+};
+
+void WriteAux(const std::string &path, const AuxSpec &spec) {
+    {
+        auto model = ROOT::RNTupleModel::Create();
+        auto run = model->MakeField<std::uint32_t>("run");
+        auto lumi = model->MakeField<std::uint32_t>("luminosityBlock");
+        auto event = model->MakeField<std::uint64_t>("event");
+        auto nJet = model->MakeField<std::uint32_t>("nJet");
+        auto jetPt = model->MakeField<RVec<float>>("Jet_pt");
+        auto jetPull = model->MakeField<RVec<float>>("Jet_pullY");
+        auto nGenPart = model->MakeField<std::uint32_t>("nGenPart");
+        auto genPt = model->MakeField<RVec<float>>("GenPart_pt");
+        auto nLambda = model->MakeField<std::uint32_t>("nLambda");
+        auto lambdaPt = model->MakeField<RVec<float>>("Lambda_pt");
+        auto loose = model->MakeField<RVec<float>>("LambdaLoose_pt");
+        auto writer = ROOT::RNTupleWriter::Recreate(std::move(model), "Events", path);
+        for (const auto &e : spec.events) {
+            *run = kRun;
+            *lumi = e.lumi;
+            *event = e.event;
+            const std::size_t jets = e.event == spec.jetMismatchEvent ? 3 : 2;
+            *jetPt = RVec<float>(jets, 1.f);
+            *jetPull = RVec<float>(jets, 0.25f);
+            *nJet = jets;
+            *genPt = {20.f, 30.f};
+            *nGenPart = 2;
+            *lambdaPt = {LambdaPt(e.event)};
+            *nLambda = 1;
+            *loose = {-1.f};
+            writer->Fill();
+        }
+    }
+    auto model = ROOT::RNTupleModel::Create();
+    auto run = model->MakeField<std::uint32_t>("run");
+    auto lumi = model->MakeField<std::uint32_t>("luminosityBlock");
+    std::unique_ptr<TFile> file(TFile::Open(path.c_str(), "UPDATE"));
+    auto writer = ROOT::RNTupleWriter::Append(std::move(model), "LuminosityBlocks", *file);
+    for (const auto l : spec.lumis) {
+        *run = kRun;
+        *lumi = l;
+        writer->Fill();
+    }
+    writer.reset();
+    file->Close();
+}
+
+class FriendBuilderTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        dir_ = fs::temp_directory_path() /
+               ("sknano-friend-builder-" + std::to_string(::getpid()));
+        std::error_code error;
+        fs::create_directories(dir_, error);
+        if (error)
+            GTEST_SKIP() << "no writable temporary directory: " << error.message();
+        central_ = (dir_ / "central.root").string();
+        WriteCentral(central_);
+
+        // aux0: lumis 10, 11 and an unrelated lumi 50; event 103 filtered out,
+        // event 999 only here.  aux1: lumi 13.  Lumi 12 is nowhere.
+        std::vector<Event> first, second;
+        for (const auto &e : CentralEvents()) {
+            if (e.lumi == 12 || e.event == 103)
+                continue;
+            (e.lumi == 13 ? second : first).push_back(e);
+        }
+        first.push_back({10, 999});
+        first.push_back({50, 5000});
+        std::mt19937 rng(7);
+        std::shuffle(first.begin(), first.end(), rng);
+        std::shuffle(second.begin(), second.end(), rng);
+        aux0_ = (dir_ / "aux0.root").string();
+        aux1_ = (dir_ / "aux1.root").string();
+        WriteAux(aux0_, {{10, 11, 50}, first});
+        WriteAux(aux1_, {{13}, second});
+        first_ = first;
+    }
+    void TearDown() override {
+        std::error_code error;
+        fs::remove_all(dir_, error);
+    }
+    sknano_friend::BuildOptions Options() const {
+        sknano_friend::BuildOptions options;
+        options.central = central_;
+        options.aux = {aux0_, aux1_};
+        options.out = (dir_ / "out" / "friend.root").string();
+        options.production = "test";
+        options.overrides = {"GenPart"};
+        options.excludePrefixes = {"LambdaLoose"};
+        options.isMC = true;
+        options.scratch = dir_.string();
+        options.chunkEntries = 3; // several stage files per aux
+        return options;
+    }
+    static std::vector<float> Read(const SKNano::RNTupleVectorColumn &column,
+                                   std::uint64_t entry) {
+        const auto span = column.read(entry);
+        const auto *data = static_cast<const float *>(span.data);
+        return {data, data + span.size};
+    }
+
+    fs::path dir_;
+    std::string central_, aux0_, aux1_;
+    std::vector<Event> first_;
+};
+
+TEST_F(FriendBuilderTest, BuildsAnAlignedFriendWithStatusAndNormalisation) {
+    const auto options = Options();
+    const auto report = sknano_friend::BuildFriend(options);
+    EXPECT_EQ(report.centralEntries, 20U);
+    EXPECT_EQ(report.nStatus[0], 14U);
+    EXPECT_EQ(report.nStatus[1], 1U);
+    EXPECT_EQ(report.nStatus[2], 5U);
+    EXPECT_EQ(report.auxOnly, 1U);
+    ASSERT_EQ(report.missingLumis.size(), 1U);
+    EXPECT_EQ(report.missingLumis[0], std::make_pair(kRun, 12U));
+    EXPECT_EQ(report.missingCount, 5U);
+    float sumW = 0.f, sumSign = 0.f;
+    for (std::uint64_t e = 110; e < 115; ++e) {
+        sumW += Weight(e);
+        sumSign += Weight(e) > 0 ? 1.f : -1.f;
+    }
+    EXPECT_FLOAT_EQ(report.missingSumW, sumW);
+    EXPECT_FLOAT_EQ(report.missingSumSign, sumSign);
+    EXPECT_EQ(report.fields, (std::vector<std::string>{
+        "GenPart_pt", "Jet_pullY", "Lambda_pt", "nGenPart", "nLambda"}));
+    EXPECT_EQ(report.checkedCounts, std::vector<std::string>{"nJet"});
+    EXPECT_FALSE(fs::exists(options.out + ".tmp"));
+
+    const auto check = sknano_friend::CheckFriend(options.out, central_);
+    EXPECT_EQ(check.mismatches, 0U);
+    EXPECT_EQ(check.nStatus[0], 14U);
+    EXPECT_EQ(check.info["production"], "test");
+    EXPECT_EQ(check.info["missing_lumis"], nlohmann::json({12}));
+
+    SKNano::RNTupleSource source;
+    source.open("Events", central_);
+    source.addFriend(options.out);
+    EXPECT_FALSE(source.hasField("LambdaLoose_pt"));
+    auto lambdaPt = source.makeVectorColumn("Lambda_pt", std::type_index(typeid(float)));
+    auto genPt = source.makeVectorColumn("GenPart_pt", std::type_index(typeid(float)));
+    auto pull = source.makeVectorColumn("Jet_pullY", std::type_index(typeid(float)));
+    auto nLambda = source.makeScalarColumn("nLambda", std::type_index(typeid(unsigned int)));
+    const auto events = CentralEvents();
+    for (std::uint64_t i = 0; i < events.size(); ++i) {
+        ASSERT_NO_THROW(source.noteEntry(i));
+        const auto status = source.friendStatus(i);
+        unsigned int count = 99;
+        nLambda->read(i, &count);
+        if (events[i].lumi == 12) {
+            EXPECT_EQ(status, 2);
+        } else if (events[i].event == 103) {
+            EXPECT_EQ(status, 1);
+        } else {
+            EXPECT_EQ(status, 0);
+            EXPECT_EQ(Read(*lambdaPt, i), std::vector<float>{LambdaPt(events[i].event)});
+            EXPECT_EQ(Read(*genPt, i), (std::vector<float>{20.f, 30.f}));
+            EXPECT_EQ(Read(*pull, i), (std::vector<float>{0.25f, 0.25f}));
+            EXPECT_EQ(count, 1U);
+            continue;
+        }
+        EXPECT_TRUE(Read(*lambdaPt, i).empty());
+        EXPECT_TRUE(Read(*genPt, i).empty());
+        EXPECT_EQ(count, 0U);
+    }
+}
+
+TEST_F(FriendBuilderTest, DuplicateEventAcrossAuxFilesIsFatal) {
+    auto options = Options();
+    const auto dup = (dir_ / "dup.root").string();
+    WriteAux(dup, {{11}, {{11, 106}}}); // 106 is already in aux0
+    options.aux.push_back(dup);
+    EXPECT_THROW(sknano_friend::BuildFriend(options), std::runtime_error);
+}
+
+TEST_F(FriendBuilderTest, ExtensionRowCountMismatchIsFatal) {
+    auto options = Options();
+    const auto bad = (dir_ / "bad0.root").string();
+    WriteAux(bad, {{10, 11, 50}, first_, 101});
+    options.aux[0] = bad;
+    EXPECT_THROW(sknano_friend::BuildFriend(options), std::runtime_error);
+}
+
+} // namespace
