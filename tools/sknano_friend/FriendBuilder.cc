@@ -169,6 +169,7 @@ nlohmann::json BuildReport::toJson() const {
     return {
         {"filtered", filtered},
         {"aux_runs", runs},
+        {"aux_matched", auxMatched},
         {"central_entries", centralEntries},
         {"n_status", {nStatus[0], nStatus[1], nStatus[2]}},
         {"aux_only", auxOnly},
@@ -224,9 +225,21 @@ BuildReport BuildFriend(const BuildOptions &options) {
     locations.reserve(entries);
     std::map<std::string, std::string> auxTypes;
     std::int64_t auxRead = 0, auxWritten = 0;
+    // Filtered data has no pre-filter count, but a lumi its LuminosityBlocks
+    // never list was certainly not processed: those events are lost, not
+    // rejected, and their luminosity has to go.
+    const bool lumiBookkeeping = options.filtered && !options.isMC;
+    std::unordered_set<Lumi, LumiHash> processedLumis;
     for (std::uint32_t a = 0; a < options.aux.size(); ++a) {
         const auto &file = options.aux[a];
         auto reader = ROOT::RNTupleReader::Open(options.ntupleName, file, SequentialOptions());
+        if (lumiBookkeeping) {
+            auto lumiTable = ROOT::RNTupleReader::Open("LuminosityBlocks", file, SequentialOptions());
+            auto run = lumiTable->GetView<std::uint32_t>("run");
+            auto lumi = lumiTable->GetView<std::uint32_t>("luminosityBlock");
+            for (std::uint64_t i = 0; i < lumiTable->GetNEntries(); ++i)
+                processedLumis.emplace(run(i), lumi(i));
+        }
         if (options.isMC) {
             auto runsTable = ROOT::RNTupleReader::Open("Runs", file, SequentialOptions());
             auto count = runsTable->GetView<std::int64_t>("genEventCount");
@@ -320,6 +333,10 @@ BuildReport BuildFriend(const BuildOptions &options) {
         if (found != locations.end()) {
             target[i] = found->second;
             ++matched;
+            ++report.auxMatched[options.aux[found->second.aux]];
+        } else if (lumiBookkeeping && !processedLumis.count(Lumi{runs[i], lumis[i]})) {
+            status[i] = 2;
+            missingLumis.emplace(runs[i], lumis[i]);
         } else if (options.filtered) {
             status[i] = 1;
         } else {
@@ -327,7 +344,7 @@ BuildReport BuildFriend(const BuildOptions &options) {
             missingLumis.emplace(runs[i], lumis[i]);
         }
     }
-    if (!options.isMC && !missingLumis.empty()) {
+    if (!options.isMC && !options.filtered && !missingLumis.empty()) {
         std::set<Lumi> partial;
         for (std::uint64_t i = 0; i < entries; ++i) {
             const Lumi id{runs[i], lumis[i]};

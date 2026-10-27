@@ -62,9 +62,14 @@ the sample is normalised, depends on whether the producer filters events:
   the analysed events and the normalisation describe the same processed
   sample — the same as reading the private copy directly. `sumsign` is not
   stored in `Runs` and is taken as `sumw·√(N/sumw2)`, exact for generators
-  whose weights have one magnitude. Data uses the usual golden-JSON
-  luminosity. The analysis selection has to stay inside the producer's
-  filter, as it had to for the private copy.
+  whose weights have one magnitude; only aux files that matched at least one
+  central event enter the sums, so a central file the production never saw
+  drops out of numerator and denominator alike. Data has no pre-filter
+  count, but a lumi missing from every aux file's `LuminosityBlocks` was
+  certainly not processed: its events are lost (status 2) and the lumi goes
+  to `missing_lumis.json`; events of processed lumis that are absent count as
+  rejected. The analysis selection has to stay inside the producer's filter,
+  as it had to for the private copy.
 
 For MC the declaration is checked: the builder compares each aux file's
 `Runs.genEventCount` (events read) with the events it wrote and refuses a
@@ -158,9 +163,10 @@ central file (a lumi may be spread over several files on either side; each
 central file is built on its own and only its events are joined), and
 runs the builder locally or as one condor job per central file
 (`condor_submit` must be on `PATH`; on ai-tamsa1 use the ssh shim the Hadron
-module ships). A central file no aux file covers is built with every entry
-lost for an unfiltered production and refused for a filtered one. Existing
-friends are skipped unless `--force`.
+module ships). Everything one invocation builds goes into a single condor
+cluster, so `--nmax` bounds it as a whole. A central file no aux file covers
+is still built, with none of its events analysed, and listed at the end.
+Existing friends are skipped unless `--force`.
 
 Condor jobs stage under `<production>/_scratch/` on the shared friend root
 rather than on the worker: on the SNU workers `/tmp` and the condor scratch

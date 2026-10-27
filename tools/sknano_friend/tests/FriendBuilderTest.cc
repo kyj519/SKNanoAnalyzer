@@ -325,6 +325,22 @@ TEST_F(FriendBuilderTest, FilteredProductionMarksRejectedEventsAndRecordsRuns) {
     EXPECT_THROW(sknano_friend::BuildFriend(unfiltered), std::runtime_error);
 }
 
+TEST_F(FriendBuilderTest, FilteredDataLosesOnlyLumisItNeverProcessed) {
+    // Data has no pre-filter count: event 103 sits in a lumi aux0 processed,
+    // so it was rejected; lumi 12 is in no LuminosityBlocks, so it is lost.
+    auto options = Options();
+    options.isMC = false;
+    options.filtered = true;
+    const auto report = sknano_friend::BuildFriend(options);
+    EXPECT_EQ(report.nStatus[0], 14U);
+    EXPECT_EQ(report.nStatus[1], 1U);
+    EXPECT_EQ(report.nStatus[2], 5U);
+    EXPECT_EQ(report.missingLumis,
+              (std::vector<std::pair<std::uint32_t, std::uint32_t>>{{kRun, 12U}}));
+    EXPECT_EQ(report.auxMatched.at(aux0_), 9U);
+    EXPECT_EQ(report.auxMatched.at(aux1_), 5U);
+}
+
 TEST_F(FriendBuilderTest, DuplicateEventAcrossAuxFilesIsFatal) {
     auto options = Options();
     const auto dup = (dir_ / "dup.root").string();

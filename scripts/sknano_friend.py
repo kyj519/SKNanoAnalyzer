@@ -156,7 +156,7 @@ def plan_sample(production, era, sample, registry, args):
     central_files = resolve_sample_paths(spec, era, period)
     pd = spec.get("PD") or name
     aux_files, index = aux_index(production, era, pd)
-    jobs, done = [], []
+    jobs, done, uncovered = [], [], []
     for central in central_files:
         out = production.friend_path(central)
         if os.path.isfile(out) and not args.force:
@@ -164,21 +164,24 @@ def plan_sample(production, era, sample, registry, args):
             continue
         aux = sorted({aux_files[i] for key in lumi_table(central) for i in index.get(key, ())})
         if not aux:
-            if production.filtered:
-                # A filtered production is assumed lossless and normalised to
-                # its own Runs sums; a whole central file it never saw breaks that.
-                raise SystemExit(f"no aux file covers any lumi of {central}, but "
-                                 f"'{production.name}' is filtered and assumed lossless")
+            # The production never saw this file.  The friend is still built,
+            # from one aux file read only for its schema: every entry is lost
+            # (unfiltered, or filtered data, whose lumis then leave the
+            # luminosity) or outside a filtered MC production's Runs sums,
+            # which only count aux files that matched an event.
             print(f"\033[93mWarning: no aux file covers any lumi of {central}; "
-                  "every event will carry status 2\033[0m")
-            aux = [aux_files[0]]  # still build: the friend then records the missing lumis
+                  "none of its events will be analysed\033[0m")
+            uncovered.append(central)
+            aux = [aux_files[0]]
         jobs.append(build_command(production, central, aux, out, is_mc, args))
-    return central_files, jobs, done, is_mc
+    return central_files, jobs, done, uncovered
 
 
-def run_condor(production, era, sample, jobs, args):
+def run_condor(production, jobs, args):
+    """One cluster for everything this invocation builds, so --nmax bounds
+    the readers of the input filesystem across all its samples."""
     stamp = datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S")
-    job_dir = os.path.join(production.production_dir, JOBS_DIRNAME, era, sample, stamp)
+    job_dir = os.path.join(production.production_dir, JOBS_DIRNAME, stamp)
     os.makedirs(os.path.join(job_dir, "logs"))
     # condor's "new" argument syntax: the whole list is one double-quoted
     # string (in the .sub), arguments with spaces are single-quoted inside it.
@@ -213,7 +216,7 @@ max_materialize = {args.nmax}
 log = {job_dir}/logs/job.$(Process).log
 output = {job_dir}/logs/job.$(Process).out
 error = {job_dir}/logs/job.$(Process).err
-batch_name = sknano_friend_{production.name}_{sample}
+batch_name = sknano_friend_{production.name}
 queue args from {job_dir}/jobs.txt
 """)
     condor_submit = shutil.which("condor_submit")
@@ -229,14 +232,17 @@ queue args from {job_dir}/jobs.txt
 
 def cmd_build(args):
     production = production_by_name(args.friend)
+    pending, uncovered = [], []
     for era, registry, sample in targets(args, production):
-        central_files, jobs, done, _ = plan_sample(production, era, sample, registry, args)
+        central_files, jobs, done, missed = plan_sample(production, era, sample, registry, args)
+        uncovered += missed
         print(f"{era}/{sample}: {len(central_files)} central files, "
-              f"{len(done)} friends present, {len(jobs)} to build")
+              f"{len(done)} friends present, {len(jobs)} to build"
+              + (f", {len(missed)} not covered by the production" if missed else ""), flush=True)
         if not jobs:
             continue
         if not args.local:
-            run_condor(production, era, sample, jobs, args)
+            pending += jobs
             continue
         if args.no_exec:
             print("  " + " ".join(jobs[0]))
@@ -244,6 +250,11 @@ def cmd_build(args):
         for i, command in enumerate(jobs, 1):
             print(f"  [{i}/{len(jobs)}] {command[3]}", flush=True)
             subprocess.run(command, check=True, stdout=subprocess.DEVNULL)
+    if uncovered:
+        print(f"{len(uncovered)} central files are not covered by '{production.name}' at all, "
+              f"e.g. {uncovered[0]}")
+    if pending:
+        run_condor(production, pending, args)
 
 
 def brilcalc_mask(missing: list[tuple[int, int]]) -> dict:
@@ -268,6 +279,7 @@ def cmd_validate(args):
         central_files = resolve_sample_paths(spec, era, period)
         files, missing_files, missing = {}, [], set()
         aux_runs: dict[str, dict] = {}  # each aux file once, however many friends read it
+        aux_matched: dict[str, int] = {}
         totals = {"n_status": [0, 0, 0], "missing_sumw": 0., "missing_sumsign": 0.,
                   "missing_count": 0, "central_entries": 0, "aux_only": 0}
         for central in central_files:
@@ -283,6 +295,8 @@ def cmd_validate(args):
                 print(f"\033[91m{out} was built with filtered={report.get('filtered', False)}, "
                       f"friends.yml says {production.filtered}; rebuild with --force\033[0m")
             aux_runs.update(report.get("aux_runs", {}))
+            for file, n in report.get("aux_matched", {}).items():
+                aux_matched[file] = aux_matched.get(file, 0) + n
             files[out] = {"central": central, "n_status": report["n_status"],
                           "missing_lumis": report["missing_lumis"],
                           "missing_sumw": report["missing_sumw"],
@@ -306,12 +320,14 @@ def cmd_validate(args):
             # their pre-filter Runs sums.  sumsign is not stored; with weights of
             # constant magnitude +-w0, sumw=(N+ - N-)w0 and sumw2=N w0^2 give
             # sumsign = sumw*sqrt(N/sumw2) (Hadron docs/CustomBPHInput.md).
-            nmc = sum(r["count"] for r in aux_runs.values())
-            sumw = sum(r["sumw"] for r in aux_runs.values())
-            sumw2 = sum(r["sumw2"] for r in aux_runs.values())
+            used = {f: r for f, r in aux_runs.items() if aux_matched.get(f, 0) > 0}
+            nmc = sum(r["count"] for r in used.values())
+            sumw = sum(r["sumw"] for r in used.values())
+            sumw2 = sum(r["sumw2"] for r in used.values())
             summary["norm"] = {"nmc": nmc, "sumw": sumw,
                                "sumsign": sumw * math.sqrt(nmc / sumw2) if sumw2 > 0 else 0.,
-                               "source": f"Runs of {len(aux_runs)} aux files"}
+                               "source": f"Runs of {len(used)} aux files with matched events "
+                                         f"({len(aux_runs) - len(used)} read for schema only)"}
         sample_dir = production.sample_dir(era, sample)
         os.makedirs(sample_dir, exist_ok=True)
         if missing and not is_mc:

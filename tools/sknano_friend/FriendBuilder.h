@@ -59,6 +59,10 @@ struct BuildReport {
     std::vector<std::string> checkedCounts; // nX compared between aux and central
     std::vector<std::string> sourceFiles;
     std::map<std::string, RunsSums> auxRuns; // MC only
+    // Central entries found in each aux file: a file that contributes none
+    // (only read for the schema, or holding only foreign lumis) must not
+    // enter a filtered production's normalisation.
+    std::map<std::string, std::uint64_t> auxMatched;
     bool filtered = false;
     double seconds = 0.;
 
