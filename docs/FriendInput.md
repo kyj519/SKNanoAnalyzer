@@ -104,9 +104,14 @@ hadron_av6_prefilter:
 
 A pool produced partly with and partly without a filter is two productions.
 The submission (`SKNano.py`) and the builder read the same file, so a
-production is described once. `SKNANO_FRIEND_ROOT` is set in `setup.sh` and
-can be overridden in `config/config.$USER`; a production may pin its own
-`root`.
+production is described once.
+
+Friends are built into `SKNANO_FRIEND_ROOT`, `/gv0/Users/$USER/SKNanoFriend`
+by default like the analysis output and run log, overridable in
+`config/config.$USER`. A module whose friends other users read pins the
+builder's directory with `root:` in its `friends.yml`
+(e.g. `root: /gv0/Users/yeonjoon/SKNanoFriend`), so every submission finds
+the same files.
 
 ## Building
 

@@ -32,8 +32,9 @@ export SKNANO_OUTPUT="/gv0/Users/$USER/SKNanoOutput"
 # every sample json.
 export SKNANO_INPUT_ROOT="/gv0/DATA/SKNano/NanoAODv15_RNTuple"
 # Friend RNTuples (custom columns next to the central files, see
-# docs/FriendInput.md) mirror the central paths below <root>/<production>/.
-export SKNANO_FRIEND_ROOT="/gv0/DATA/SKNano/Friend"
+# docs/FriendInput.md) mirror the central paths below <root>/<production>/;
+# a module shares them with other users by pinning `root` in friends.yml.
+export SKNANO_FRIEND_ROOT="/gv0/Users/$USER/SKNanoFriend"
 echo "@@@@ Working Directory: $SKNANO_HOME"
 
 CONFIG_FILE="$SKNANO_HOME/config/config.$USER"
