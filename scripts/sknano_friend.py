@@ -83,11 +83,12 @@ def split_sample(sample: str, registry: dict) -> tuple[str, str | None]:
 
 
 def lumi_table(path: str) -> set[tuple[int, int]]:
-    import ROOT  # noqa: PLC0415  (slow import, only when needed)
-    reader = ROOT.RNTupleReader.Open("LuminosityBlocks", path)
-    run = reader.GetView["std::uint32_t"]("run")
-    lumi = reader.GetView["std::uint32_t"]("luminosityBlock")
-    return {(int(run(i)), int(lumi(i))) for i in range(reader.GetNEntries())}
+    # uproot rather than PyROOT: an RNTupleView outliving its reader at
+    # function exit segfaults, and this runs over thousands of files.
+    import uproot  # noqa: PLC0415  (slow import, only when needed)
+    table = uproot.open(path)["LuminosityBlocks"].arrays(
+        ["run", "luminosityBlock"], library="np")
+    return set(zip(table["run"].tolist(), table["luminosityBlock"].tolist()))
 
 
 def aux_index(production: fc.FriendProduction, era: str, pd: str) -> tuple[list[str], dict]:
@@ -159,9 +160,15 @@ def run_condor(production, era, sample, jobs):
     stamp = datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S")
     job_dir = os.path.join(production.production_dir, JOBS_DIRNAME, era, sample, stamp)
     os.makedirs(os.path.join(job_dir, "logs"))
+    # condor's "new" argument syntax: the whole list is one double-quoted
+    # string (in the .sub), arguments with spaces are single-quoted inside it.
+    def condor_arg(part: str) -> str:
+        if not re.search(r"[\s'\"]", part):
+            return part
+        return "'" + part.replace("'", "''").replace('"', '""') + "'"
     with open(os.path.join(job_dir, "jobs.txt"), "w", encoding="utf-8") as handle:
         for command in jobs:
-            handle.write(" ".join(f'"{part}"' for part in command[1:]) + "\n")
+            handle.write(" ".join(condor_arg(part) for part in command[1:]) + "\n")
     runner = os.path.join(job_dir, "run.sh")
     with open(runner, "w", encoding="utf-8") as handle:
         handle.write(f"""#!/bin/bash
@@ -172,7 +179,7 @@ exec "{BINARY}" "$@"
     submit = os.path.join(job_dir, "submit.sub")
     with open(submit, "w", encoding="utf-8") as handle:
         handle.write(f"""executable = {runner}
-arguments = $(args)
+arguments = "$(args)"
 getenv = True
 request_memory = {args_memory_mb} MB
 request_cpus = 1
