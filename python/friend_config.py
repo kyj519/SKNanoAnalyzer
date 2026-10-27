@@ -194,7 +194,7 @@ def load_summary(production: FriendProduction, era: str, sample: str) -> dict:
     if not os.path.isfile(path):
         raise FileNotFoundError(
             f"friend '{production.name}' has no {SUMMARY_FILENAME} for {era}/{sample} "
-            f"({path}); run: sknano_friend.py validate -p {production.name} -e {era} -i {sample}")
+            f"({path}); run: sknano_friend.py validate -f {production.name} -e {era} -i {sample}")
     with open(path, encoding="utf-8") as handle:
         return json.load(handle)
 
@@ -223,7 +223,7 @@ def pair_friends(productions: list[FriendProduction], central_paths: list[str],
         if missing:
             message = (f"friend '{production.name}' is missing {len(missing)}/"
                        f"{len(friend_paths)} files for {era}/{sample}, e.g. {missing[0]}; "
-                       f"build it with: sknano_friend.py build -p {production.name} "
+                       f"build it with: sknano_friend.py build -f {production.name} "
                        f"-e {era} -i {sample}")
             if production.on_missing == "error":
                 raise RuntimeError(message)

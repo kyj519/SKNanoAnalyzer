@@ -140,11 +140,17 @@ the two files on every matched event and refuses to build on a mismatch.
 The driver runs it over a sample the way jobs resolve the sample:
 
 ```bash
-scripts/sknano_friend.py build    -p hadron_av6 -e 2024 -i TTLJ_powheg [--condor]
-scripts/sknano_friend.py build    -p hadron_av6_prefilter -e 2024 -i Muon0 --period C --condor
-scripts/sknano_friend.py validate -p hadron_av6 -e 2024 -i TTLJ_powheg
-scripts/sknano_friend.py status   -p hadron_av6 -e 2024 -i TTLJ_powheg
+scripts/sknano_friend.py build    -f hadron_av6                       # every sample it lists, on condor
+scripts/sknano_friend.py build    -f hadron_av6_prefilter -i Muon0 -p C,D
+scripts/sknano_friend.py validate -f hadron_av6 -e 2024 -i TTLJ_powheg
+scripts/sknano_friend.py status   -f hadron_av6
 ```
+
+`-f` names the production. `-e`, `-i`, `-p`, `--nmax`, `--memory` and
+`--no_exec` mean what they mean for `SKNano.py` (comma lists or a `.txt`,
+data samples expanded into their periods); without `-e`/`-i` the production's
+own `eras` and `samples` are used. `--local` builds on this machine instead of
+condor.
 
 `build` caches a lumi → aux files index per (production, era, PD) under
 `<production>/_index/`, picks every aux file holding part of a lumi of the
@@ -160,7 +166,7 @@ Condor jobs stage under `<production>/_scratch/` on the shared friend root
 rather than on the worker: on the SNU workers `/tmp` and the condor scratch
 are RAM-backed, and a stage written there is charged to the job's memory
 (held at 7 GB for a 243k-entry file). Staged on disk, a TTLJ job took
-9–20 min and at most 2.2 GB. `--max-running` (100) bounds how many jobs read
+9–20 min and at most 2.2 GB. `--nmax` (100) bounds how many jobs read
 the input filesystem at once; `--memory` (6 GB) is the request per job. `validate`
 requires every central file to have its friend and its `.build.json`, and
 writes `<production>/<era>/<sample>/friend_summary.json` with the status
