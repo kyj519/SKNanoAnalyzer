@@ -63,6 +63,12 @@ class FriendConfigTest(unittest.TestCase):
         self.assertEqual(p.source_globs("2024", "TTtoLNu2Q"),
                          [f"{self.tmp.name}/pool/2024/TTtoLNu2Q/**/*.root"])
         self.assertEqual(fc.friends_for([str(self.module)], "Nobody", "2024"), [])
+        # one directory below the module root, like <Module>/<Analysis>/data/Sample
+        nested = self.module / "Analysis"
+        nested.mkdir()
+        (nested / fc.FRIENDS_FILENAME).write_text("nested:\n  analyzers: [A]\n", encoding="utf-8")
+        self.assertEqual([p.name for p in fc.load_friends([str(self.module)])],
+                         ["hadron_av6", "other", "nested"])
 
     def test_bad_yaml_is_rejected(self):
         (self.module / fc.FRIENDS_FILENAME).write_text(

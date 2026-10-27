@@ -56,7 +56,7 @@ if [ -f "${CONFIG_FILE}" ]; then
     # Override the defaults above. A key that is present but empty --
     # config.default ships every key that way -- keeps the default.
     for _sknano_key in SKNANO_HOME SKNANO_RUNLOG SKNANO_OUTPUT SKNANO_INPUT_ROOT \
-                       MAMBA_EXE MAMBA_ROOT_PREFIX; do
+                       SKNANO_FRIEND_ROOT MAMBA_EXE MAMBA_ROOT_PREFIX; do
         _sknano_value=$(_sknano_config_value "${_sknano_key}")
         if [[ -n "${_sknano_value}" ]]; then
             export "${_sknano_key}=${_sknano_value}"

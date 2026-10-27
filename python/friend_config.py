@@ -155,13 +155,18 @@ def load_module_friends(module_dir: str) -> list[FriendProduction]:
 
 
 def load_friends(module_dirs: list[str]) -> list[FriendProduction]:
+    """friends.yml of every module: at the module root or, like the sample
+    jsons, one directory below it (``Hadron_Analyzers/Hadron/friends.yml``)."""
     productions: list[FriendProduction] = []
     for module_dir in module_dirs:
-        for production in load_module_friends(module_dir):
-            if any(p.name == production.name for p in productions):
-                raise ValueError(
-                    f"friend production '{production.name}' is declared by two modules")
-            productions.append(production)
+        candidates = [module_dir] + sorted(
+            os.path.dirname(p) for p in glob.glob(os.path.join(module_dir, "*", FRIENDS_FILENAME)))
+        for candidate in candidates:
+            for production in load_module_friends(candidate):
+                if any(p.name == production.name for p in productions):
+                    raise ValueError(
+                        f"friend production '{production.name}' is declared twice")
+                productions.append(production)
     return productions
 
 

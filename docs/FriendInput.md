@@ -47,6 +47,9 @@ friends may not provide the same field.
 
 ## Declaring a production: `<module>/friends.yml`
 
+The file lives at the module root or one directory below it, where the
+sample jsons live (`Hadron_Analyzers/Hadron/friends.yml`).
+
 ```yaml
 hadron_av6:
   analyzers: [HadronAnalyzer]     # analyzers that attach it (required)
