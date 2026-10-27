@@ -98,8 +98,10 @@ scripts/sknano_friend.py validate -p hadron_av6 -e 2024 -i TTLJ_powheg
 scripts/sknano_friend.py status   -p hadron_av6 -e 2024 -i TTLJ_powheg
 ```
 
-`build` caches a lumi → aux file index per (production, era, PD) under
-`<production>/_index/`, picks the aux files covering each central file, and
+`build` caches a lumi → aux files index per (production, era, PD) under
+`<production>/_index/`, picks every aux file holding part of a lumi of the
+central file (a lumi may be spread over several files on either side; each
+central file is built on its own and only its events are joined), and
 runs the builder locally or as one condor job per central file
 (`condor_submit` must be on `PATH`; on ai-tamsa1 use the ssh shim the Hadron
 module ships). Existing friends are skipped unless `--force`. Condor jobs write their
@@ -140,7 +142,9 @@ alone. The performance report counts `friend_missing_events` and
 - Skims (`SnapshotSelectedInput`) copy the central columns only; a skim of a
   friend-attached sample needs its own friend build against the skim files.
 - A friend lumi is either fully processed or absent: a lumi that a CRAB job
-  processed partially cannot be told from a filtered one. Recording the
+  processed partially (one of the files holding it missing from the private
+  production) cannot be told from a filtered one, and its lost events come out
+  as status 1, so they stay in the normalisation. Recording the
   pre-filter event count per lumi in the producer would close that gap.
 - Dropping the standard tables in the producer itself would shrink the
   private production on disk; the builder only needs the custom fields.

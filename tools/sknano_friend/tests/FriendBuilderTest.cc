@@ -241,6 +241,36 @@ TEST_F(FriendBuilderTest, BuildsAnAlignedFriendWithStatusAndNormalisation) {
     }
 }
 
+TEST_F(FriendBuilderTest, LumiSplitOverAuxFilesIsJoinedWhenAllPartsAreGiven) {
+    // Lumi 11 (events 105..109) split: 105..106 stay in aux0, 107..109 move
+    // to aux2; both files list lumi 11 in LuminosityBlocks, as NanoAOD does.
+    std::vector<Event> kept, moved;
+    for (const auto &e : first_)
+        (e.lumi == 11 && e.event >= 107 ? moved : kept).push_back(e);
+    ASSERT_EQ(moved.size(), 3U);
+    const auto part0 = (dir_ / "split0.root").string();
+    const auto part2 = (dir_ / "split2.root").string();
+    WriteAux(part0, {{10, 11, 50}, kept});
+    WriteAux(part2, {{11}, moved});
+
+    auto options = Options();
+    options.aux = {part0, aux1_, part2};
+    const auto report = sknano_friend::BuildFriend(options);
+    EXPECT_EQ(report.nStatus[0], 14U);
+    EXPECT_EQ(report.nStatus[1], 1U);
+    EXPECT_EQ(report.nStatus[2], 5U);
+    EXPECT_EQ(sknano_friend::CheckFriend(options.out, central_).mismatches, 0U);
+
+    // Leaving a part out cannot be told from the producer's filter: those
+    // events come out as status 1, not 2 (docs/FriendInput.md, limitations).
+    options.aux = {part0, aux1_};
+    options.out = (dir_ / "out" / "partial.root").string();
+    const auto partial = sknano_friend::BuildFriend(options);
+    EXPECT_EQ(partial.nStatus[0], 11U);
+    EXPECT_EQ(partial.nStatus[1], 4U);
+    EXPECT_EQ(partial.nStatus[2], 5U);
+}
+
 TEST_F(FriendBuilderTest, DuplicateEventAcrossAuxFilesIsFatal) {
     auto options = Options();
     const auto dup = (dir_ / "dup.root").string();

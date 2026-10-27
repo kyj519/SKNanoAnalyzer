@@ -91,8 +91,14 @@ def lumi_table(path: str) -> set[tuple[int, int]]:
     return set(zip(table["run"].tolist(), table["luminosityBlock"].tolist()))
 
 
+INDEX_VERSION = 2
+
+
 def aux_index(production: fc.FriendProduction, era: str, pd: str) -> tuple[list[str], dict]:
-    """lumi -> aux file, cached per (production, era, PD) until the pool changes."""
+    """lumi -> every aux file holding part of it, cached per (production, era,
+    PD) until the pool changes.  A lumi split over several aux files (common
+    for data, where lumis cross MiniAOD file boundaries) sends all of them to
+    the builder, which joins on the event key and rejects duplicate events."""
     files = production.source_files(era, pd)
     if not files:
         raise SystemExit(f"no aux files for {era}/{pd} under {production.source_globs(era, pd)}")
@@ -100,19 +106,20 @@ def aux_index(production: fc.FriendProduction, era: str, pd: str) -> tuple[list[
     if os.path.isfile(path):
         with open(path, encoding="utf-8") as handle:
             cached = json.load(handle)
-        if cached.get("files") == files:
+        if cached.get("version") == INDEX_VERSION and cached.get("files") == files:
             return files, {tuple(map(int, k.split(":"))): v for k, v in cached["lumis"].items()}
     print(f"indexing {len(files)} aux files for {era}/{pd} ...", flush=True)
-    lumis: dict[tuple[int, int], int] = {}
+    lumis: dict[tuple[int, int], list[int]] = {}
     for index, file in enumerate(files):
         for key in lumi_table(file):
-            if key in lumis and lumis[key] != index:
-                raise SystemExit(f"lumi {key} is in both {files[lumis[key]]} and {file}; "
-                                 "a lumi must live in exactly one aux file")
-            lumis[key] = index
+            lumis.setdefault(key, []).append(index)
+    split = sum(1 for owners in lumis.values() if len(owners) > 1)
+    if split:
+        print(f"  {split}/{len(lumis)} lumis are spread over more than one aux file")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path + ".tmp", "w", encoding="utf-8") as handle:
-        json.dump({"files": files, "lumis": {f"{r}:{l}": v for (r, l), v in lumis.items()}}, handle)
+        json.dump({"version": INDEX_VERSION, "files": files,
+                   "lumis": {f"{r}:{l}": v for (r, l), v in lumis.items()}}, handle)
     os.replace(path + ".tmp", path)
     return files, lumis
 
@@ -121,7 +128,7 @@ def build_command(production, central, aux, out, is_mc, args) -> list[str]:
     command = [BINARY, "build", "--central", central, "--out", out,
                "--production", production.name, "--report", out + ".build.json",
                "--chunk", str(args.chunk)]
-    if not args.condor:  # condor jobs stage in the job's own scratch, see run.sh
+    if not args.condor:  # condor jobs stage under <production>/_scratch, see run_condor
         command += ["--scratch", args.scratch]
     for file in aux:
         command += ["--aux", file]
@@ -149,7 +156,7 @@ def plan_sample(production, era, sample, registry, args):
         if os.path.isfile(out) and not args.force:
             done.append(out)
             continue
-        aux = sorted({aux_files[index[key]] for key in lumi_table(central) if key in index})
+        aux = sorted({aux_files[i] for key in lumi_table(central) for i in index.get(key, ())})
         if not aux:
             print(f"\033[93mWarning: no aux file covers any lumi of {central}; "
                   "every event will carry status 2\033[0m")
