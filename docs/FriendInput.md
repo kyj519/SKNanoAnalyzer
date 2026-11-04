@@ -29,8 +29,9 @@ leading slash). The pairing is by path, never by position.
   production (lost). Entries with a non-zero status never reach
   `executeEvent()`; their friend columns are empty.
 - every top-level field of the production that the central file does not
-  have, plus the complete collections listed as overrides. Cardinality fields
-  (`nX`) are stored as plain `std::uint32_t`.
+  have -- only of the collections the production declares, when its
+  `friends.yml` names a `schema` -- plus the complete collections listed as
+  overrides. Cardinality fields (`nX`) are stored as plain `std::uint32_t`.
 
 `SKFriendInfo` (one entry) records `formatVersion`, `production`,
 `centralFile`, `centralEntries`, `overrides`, `fields`, `sourceFiles`,
@@ -88,7 +89,7 @@ hadron_av6:                       # production name, the directory under the fri
   analyzers: [HadronAnalyzer]     # analyzers that attach it (required)
   eras: ["2024"]                  # optional, every era when omitted
   overrides: [GenPart]            # central collections replaced by the friend
-  exclude_prefixes: [LambdaCToPKPiLoose, D0ToKPiLoose]
+  schema: schema/CustomBPHBranches.json   # builder only: carry only its collections
   filtered: false                 # the producer applies no event filter
   sources:                        # builder only; {era} and {PD} are substituted
     - /gv0/DATA/SKNano/CustomNanoAODv15/hadron_av6_ttlj_rntuple640/{era}/{PD}/**/*.root
@@ -99,7 +100,7 @@ hadron_av6_prefilter:
   analyzers: [HadronAnalyzer]
   eras: ["2024"]
   overrides: [GenPart]
-  exclude_prefixes: [LambdaCToPKPiLoose, D0ToKPiLoose]
+  schema: schema/CustomBPHBranches.json
   filtered: true                  # HLT AND b-tag prefilter
   filter_note: "HLT(IsoMu24|Ele30_WPTight_Gsf) AND >=2 b-tag candidates"
   sources:
@@ -115,6 +116,20 @@ job that failed after it reached the SE and whose lumis another job redid, or
 a superseded task -- since the builder refuses a duplicate event. A filtered
 MC production's `norm` then counts only the files read. A full-copy sample
 json takes the same key (a list of absolute paths) on top of its `path_glob`.
+
+`schema` names a json, relative to the `friends.yml`, whose `collections`
+object lists the collections the production declares (Hadron:
+`schema/CustomBPHBranches.json`, 13 collections). The builder then carries
+only their fields that the central file lacks -- whole new collections, and
+the extension columns of one the central file also has, such as `Jet_pullY` --
+plus the overrides. Every other field the aux files have and the central file
+lacks stays out: the producer's undeclared extras (the Hadron Loose
+Lambda_c/D0 duplicates) and, in data, the `L1_*`/`HLT_*` bits. Those follow the
+trigger menu of the runs each aux file holds, so aux files of one task do not
+share them, and the central data has no `L1_*_pPAT` at all; carried, they made
+a data friend's fields depend on its first aux file and failed every build
+whose later aux file lacked one. Without `schema` every aux-only field is
+carried, minus `exclude_prefixes` (collections to leave out).
 
 A pool produced partly with and partly without a filter is two productions.
 The submission (`SKNano.py`) and the builder read the same file, so a
@@ -134,7 +149,7 @@ the same files.
 ```bash
 sknano_friend build --central tree_1.root --aux NANO_1.root --aux NANO_2.root \
     --out $SKNANO_FRIEND_ROOT/hadron_av6/2024/.../tree_1.root --production hadron_av6 \
-    --override GenPart --exclude-prefix D0ToKPiLoose --mc [--filtered] \
+    --override GenPart --collection Jet --collection Lambda ... --mc [--filtered] \
     --scratch /tmp --report tree_1.root.build.json
 sknano_friend check <friend> <central>
 ```
@@ -147,9 +162,29 @@ The aux files are read in their own order and staged in LZ4 chunks of
 merged in central order, so all I/O is sequential: a multi-threaded `cmsRun`
 scatters events (one TTLJ central file mapped onto 175 554 separate runs
 across 6 private files), and reading the aux files in central order would
-load a cluster per entry. For every extension column (a selected `X_y` whose
-collection `X` the central file also has) the builder compares `nX` between
-the two files on every matched event and refuses to build on a mismatch.
+load a cluster per entry. The first aux file decides which fields are carried
+(`--collection`, one per declared collection, limits them as above); every
+aux file must hold the keys, the carried fields and the checked counts with
+its types, and may differ in any other field. For every extension column (a
+selected `X_y` whose collection `X` the central file also has) the builder
+compares `nX` between the two files on every matched event and refuses to
+build on a mismatch, with one exception for `nJet`.
+
+The NanoAOD Jet table keeps jets with corrected pt > 15 GeV and stores pt with
+10 mantissa bits, so a jet just above the cut is stored as exactly 15.0, and
+two productions that compute the corrected pt a last bit apart can put it on
+different sides of the cut (92 events in 91 central files of the Hadron av6
+data; Hadron `lambda-polarization/docs/data_friend_schema_fix.md` section 8).
+When `nJet` differs by exactly one, the extra jet is the last of the longer
+list, its stored pt is exactly 15.0, and every other jet is bit-identical in
+`pt`, `eta`, `phi` and, when both files have it, `rawFactor`, the friend's Jet
+extension columns follow the central list: the aux file's extra entry is
+dropped, or the missing one is filled with 0. The event keeps status 0. The
+build report counts these events in `jet_aligned` and lists them in
+`jet_aligned_events` (key and the side with the extra jet), and the builder
+prints one line per event on stderr, marked `MC` in MC, where none has been
+seen. Any other count mismatch is still fatal. The report also records the
+declared `collections`.
 
 The driver runs it over a sample the way jobs resolve the sample:
 

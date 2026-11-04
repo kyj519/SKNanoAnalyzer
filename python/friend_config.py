@@ -8,6 +8,8 @@ A module that needs custom columns next to the central NanoAOD ships one
       eras: [2024]                    # optional, every era when omitted
       overrides: [GenPart]            # central collections replaced by the friend
       exclude_prefixes: [D0ToKPiLoose]
+      schema: schema/x.json           # builder only: carry only the collections its
+                                      # 'collections' object declares (plus overrides)
       filtered: false                 # does the producer apply an event filter?
       filter_note: "HLT prefilter"    # what that filter was
       sources:                        # builder only: aux file globs, {PD}/{era}
@@ -42,7 +44,7 @@ FRIENDS_FILENAME = "friends.yml"
 SUMMARY_FILENAME = "friend_summary.json"
 PRODUCTION_FILENAME = "friend_production.json"
 
-_KNOWN_KEYS = {"analyzers", "eras", "overrides", "exclude_prefixes", "filtered",
+_KNOWN_KEYS = {"analyzers", "eras", "overrides", "exclude_prefixes", "schema", "filtered",
                "filter_note", "sources", "exclude_files", "samples", "on_missing", "root"}
 
 
@@ -75,6 +77,18 @@ def _exclude_files(value: Any, module_dir: str, production: str) -> list[str]:
         return [line for line in lines if line]
 
 
+def _schema_collections(value: Any, module_dir: str, production: str) -> list[str]:
+    """The collections a production declares: the keys of the 'collections'
+    object of its schema json (relative to the friends.yml)."""
+    if value is None:
+        return []
+    with open(os.path.join(module_dir, str(value)), encoding="utf-8") as handle:
+        collections = list(json.load(handle).get("collections") or {})
+    if not collections:
+        raise ValueError(f"friend '{production}': schema {value} declares no collections")
+    return collections
+
+
 def _as_bool(value: Any, key: str, production: str) -> bool:
     if not isinstance(value, bool):
         raise ValueError(f"friend '{production}': '{key}' must be true or false")
@@ -89,6 +103,8 @@ class FriendProduction:
     eras: list[str] = field(default_factory=list)
     overrides: list[str] = field(default_factory=list)
     exclude_prefixes: list[str] = field(default_factory=list)
+    schema: str = ""
+    collections: list[str] = field(default_factory=list)  # declared by the schema
     filter_note: str = ""
     sources: list[str] = field(default_factory=list)
     exclude_files: list[str] = field(default_factory=list)
@@ -175,6 +191,8 @@ def load_module_friends(module_dir: str) -> list[FriendProduction]:
             eras=[str(e) for e in _as_list(spec.get("eras"), "eras", name)],
             overrides=_as_list(spec.get("overrides"), "overrides", name),
             exclude_prefixes=_as_list(spec.get("exclude_prefixes"), "exclude_prefixes", name),
+            schema=str(spec.get("schema") or ""),
+            collections=_schema_collections(spec.get("schema"), module_dir, name),
             filter_note=str(spec.get("filter_note") or ""),
             sources=_as_list(spec.get("sources"), "sources", name),
             exclude_files=_exclude_files(spec.get("exclude_files"), module_dir, name),

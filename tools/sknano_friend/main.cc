@@ -11,6 +11,7 @@ namespace {
 const char *kUsage = R"(usage:
   sknano_friend build --central C.root --aux A1.root [--aux A2.root ...] --out F.root
                       --production NAME [--override COLL ...] [--exclude-prefix COLL ...]
+                      [--collection COLL ...]
                       [--mc] [--filtered] [--filter-note TEXT] [--scratch DIR] [--chunk N]
                       [--ntuple Events] [--report REPORT.json]
   sknano_friend check F.root C.root [--ntuple Events] [--report REPORT.json]
@@ -56,6 +57,7 @@ int main(int argc, char **argv) {
                 else if (flag == "--production") options.production = Need(args, i, flag);
                 else if (flag == "--override") options.overrides.push_back(Need(args, i, flag));
                 else if (flag == "--exclude-prefix") options.excludePrefixes.push_back(Need(args, i, flag));
+                else if (flag == "--collection") options.collections.push_back(Need(args, i, flag));
                 else if (flag == "--mc") options.isMC = true;
                 else if (flag == "--filter-note") options.filterNote = Need(args, i, flag);
                 else if (flag == "--filtered") options.filtered = true;

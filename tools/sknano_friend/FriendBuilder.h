@@ -27,6 +27,11 @@ struct BuildOptions {
     std::vector<std::string> overrides;
     // Collections of the aux files to leave out (e.g. loose duplicates).
     std::vector<std::string> excludePrefixes;
+    // The collections the production declares (its schema).  When given,
+    // only their fields the central file lacks, and the overrides, are
+    // carried: any other aux-only field, e.g. a data file's L1_*/HLT_* bits,
+    // is left out.  Empty: every aux-only field is carried.
+    std::vector<std::string> collections;
     bool isMC = false;              // read Runs; sum genWeight over status-2 entries
     // The production applies an event filter: an absent event is a rejected
     // one (status 1, no loss assumed) instead of a lost one (status 2).
@@ -57,6 +62,13 @@ struct BuildReport {
     std::uint64_t missingCount = 0;
     std::vector<std::string> fields;
     std::vector<std::string> checkedCounts; // nX compared between aux and central
+    std::vector<std::string> collections;   // BuildOptions::collections
+    // Events whose nJet differed only by one jet stored at the 15 GeV
+    // Jet-table cut, last in its list: run:lumi:event, +1 when the extra jet
+    // was in the aux file, -1 in the central one.  The friend's Jet extension
+    // columns follow the central list (an aux extra entry is dropped, a
+    // missing one is value-initialised: 0).
+    std::vector<std::pair<std::string, int>> jetAligned;
     std::vector<std::string> sourceFiles;
     std::map<std::string, RunsSums> auxRuns; // MC only
     // Central entries found in each aux file: a file that contributes none

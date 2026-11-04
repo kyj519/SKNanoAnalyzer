@@ -150,6 +150,8 @@ def build_command(production, central, aux, out, is_mc, args) -> list[str]:
         command += ["--override", collection]
     for collection in production.exclude_prefixes:
         command += ["--exclude-prefix", collection]
+    for collection in production.collections:
+        command += ["--collection", collection]
     if is_mc:
         command.append("--mc")
     if production.filtered:
@@ -381,6 +383,7 @@ def update_production_json(production, era, sample):
                     "module_dir": production.module_dir,
                     "overrides": production.overrides,
                     "exclude_prefixes": production.exclude_prefixes,
+                    "schema": production.schema, "collections": production.collections,
                     "filter_note": production.filter_note, "sources": production.sources,
                     "updated_at": datetime.datetime.now().isoformat(timespec="seconds")})
     payload.setdefault("samples", {}).setdefault(era, {})[sample] = production.summary_path(era, sample)

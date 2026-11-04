@@ -45,7 +45,9 @@ std::vector<Event> CentralEvents() {
     return events; // lumis 10..13, five events each, sorted by event
 }
 
-void WriteCentral(const std::string &path) {
+// Jets of an event: pt {e, 2e}, eta {0.5, -0.5}, phi {1, 2} in both files.
+// extraJetEvent gets a third jet (pt 15, the Jet-table cut) in the central file.
+void WriteCentral(const std::string &path, std::uint64_t extraJetEvent = 0) {
     auto model = ROOT::RNTupleModel::Create();
     auto run = model->MakeField<std::uint32_t>("run");
     auto lumi = model->MakeField<std::uint32_t>("luminosityBlock");
@@ -53,6 +55,8 @@ void WriteCentral(const std::string &path) {
     auto genWeight = model->MakeField<float>("genWeight");
     auto nJet = model->MakeField<std::uint32_t>("nJet");
     auto jetPt = model->MakeField<RVec<float>>("Jet_pt");
+    auto jetEta = model->MakeField<RVec<float>>("Jet_eta");
+    auto jetPhi = model->MakeField<RVec<float>>("Jet_phi");
     auto nGenPart = model->MakeField<std::uint32_t>("nGenPart");
     auto genPt = model->MakeField<RVec<float>>("GenPart_pt");
     auto writer = ROOT::RNTupleWriter::Recreate(std::move(model), "Events", path);
@@ -62,7 +66,14 @@ void WriteCentral(const std::string &path) {
         *event = e.event;
         *genWeight = Weight(e.event);
         *jetPt = {1.f * e.event, 2.f * e.event};
-        *nJet = 2;
+        *jetEta = {0.5f, -0.5f};
+        *jetPhi = {1.f, 2.f};
+        if (e.event == extraJetEvent) {
+            jetPt->push_back(15.f);
+            jetEta->push_back(1.f);
+            jetPhi->push_back(3.f);
+        }
+        *nJet = jetPt->size();
         *genPt = {10.f};
         *nGenPart = 1;
         writer->Fill();
@@ -76,6 +87,9 @@ struct AuxSpec {
     std::int64_t filtered = 0;               // events read but not written (Runs.genEventCount)
     std::string extraBool;                   // one more field, e.g. a trigger bit of this file's menu
     bool pullAsDouble = false;               // write the carried Jet_pullY as double
+    float extraJetPt = 1.f;                  // pt of jetMismatchEvent's third jet
+    bool extraJetFirst = false;              // put it first instead of last
+    float firstJetEta = 0.5f;                // eta of the first jet (0.5 in the central file)
 };
 
 void WriteAux(const std::string &path, const AuxSpec &spec) {
@@ -86,6 +100,8 @@ void WriteAux(const std::string &path, const AuxSpec &spec) {
         auto event = model->MakeField<std::uint64_t>("event");
         auto nJet = model->MakeField<std::uint32_t>("nJet");
         auto jetPt = model->MakeField<RVec<float>>("Jet_pt");
+        auto jetEta = model->MakeField<RVec<float>>("Jet_eta");
+        auto jetPhi = model->MakeField<RVec<float>>("Jet_phi");
         std::shared_ptr<RVec<float>> jetPull;
         std::shared_ptr<RVec<double>> jetPullDouble;
         if (spec.pullAsDouble)
@@ -104,8 +120,16 @@ void WriteAux(const std::string &path, const AuxSpec &spec) {
             *run = kRun;
             *lumi = e.lumi;
             *event = e.event;
-            const std::size_t jets = e.event == spec.jetMismatchEvent ? 3 : 2;
-            *jetPt = RVec<float>(jets, 1.f);
+            *jetPt = {1.f * e.event, 2.f * e.event};
+            *jetEta = {spec.firstJetEta, -0.5f};
+            *jetPhi = {1.f, 2.f};
+            if (e.event == spec.jetMismatchEvent) {
+                const auto at = spec.extraJetFirst ? 0 : 2;
+                jetPt->insert(jetPt->begin() + at, spec.extraJetPt);
+                jetEta->insert(jetEta->begin() + at, 1.f);
+                jetPhi->insert(jetPhi->begin() + at, 3.f);
+            }
+            const std::size_t jets = jetPt->size();
             if (jetPull)
                 *jetPull = RVec<float>(jets, 0.25f);
             else
@@ -396,12 +420,96 @@ TEST_F(FriendBuilderTest, AuxSchemasMayDifferOnlyInFieldsTheFriendDoesNotCarry) 
     EXPECT_FALSE(fs::exists(options.out));
 }
 
+TEST_F(FriendBuilderTest, DeclaredCollectionsLeaveUndeclaredFieldsOut) {
+    // The first aux file has a trigger bit the second lacks: carried under
+    // the old rule, so the build would fail on aux1.
+    const auto menu = (dir_ / "menu0.root").string();
+    WriteAux(menu, {{10, 11, 50}, first_, 0, 0, "L1_X_pPAT"});
+    auto options = Options();
+    options.aux = {menu, aux1_};
+    options.excludePrefixes.clear(); // LambdaLoose is undeclared, so it is left out anyway
+    options.collections = {"Jet", "Lambda"};
+    const auto report = sknano_friend::BuildFriend(options);
+    EXPECT_EQ(report.fields, (std::vector<std::string>{"GenPart_pt", "Jet_pullY", "Lambda_pt",
+                                                       "nGenPart", "nLambda"}));
+    EXPECT_EQ(report.collections, options.collections);
+    EXPECT_EQ(report.nStatus[0], 14U);
+    EXPECT_EQ(sknano_friend::CheckFriend(options.out, central_).mismatches, 0U);
+
+    // A declared field a later aux file lacks is still fatal.
+    options.collections.push_back("L1");
+    options.out = (dir_ / "out" / "declared.root").string();
+    try {
+        sknano_friend::BuildFriend(options);
+        ADD_FAILURE() << "built although aux1 lacks the declared L1_X_pPAT";
+    } catch (const std::runtime_error &e) {
+        EXPECT_NE(std::string(e.what()).find("lacks field L1_X_pPAT"), std::string::npos) << e.what();
+    }
+    EXPECT_FALSE(fs::exists(options.out));
+}
+
 TEST_F(FriendBuilderTest, ExtensionRowCountMismatchIsFatal) {
     auto options = Options();
     const auto bad = (dir_ / "bad0.root").string();
     WriteAux(bad, {{10, 11, 50}, first_, 101});
     options.aux[0] = bad;
     EXPECT_THROW(sknano_friend::BuildFriend(options), std::runtime_error);
+}
+
+// One side has one more jet, the last, stored at exactly the 15 GeV cut, and
+// every other jet is bit-identical: the friend's Jet extension follows the
+// central list.  Event 101 is central entry 1.
+TEST_F(FriendBuilderTest, ExtraJetAtTheCutIsAlignedToTheCentralList) {
+    auto options = Options();
+    const auto pullAt1 = [&] {
+        SKNano::RNTupleSource source;
+        source.open("Events", options.central);
+        source.addFriend(options.out);
+        source.noteEntry(1);
+        return Read(*source.makeVectorColumn("Jet_pullY", std::type_index(typeid(float))), 1);
+    };
+    const auto auxExtra = (dir_ / "auxextra0.root").string();
+    WriteAux(auxExtra, {{10, 11, 50}, first_, 101, 0, "", false, 15.f});
+    options.aux[0] = auxExtra;
+    auto report = sknano_friend::BuildFriend(options);
+    EXPECT_EQ(report.jetAligned, (std::vector<std::pair<std::string, int>>{{"1:10:101", 1}}));
+    EXPECT_EQ(report.toJson()["jet_aligned"], 1);
+    EXPECT_EQ(report.nStatus[0], 14U);
+    EXPECT_EQ(sknano_friend::CheckFriend(options.out, options.central).mismatches, 0U);
+    EXPECT_EQ(pullAt1(), (std::vector<float>{0.25f, 0.25f})); // the aux extra entry is dropped
+
+    const auto centralExtra = (dir_ / "centralextra.root").string();
+    WriteCentral(centralExtra, 101);
+    options = Options();
+    options.central = centralExtra;
+    options.out = (dir_ / "out" / "centralextra.root").string();
+    report = sknano_friend::BuildFriend(options);
+    EXPECT_EQ(report.jetAligned, (std::vector<std::pair<std::string, int>>{{"1:10:101", -1}}));
+    EXPECT_EQ(report.toJson()["jet_aligned_events"][0]["extra_jet_in"], "central");
+    EXPECT_EQ(sknano_friend::CheckFriend(options.out, options.central).mismatches, 0U);
+    EXPECT_EQ(pullAt1(), (std::vector<float>{0.25f, 0.25f, 0.f})); // value-initialised
+
+    options = Options(); // no mismatch, nothing aligned
+    EXPECT_TRUE(sknano_friend::BuildFriend(options).jetAligned.empty());
+}
+
+TEST_F(FriendBuilderTest, AnyOtherJetCountMismatchStaysFatal) {
+    AuxSpec notAtCut{{10, 11, 50}, first_, 101, 0, "", false, 15.5f};
+    AuxSpec notLast{{10, 11, 50}, first_, 101, 0, "", false, 15.f, true};
+    AuxSpec otherJetsDiffer{{10, 11, 50}, first_, 101, 0, "", false, 15.f, false, 0.25f};
+    for (const auto *spec : {&notAtCut, &notLast, &otherJetsDiffer}) {
+        auto options = Options();
+        options.aux[0] = (dir_ / "badjet0.root").string();
+        WriteAux(options.aux[0], *spec);
+        try {
+            sknano_friend::BuildFriend(options);
+            ADD_FAILURE() << "built with a jet list that differs beyond the cut jet";
+        } catch (const std::runtime_error &e) {
+            EXPECT_NE(std::string(e.what()).find("nJet differs for event 1:10:101"),
+                      std::string::npos) << e.what();
+        }
+        EXPECT_FALSE(fs::exists(options.out));
+    }
 }
 
 } // namespace

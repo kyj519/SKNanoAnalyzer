@@ -104,6 +104,17 @@ class FriendConfigTest(unittest.TestCase):
         spec = {"isMC": 1, "path_glob": f"{pool}/*.root", "exclude_files": [str(pool / "b.root")]}
         self.assertEqual(resolve_sample_paths(spec, "2024"), [str(pool / "a.root"), str(pool / "c.root")])
 
+    def test_schema_declares_the_carried_collections(self):
+        (self.module / "schema").mkdir()
+        (self.module / "schema" / "b.json").write_text(
+            json.dumps({"collections": {"Lambda": {}, "Jet": {}}, "ignored_collections": ["X"]}),
+            encoding="utf-8")
+        (self.module / fc.FRIENDS_FILENAME).write_text(
+            "p:\n  analyzers: [A]\n  schema: schema/b.json\nq:\n  analyzers: [A]\n", encoding="utf-8")
+        p, q = fc.load_module_friends(str(self.module))
+        self.assertEqual((p.schema, p.collections), ("schema/b.json", ["Lambda", "Jet"]))
+        self.assertEqual(q.collections, [])
+
     def _publish(self, p, paths, missing_sumw=0.0):
         for path in paths:
             Path(path).parent.mkdir(parents=True, exist_ok=True)

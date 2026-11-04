@@ -9,12 +9,14 @@
 #include <ROOT/RNTupleTypes.hxx>
 #include <ROOT/RNTupleWriteOptions.hxx>
 #include <ROOT/RNTupleWriter.hxx>
+#include <ROOT/RVec.hxx>
 #include <Compression.h>
 #include <TFile.h>
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstring>
 #include <filesystem>
 #include <iostream>
 #include <map>
@@ -157,6 +159,55 @@ ROOT::RNTupleReadOptions SequentialOptions() {
     return options;
 }
 
+// The NanoAOD Jet table keeps jets with corrected pt > 15 GeV and stores pt
+// with 10 mantissa bits, so a jet just above the cut is stored as exactly
+// 15.0.  Two productions computing that pt a last bit apart can put such a
+// jet on different sides of the cut (Hadron lambda-polarization
+// docs/data_friend_schema_fix.md section 8); that, and only that, is aligned.
+constexpr float kJetTableCut = 15.f;
+
+// Jet pt, eta, phi (and rawFactor) of one entry.
+std::vector<ROOT::RVec<float>> ReadJets(const std::string &ntuple, const std::string &file,
+                                        std::uint64_t entry, bool rawFactor) {
+    std::vector<std::pair<std::string, std::string>> fields;
+    for (const char *name : {"Jet_pt", "Jet_eta", "Jet_phi", "Jet_rawFactor"})
+        fields.emplace_back(name, "ROOT::VecOps::RVec<float>");
+    if (!rawFactor)
+        fields.pop_back();
+    auto reader = ROOT::RNTupleReader::Open(MakeModel(fields), ntuple, file);
+    auto values = reader->CreateEntry();
+    reader->LoadEntry(entry, *values);
+    std::vector<ROOT::RVec<float>> jets;
+    for (const auto &field : fields)
+        jets.push_back(*values->GetPtr<ROOT::RVec<float>>(field.first));
+    return jets;
+}
+
+// +1 when the aux list has one jet more, -1 when the central one has, 0 when
+// the lists differ in any other way: the extra jet must be the last one and
+// stored at exactly the cut, every other jet bit-identical in all of them.
+int ExtraJetAtCut(const std::vector<ROOT::RVec<float>> &central,
+                  const std::vector<ROOT::RVec<float>> &aux) {
+    const auto nc = central[0].size(), na = aux[0].size();
+    if (nc + 1 != na && na + 1 != nc)
+        return 0;
+    const auto common = std::min(nc, na);
+    for (std::size_t k = 0; k < central.size(); ++k)
+        if (central[k].size() != nc || aux[k].size() != na ||
+            (common && std::memcmp(central[k].data(), aux[k].data(), common * sizeof(float))))
+            return 0;
+    const auto side = na > nc ? 1 : -1;
+    return (side > 0 ? aux[0] : central[0])[common] == kJetTableCut ? side : 0;
+}
+
+// Resizes an RVec field value in place; new elements are value-initialised
+// (0, false).  False when the type is none of T.
+template <typename... T>
+bool ResizeRVec(void *value, const std::string &type, std::size_t size) {
+    return ((type == ROOT::RField<ROOT::RVec<T>>::TypeName() &&
+             (static_cast<ROOT::RVec<T> *>(value)->resize(size), true)) || ...);
+}
+
 } // namespace
 
 nlohmann::json BuildReport::toJson() const {
@@ -166,6 +217,9 @@ nlohmann::json BuildReport::toJson() const {
     nlohmann::json runs = nlohmann::json::object();
     for (const auto &[file, sums] : auxRuns)
         runs[file] = {{"count", sums.count}, {"sumw", sums.sumw}, {"sumw2", sums.sumw2}};
+    nlohmann::json aligned = nlohmann::json::array();
+    for (const auto &[key, side] : jetAligned)
+        aligned.push_back({{"event", key}, {"extra_jet_in", side > 0 ? "aux" : "central"}});
     return {
         {"filtered", filtered},
         {"aux_runs", runs},
@@ -179,6 +233,9 @@ nlohmann::json BuildReport::toJson() const {
         {"missing_count", missingCount},
         {"fields", fields},
         {"checked_counts", checkedCounts},
+        {"collections", collections},
+        {"jet_aligned", jetAligned.size()},
+        {"jet_aligned_events", aligned},
         {"source_files", sourceFiles},
         {"seconds", seconds},
     };
@@ -198,6 +255,7 @@ BuildReport BuildFriend(const BuildOptions &options) {
     BuildReport report;
     report.sourceFiles = options.aux;
     report.filtered = options.filtered;
+    report.collections = options.collections;
     if (options.aux.empty())
         throw std::runtime_error("no aux files given");
 
@@ -287,7 +345,11 @@ BuildReport BuildFriend(const BuildOptions &options) {
         const auto collection = CollectionOf(name);
         if (Contains(options.excludePrefixes, collection))
             continue;
-        if (centralTypes.count(name) && !Contains(options.overrides, collection))
+        const bool overridden = Contains(options.overrides, collection);
+        if (!overridden && !options.collections.empty() &&
+            !Contains(options.collections, collection))
+            continue;
+        if (centralTypes.count(name) && !overridden)
             continue;
         selected.emplace_back(name, type);
     }
@@ -306,7 +368,8 @@ BuildReport BuildFriend(const BuildOptions &options) {
     // Every aux file must hold the keys, the carried fields and the checked
     // counts with the first file's types.  Other fields may differ: in data
     // the L1_*/HLT_* set follows the trigger menu of the runs a file holds.
-    // A trigger bit the central file lacks is carried, hence required too.
+    // Without declared collections a trigger bit the central file lacks is
+    // carried, hence required too.
     std::vector<std::string> required{"run", "luminosityBlock", "event"};
     for (const auto &[name, type] : selected)
         required.push_back(name);
@@ -433,9 +496,13 @@ BuildReport BuildFriend(const BuildOptions &options) {
         if (std::none_of(selected.begin(), selected.end(),
                          [&](const auto &f) { return f.first == count; }))
             bufferFields.emplace_back(count, auxTypes.at(count));
-    std::vector<std::pair<std::string, std::string>> storedFields;
-    for (const auto &[name, type] : selected)
+    std::vector<std::pair<std::string, std::string>> storedFields, jetFields;
+    for (const auto &[name, type] : selected) {
         storedFields.emplace_back(name, StorageType(type));
+        if (CollectionOf(name) == "Jet")
+            jetFields.emplace_back(name, type);
+    }
+    const bool rawFactor = centralTypes.count("Jet_rawFactor") > 0;
     // LZ4 rather than uncompressed: the stage files are read back once,
     // sequentially, and on a worker whose scratch is RAM-backed their size
     // is what the job's memory limit sees (5 GB per 243k-entry file raw).
@@ -457,13 +524,35 @@ BuildReport BuildFriend(const BuildOptions &options) {
             for (std::size_t k = 0; k < checkedCounts.size(); ++k) {
                 const auto expected = centralCounts[k][centralEntry];
                 const auto actual = CountValue(*entry, countTokens[k], auxTypes.at(checkedCounts[k]));
-                if (expected != actual)
+                if (expected == actual)
+                    continue;
+                const auto key = KeyString(runs[centralEntry], lumis[centralEntry], events[centralEntry]);
+                const auto &auxFile = options.aux[chunk.aux];
+                const bool raw = rawFactor && auxFileTypes[chunk.aux].count("Jet_rawFactor");
+                // A jet at the Jet-table cut on one side only: the extension
+                // columns follow the central list, the aux extra entry is
+                // dropped and a missing one is value-initialised.
+                const int side =
+                    checkedCounts[k] == "nJet" && (expected + 1 == actual || actual + 1 == expected)
+                        ? ExtraJetAtCut(ReadJets(options.ntupleName, options.central, centralEntry, raw),
+                                        ReadJets(options.ntupleName, auxFile, auxEntry, raw))
+                        : 0;
+                if (side == 0)
                     throw std::runtime_error(
-                        checkedCounts[k] + " differs for event " +
-                        KeyString(runs[centralEntry], lumis[centralEntry], events[centralEntry]) +
-                        ": central " + std::to_string(expected) + ", aux " +
-                        std::to_string(actual) + " (" + options.aux[chunk.aux] +
-                        "); the extension columns of that collection cannot be attached");
+                        checkedCounts[k] + " differs for event " + key + ": central " +
+                        std::to_string(expected) + ", aux " + std::to_string(actual) + " (" +
+                        auxFile + "); the extension columns of that collection cannot be attached");
+                for (const auto &[name, type] : jetFields)
+                    if (!ResizeRVec<float, double, bool, std::int8_t, std::uint8_t, std::int16_t,
+                                    std::uint16_t, std::int32_t, std::uint32_t, std::int64_t,
+                                    std::uint64_t>(entry->GetPtr<void>(name).get(), type, expected))
+                        throw std::runtime_error("cannot align " + name + " of type " + type +
+                                                 " for event " + key);
+                report.jetAligned.emplace_back(key, side);
+                std::cerr << "sknano_friend: " << (options.isMC ? "MC " : "") << "event " << key
+                          << ": one jet at the 15 GeV cut only in the "
+                          << (side > 0 ? "aux file " + auxFile : "central file")
+                          << "; Jet extension aligned to the central list\n";
             }
             buffer.push_back(std::move(entry));
         }
