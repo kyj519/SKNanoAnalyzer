@@ -67,6 +67,47 @@ switch readers at file boundaries while preserving lazy field state.
   read-wait time went from 7.9 s to 1.4 s (data) and 4.2 s to 0.5 s (MC, 60k
   events); under a loaded mount the same read of 262 columns took 138 s cold
   against 38 s page-cache-warm.
+- `SKNANO_INPUT_PREFETCH_SKIP_INACTIVE=1` (off by default; the default path is
+  unchanged) makes the read-ahead read no page of an inactive column:
+  - A range is a run of active pages in file order, and an inactive page ends
+    it. The default merges active pages up to 1 MiB apart and streams the
+    inactive pages between them.
+  - Pages of projected fields count for the projection. CustomNanoAOD RNTuples
+    store each collection once (`_collectionN`) and expose the flat names
+    (`Jet_pt`) as projected fields: 1033 of the 2398 top-level fields of the
+    TTLJ smoke file. The default layout gives a physical column to the first
+    field that lists it, so an activated projection has no pages. As a result
+    the default read-ahead covers 59 MB of the 2.11 GB of active pages per
+    TTLJ file, the same for every analyzer flag set.
+  - When nothing is active at open (the first file of a job), the read-ahead
+    waits until no field has been activated for 100 entries. The default reads
+    the whole span of the first `N + 1` clusters instead. The loader opens the
+    first file twice (`Init`, then the loop), so this happens twice: 703 MB on
+    the TTLJ smoke file, the second time from the page cache.
+  - ROOT's cluster reads still coalesce across gaps
+    (`rntuple_read_overhead_bytes`, about 21 % of the payload on TTLJ). Those
+    inactive bytes are read in both modes. With the cluster cache also off
+    (`SKNanoLoader::rntupleClusterCache = false`; no environment switch), ROOT
+    reads single pages from the page cache and `/gv0` serves 2.202 GB
+    (production) and 1.210 GB (V0Only) in one run each.
+  - TTLJ files (274k events, 2.83 GB), one file per job, 2-3 runs per row on
+    different files. The file's page cache is dropped before each run, and the
+    bytes from `/gv0` are its page-cache residency after the run:
+
+    | flags | mode | bytes from `/gv0` | read-ahead bytes / ranges | ROOT read wait |
+    |---|---|---|---|---|
+    | production (417 fields) | default | 2.643 GB | 0.755 GB / 25 | 4.8–6.5 s |
+    | production | skip | 2.577 GB | 2.10–2.11 GB / 1226–1229 | 3.4–4.2 s |
+    | V0Only (343 fields) | default | 1.547 GB | 0.755 GB / 25 | 4.0–7.2 s |
+    | V0Only | skip | 1.363 GB | 1.108 GB / 1203–1207 | 1.8–4.6 s |
+
+    The bytes saved (66 MB and 184 MB) are inactive pages of the first three
+    clusters that ROOT does not read itself, so the saving applies once per
+    job and not once per file.
+    Analyzer outputs are bit-identical in the two modes.
+- Analyzer jobs do not inherit the submitting shell's environment, so
+  `SKNano.py` writes every `SKNANO_INPUT_PREFETCH*` variable that is set at
+  submission into the job's `run.sh`.
 - Analyzer datasets booked through `Output().Book()` are written as RNTuples.
   Histograms remain ordinary ROOT histogram objects in the same file.
 - Analyzer RNTuple output uses LZ4 level 1 (levels above 1 switch ROOT to

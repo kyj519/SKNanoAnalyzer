@@ -1,14 +1,23 @@
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
+#include <thread>
 #include <typeindex>
 #include <unistd.h>
+#include <unordered_set>
 #include <vector>
 
+#include <ROOT/RField.hxx>
+#include <ROOT/RNTupleDescriptor.hxx>
 #include <ROOT/RNTupleModel.hxx>
+#include <ROOT/RNTupleReader.hxx>
+#include <ROOT/RNTupleWriteOptions.hxx>
 #include <ROOT/RNTupleWriter.hxx>
 #include <ROOT/RVec.hxx>
 #include <TFile.h>
@@ -238,6 +247,83 @@ TEST_F(FriendSourceTest, UnknownFormatVersionIsRejected) {
     SKNano::RNTupleSource source;
     source.open("Events", primary_);
     EXPECT_THROW(source.addFriend(friendFile("v2.root", spec)), SKNano::ConfigError);
+}
+
+// Read-ahead bytes of one file: three uncompressed clusters laid out A|B|C,
+// B never active.  Default merges A..C across B; SKNANO_INPUT_PREFETCH_SKIP_INACTIVE
+// reads exactly the active pages, and with nothing active at open waits until
+// the activated set has settled.
+std::uint64_t PrefetchBytes(const std::string &path, bool skip,
+                            const std::unordered_set<std::string> &atOpen,
+                            const std::unordered_set<std::string> &afterEntry0) {
+    if (skip)
+        ::setenv("SKNANO_INPUT_PREFETCH_SKIP_INACTIVE", "1", 1);
+    SKNano::RNTupleSource source;
+    source.open("Events", path, false, true, 2, &atOpen);
+    ::unsetenv("SKNANO_INPUT_PREFETCH_SKIP_INACTIVE");
+    source.noteEntry(0, &atOpen);
+    for (std::uint64_t entry = 1; entry < 200; ++entry) // past the settle hold
+        source.noteEntry(entry, &afterEntry0);
+    for (int wait = 0; wait < 10000 && source.readStats().prefetchClusters < 3; ++wait)
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    EXPECT_EQ(source.readStats().prefetchClusters, 3U);
+    return source.readStats().prefetchBytes;
+}
+
+std::uint64_t PageBytes(const std::string &path, const std::string &name) {
+    auto reader = ROOT::RNTupleReader::Open("Events", path);
+    const auto &descriptor = reader->GetDescriptor();
+    std::uint64_t bytes = 0;
+    std::function<void(const ROOT::RFieldDescriptor &)> add =
+        [&](const ROOT::RFieldDescriptor &field) {
+            for (const auto &column : descriptor.GetColumnIterable(field))
+                for (const auto &cluster : descriptor.GetClusterIterable())
+                    for (const auto &page :
+                         cluster.GetPageRange(column.GetPhysicalId()).GetPageInfos())
+                        bytes += page.GetLocator().GetNBytesOnStorage();
+            for (const auto &child : descriptor.GetFieldIterable(field))
+                add(child);
+        };
+    add(descriptor.GetFieldDescriptor(descriptor.FindFieldId(name)));
+    return bytes;
+}
+
+TEST_F(FriendSourceTest, PrefetchSkipModeReadsOnlyActivePages) {
+    const auto path = (dir_ / "layout.root").string();
+    {
+        auto model = ROOT::RNTupleModel::Create();
+        std::vector<std::shared_ptr<RVec<float>>> fields;
+        for (const char *name : {"A_x", "B_x", "C_x"})
+            fields.push_back(model->MakeField<RVec<float>>(name));
+        // CustomNanoAOD style: P_x is a projection reading A_x's columns.
+        model->AddProjectedField(std::make_unique<ROOT::RField<RVec<float>>>("P_x"),
+                                 [](const std::string &name) {
+                                     return name == "P_x" ? "A_x" : "A_x._0";
+                                 }).ThrowOnError();
+        ROOT::RNTupleWriteOptions options;
+        options.SetCompression(0);
+        auto writer = ROOT::RNTupleWriter::Recreate(std::move(model), "Events", path, options);
+        for (int entry = 0; entry < 3000; ++entry) {
+            for (std::size_t i = 0; i < fields.size(); ++i) // distinct: RNTuple dedups pages
+                fields[i]->assign(64 + i, static_cast<float>(3 * entry + i));
+            writer->Fill();
+            if (entry % 1000 == 999)
+                writer->CommitCluster();
+        }
+    }
+    const auto a = PageBytes(path, "A_x"), b = PageBytes(path, "B_x"),
+               c = PageBytes(path, "C_x");
+    const std::unordered_set<std::string> none, ac{"A_x", "C_x"}, onlyA{"A_x"},
+        projection{"P_x"};
+    // Merged neighbours also cover the 8-byte checksum of each page.
+    const auto skipAC = PrefetchBytes(path, true, ac, ac);
+    EXPECT_GE(skipAC, a + c);
+    EXPECT_LT(skipAC, a + c + 1024);
+    EXPECT_GE(PrefetchBytes(path, false, ac, ac), a + b + c); // B streamed through
+    const auto skipA = PrefetchBytes(path, true, none, onlyA);
+    EXPECT_GE(skipA, a);
+    EXPECT_LT(skipA, a + 1024);
+    EXPECT_EQ(PrefetchBytes(path, true, projection, projection), skipA);
 }
 
 } // namespace

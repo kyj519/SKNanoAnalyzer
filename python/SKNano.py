@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #This it the preliminary version of SKFlat.py
 #Using htcondor python binding and DAGMAN workflow manager
-import os, shutil
+import os, shlex, shutil
 import warnings
 import argparse
 try:
@@ -1103,6 +1103,11 @@ def makeMainAnalyzerJobs(working_dir,abs_MasterDirectoryName,totalNumberOfJobs, 
     run_content = run_content.replace("[WORKDIR]", working_dir)
     run_content = run_content.replace("[SKNANO_RUNLOG_LIB]", os.path.join(abs_MasterDirectoryName, 'lib'))
     run_content = run_content.replace("[ROOT_INCLUDE_PATH]", inclpath)
+    # Analyzer jobs do not inherit the submitting shell, so the input
+    # read-ahead knobs (docs/RNTupleIO.md) are written into run.sh.
+    run_content = run_content.replace("[INPUT_PREFETCH_ENV]", "".join(
+        f"export {name}={shlex.quote(value)}\n" for name, value in sorted(os.environ.items())
+        if name.startswith("SKNANO_INPUT_PREFETCH")))
     with open(os.path.join(working_dir,"run.sh"),'w') as f:
         f.write(run_content)
 

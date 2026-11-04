@@ -15,6 +15,7 @@
 #include <limits>
 #include <condition_variable>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <functional>
@@ -139,10 +140,18 @@ public:
         std::vector<Cluster> clusters;
     };
 
+    // skipInactive (SKNANO_INPUT_PREFETCH_SKIP_INACTIVE, off by default):
+    // never read a page of an inactive column.  With nothing active at open
+    // (first file of a job) the read-ahead is held until the lazily activated
+    // set has settled, and two active pages are merged into one read only
+    // when no inactive page lies between them.
     InputPrefetcher(const std::string &path, Layout layout, unsigned window,
-                    std::unordered_set<std::string> activeFields)
-        : layout_(std::move(layout)), window_(window) {
+                    std::unordered_set<std::string> activeFields,
+                    bool skipInactive)
+        : layout_(std::move(layout)), window_(window),
+          skipInactive_(skipInactive) {
         setActiveFields(std::move(activeFields));
+        hold_ = skipInactive_ && activeCount_ == 0;
         auto &clusters_ = layout_.clusters;
         if (clusters_.empty())
             return;
@@ -192,7 +201,11 @@ public:
 
     void noteEntry(std::uint64_t entry,
                    const std::unordered_set<std::string> *activeFields) {
-        if (fd_ < 0 || entry < clusterEnd_)
+        if (fd_ < 0)
+            return;
+        if (hold_)
+            settle(entry, activeFields);
+        if (entry < clusterEnd_)
             return;
         const auto &clusters_ = layout_.clusters;
         // Sequential loops cross one boundary at a time; a jump lands on the
@@ -218,6 +231,28 @@ public:
 
 private:
     static constexpr std::size_t kChunkBytes = 4U * 1024U * 1024U;
+    // Entries without a newly activated field that end the hold.  An early
+    // rejected event activates only the fields of its cut (TTLJ smoke: 417
+    // fields by entry 9, so the hold ends at entry 109).
+    static constexpr std::uint64_t kSettleEntries = 100;
+
+    void settle(std::uint64_t entry,
+                const std::unordered_set<std::string> *activeFields) {
+        if (activeFields && activeFields->size() != activeNames_) {
+            setActiveFields(*activeFields);
+            quiet_ = 0;
+            return;
+        }
+        if (++quiet_ < kSettleEntries || activeCount_ == 0)
+            return;
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            hold_ = false;
+        }
+        wake_.notify_one();
+        std::cout << "[RNTupleSource] read-ahead of active pages starts at entry "
+                  << entry << " (" << activeCount_ << " fields)" << std::endl;
+    }
 
     void run() {
         std::vector<char> buffer(kChunkBytes);
@@ -228,7 +263,9 @@ private:
             std::size_t target = 0;
             {
                 std::unique_lock<std::mutex> lock(mutex_);
-                wake_.wait(lock, [&] { return stop_ || target_ != lastTarget; });
+                wake_.wait(lock, [&] {
+                    return stop_ || (!hold_ && target_ != lastTarget);
+                });
                 if (stop_)
                     return;
                 target = target_;
@@ -259,7 +296,10 @@ private:
             active = activeCount_;
         }
         if (active == 0)
-            return {cluster.span};
+            return skipInactive_ ? std::vector<Range>{}
+                                 : std::vector<Range>{cluster.span};
+        if (skipInactive_)
+            return activeRuns(cluster, mask);
         std::vector<Range> pages;
         for (std::size_t field = 0; field < mask.size(); ++field) {
             if (!mask[field] || field >= cluster.pagesByField.size())
@@ -290,6 +330,49 @@ private:
         return ranges;
     }
 
+    // Skip mode: maximal runs of active pages in file order.  An inactive
+    // page ends a run, so no inactive byte is read; the gap inside a run
+    // holds only non-page bytes (page checksums) and stays capped.  RNTuple
+    // writes identical pages once, so an inactive page may share the bytes of
+    // an active one: active sorts first and such a page is not a break.
+    static std::vector<Range> activeRuns(const Cluster &cluster,
+                                         const std::vector<bool> &mask) {
+        std::vector<std::pair<Range, bool>> pages;
+        for (std::size_t field = 0; field < cluster.pagesByField.size(); ++field) {
+            const bool on = field < mask.size() && mask[field];
+            for (const auto &page : cluster.pagesByField[field])
+                pages.emplace_back(page, on);
+        }
+        std::sort(pages.begin(), pages.end(), [](const auto &lhs, const auto &rhs) {
+            return lhs.first.offset != rhs.first.offset
+                       ? lhs.first.offset < rhs.first.offset
+                       : lhs.second > rhs.second;
+        });
+        constexpr std::uint64_t kMaxGap = 1024U * 1024U;
+        std::vector<Range> ranges;
+        bool open = false;
+        for (const auto &[page, on] : pages) {
+            if (!on) {
+                if (open && page.offset < ranges.back().offset + ranges.back().size)
+                    continue; // shares the bytes of an active page
+                open = false;
+                continue;
+            }
+            if (open) {
+                auto &last = ranges.back();
+                const std::uint64_t lastEnd = last.offset + last.size;
+                if (page.offset <= lastEnd + kMaxGap) {
+                    last.size =
+                        std::max(lastEnd, page.offset + page.size) - last.offset;
+                    continue;
+                }
+            }
+            ranges.push_back(page);
+            open = true;
+        }
+        return ranges;
+    }
+
     void warm(const Cluster &cluster, std::vector<char> &buffer) {
         for (const auto &range : rangesFor(cluster)) {
             std::uint64_t offset = range.offset;
@@ -313,6 +396,9 @@ private:
 
     Layout layout_;
     unsigned window_ = 0;
+    bool skipInactive_ = false;
+    bool hold_ = false;        // written by the main thread under mutex_
+    std::uint64_t quiet_ = 0;  // main thread only
     int fd_ = -1;
     // Active-field mask, shared with the I/O thread under mutex_.
     std::vector<bool> activeMask_;
@@ -336,14 +422,23 @@ private:
 // per file: for every cluster, the pages of every top-level field (all of its
 // columns, sub-fields included) and the whole-cluster extent.
 InputPrefetcher::Layout
-BuildPrefetchLayout(const ROOT::RNTupleDescriptor &descriptor) {
+BuildPrefetchLayout(const ROOT::RNTupleDescriptor &descriptor,
+                    bool withProjections) {
     InputPrefetcher::Layout layout;
     // physical column id -> top-level field index
     std::unordered_map<ROOT::DescriptorId_t, std::size_t> columnField;
+    // A projected field (CustomNanoAOD `Jet_pt` onto `_collectionN`, 1033 of
+    // 2398 top-level fields) reads another field's physical columns through
+    // alias columns, and `columnField` credits a column to its first field
+    // only, so an active projection has no pages of its own.
+    // withProjections (skip mode) credits them to every field that reads them.
+    std::vector<std::pair<ROOT::DescriptorId_t, std::size_t>> projections;
     std::function<void(const ROOT::RFieldDescriptor &, std::size_t)> collect =
         [&](const ROOT::RFieldDescriptor &field, std::size_t index) {
             for (const auto &column : descriptor.GetColumnIterable(field))
-                columnField.emplace(column.GetPhysicalId(), index);
+                if (!columnField.emplace(column.GetPhysicalId(), index).second &&
+                    withProjections)
+                    projections.emplace_back(column.GetPhysicalId(), index);
             for (const auto &child : descriptor.GetFieldIterable(field))
                 collect(child, index);
         };
@@ -385,6 +480,17 @@ BuildPrefetchLayout(const ROOT::RNTupleDescriptor &descriptor) {
                 out.pagesByField[fieldIndex].push_back(range);
                 begin = std::min(begin, range.offset);
                 end = std::max(end, range.offset + range.size);
+            }
+        }
+        for (const auto &[columnId, fieldIndex] : projections) {
+            if (!cluster.ContainsColumn(columnId))
+                continue;
+            for (const auto &page : cluster.GetPageRange(columnId).GetPageInfos()) {
+                const auto &locator = page.GetLocator();
+                if (locator.GetType() == ROOT::RNTupleLocator::ELocatorType::kTypeFile)
+                    out.pagesByField[fieldIndex].push_back(
+                        {locator.GetPosition<std::uint64_t>(),
+                         locator.GetNBytesOnStorage()});
             }
         }
         if (end <= begin)
@@ -516,12 +622,21 @@ public:
             return nullptr;
         const std::string path =
             fileName.compare(0, 7, "file://") == 0 ? fileName.substr(7) : fileName;
+        const char *skip = std::getenv("SKNANO_INPUT_PREFETCH_SKIP_INACTIVE");
+        const bool skipInactive = skip && std::strtol(skip, nullptr, 10) > 0;
+        static std::once_flag announced;
+        if (skipInactive)
+            std::call_once(announced, [] {
+                std::cout << "[RNTupleSource] input prefetch reads active "
+                             "column pages only" << std::endl;
+            });
         try {
-            auto layout = BuildPrefetchLayout(source.GetDescriptor());
+            auto layout = BuildPrefetchLayout(source.GetDescriptor(), skipInactive);
             if (layout.clusters.empty())
                 return nullptr;
             return std::make_unique<InputPrefetcher>(
-                path, std::move(layout), prefetchClusters, prefetchFields);
+                path, std::move(layout), prefetchClusters, prefetchFields,
+                skipInactive);
         } catch (const std::exception &error) {
             std::cerr << "[RNTupleSource] prefetch disabled for " << fileName
                       << ": " << error.what() << std::endl;
