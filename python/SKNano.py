@@ -589,6 +589,7 @@ def writeRunManifest(master_dir, argparser, userflags, dag_list, source_snapshot
             'max_event_errors': argparser.MaxEventErrors,
             'no_hadd': argparser.no_hadd,
             'no_exec': argparser.no_exec,
+            'JobSubset': json.load(open(argparser.JobSubset)) if argparser.JobSubset else None,
         },
         'samples': [
             {
@@ -771,7 +772,9 @@ def setParser():
     parser.add_argument('--merge-batch-cache-size', dest='MergeBatchCacheSize', default='512m',
     help="hadd -cachesize for each concurrent merge process, both group merges and batch merges; budget --merge-jobs times this against the merge job's memory request")
     parser.add_argument('--no_exec', action='store_true', default=False, help="only produce working area, not submitting to the condor pool")
-    
+    parser.add_argument('--jobs', dest='JobSubset', default="",
+    help="JSON {sample: [job indices]}: put only these analyzer jobs in the DAG (job i keeps its files and writes hists_<i>.root, as without the option)")
+
     #Note: this option will change the behavior of the script. output directory will be changed to Your GV0, hadd will be disabled, and will create the info json of skimmed tree   
     return parser
 
@@ -1298,10 +1301,17 @@ def getEachAnalyzerToPostDag(kwarg):
     if totalNumberOfJobs == 0:
         return
     
+    procs = range(1, totalNumberOfJobs+1)
+    if args.JobSubset:  # args: the parser result of __main__
+        keep = sorted(set(json.load(open(args.JobSubset))[kwarg['sample']]))
+        if partial_sub_dict is not None or not keep or keep[0] < 0 or keep[-1] >= totalNumberOfJobs:
+            raise SystemExit(f"--jobs: bad subset for {kwarg['sample']} ({totalNumberOfJobs} jobs, no --merge-group-size)")
+        procs = [i + 1 for i in keep]  # node Process = i + 1 runs job_<i+1>.cc -> hists_<i>.root
+
     analyzer_layer = {
         'name' : f"Analyzer_{batchname}",
         'submit_description': htcondor.Submit(analyzer_sub_dict),
-        'vars' : [{"Process":str(i)} for i in range(1,totalNumberOfJobs+1)]
+        'vars' : [{"Process":str(i)} for i in procs]
     }
 
     # Analyzer node index j wrote output/hists_j.root, so consecutive chunks of
