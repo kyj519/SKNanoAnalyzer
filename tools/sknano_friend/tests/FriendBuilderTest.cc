@@ -74,6 +74,8 @@ struct AuxSpec {
     std::vector<Event> events;               // in scrambled order
     std::uint64_t jetMismatchEvent = 0;      // write three jets for this event
     std::int64_t filtered = 0;               // events read but not written (Runs.genEventCount)
+    std::string extraBool;                   // one more field, e.g. a trigger bit of this file's menu
+    bool pullAsDouble = false;               // write the carried Jet_pullY as double
 };
 
 void WriteAux(const std::string &path, const AuxSpec &spec) {
@@ -84,7 +86,14 @@ void WriteAux(const std::string &path, const AuxSpec &spec) {
         auto event = model->MakeField<std::uint64_t>("event");
         auto nJet = model->MakeField<std::uint32_t>("nJet");
         auto jetPt = model->MakeField<RVec<float>>("Jet_pt");
-        auto jetPull = model->MakeField<RVec<float>>("Jet_pullY");
+        std::shared_ptr<RVec<float>> jetPull;
+        std::shared_ptr<RVec<double>> jetPullDouble;
+        if (spec.pullAsDouble)
+            jetPullDouble = model->MakeField<RVec<double>>("Jet_pullY");
+        else
+            jetPull = model->MakeField<RVec<float>>("Jet_pullY");
+        if (!spec.extraBool.empty())
+            model->MakeField<bool>(spec.extraBool);
         auto nGenPart = model->MakeField<std::uint32_t>("nGenPart");
         auto genPt = model->MakeField<RVec<float>>("GenPart_pt");
         auto nLambda = model->MakeField<std::uint32_t>("nLambda");
@@ -97,7 +106,10 @@ void WriteAux(const std::string &path, const AuxSpec &spec) {
             *event = e.event;
             const std::size_t jets = e.event == spec.jetMismatchEvent ? 3 : 2;
             *jetPt = RVec<float>(jets, 1.f);
-            *jetPull = RVec<float>(jets, 0.25f);
+            if (jetPull)
+                *jetPull = RVec<float>(jets, 0.25f);
+            else
+                *jetPullDouble = RVec<double>(jets, 0.25);
             *nJet = jets;
             *genPt = {20.f, 30.f};
             *nGenPart = 2;
@@ -347,6 +359,41 @@ TEST_F(FriendBuilderTest, DuplicateEventAcrossAuxFilesIsFatal) {
     WriteAux(dup, {{11}, {{11, 106}}}); // 106 is already in aux0
     options.aux.push_back(dup);
     EXPECT_THROW(sknano_friend::BuildFriend(options), std::runtime_error);
+}
+
+TEST_F(FriendBuilderTest, AuxSchemasMayDifferOnlyInFieldsTheFriendDoesNotCarry) {
+    std::vector<Event> second;
+    for (const auto &e : CentralEvents())
+        if (e.lumi == 13)
+            second.push_back(e);
+    const auto extra = (dir_ / "extra1.root").string();
+    const auto retyped = (dir_ / "retyped1.root").string();
+    WriteAux(extra, {{13}, second, 0, 0, "HLT_OnlyInThisMenu"});
+    WriteAux(retyped, {{13}, second, 0, 0, "", true});
+    auto options = Options();
+    const auto error = [&] {
+        try {
+            sknano_friend::BuildFriend(options);
+        } catch (const std::runtime_error &e) {
+            return std::string(e.what());
+        }
+        return std::string();
+    };
+
+    // A field only a later aux file has is not carried, so it may differ.
+    options.aux = {aux0_, extra};
+    const auto report = sknano_friend::BuildFriend(options);
+    EXPECT_EQ(report.nStatus[0], 14U);
+    EXPECT_EQ(std::count(report.fields.begin(), report.fields.end(), "HLT_OnlyInThisMenu"), 0);
+    EXPECT_EQ(sknano_friend::CheckFriend(options.out, central_).mismatches, 0U);
+
+    // A carried field must be in every aux file, with one type.
+    options.out = (dir_ / "out" / "retyped.root").string();
+    options.aux = {aux0_, retyped};
+    EXPECT_NE(error().find("has field Jet_pullY as ROOT::VecOps::RVec<double>"), std::string::npos);
+    options.aux = {extra, aux0_}; // now the first file's extra field is carried
+    EXPECT_NE(error().find("lacks field HLT_OnlyInThisMenu"), std::string::npos);
+    EXPECT_FALSE(fs::exists(options.out));
 }
 
 TEST_F(FriendBuilderTest, ExtensionRowCountMismatchIsFatal) {

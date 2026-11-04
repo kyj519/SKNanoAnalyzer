@@ -223,7 +223,7 @@ BuildReport BuildFriend(const BuildOptions &options) {
     //    the normalisation of a filtered production.
     std::unordered_map<Key, Loc, KeyHash> locations;
     locations.reserve(entries);
-    std::map<std::string, std::string> auxTypes;
+    std::vector<std::map<std::string, std::string>> auxFileTypes;
     std::int64_t auxRead = 0, auxWritten = 0;
     // Filtered data has no pre-filter count, but a lumi its LuminosityBlocks
     // never list was certainly not processed: those events are lost, not
@@ -260,12 +260,7 @@ BuildReport BuildFriend(const BuildOptions &options) {
                     std::to_string(reader->GetNEntries()) +
                     ": the production filters events; declare it filtered");
         }
-        auto types = TopLevelTypes(*reader);
-        if (a == 0)
-            auxTypes = std::move(types);
-        else if (types != auxTypes)
-            throw std::runtime_error("aux file " + file +
-                                     " has a different schema than " + options.aux[0]);
+        auxFileTypes.push_back(TopLevelTypes(*reader));
         auto run = reader->GetView<std::uint32_t>("run");
         auto lumi = reader->GetView<std::uint32_t>("luminosityBlock");
         auto event = reader->GetView<std::uint64_t>("event");
@@ -283,6 +278,8 @@ BuildReport BuildFriend(const BuildOptions &options) {
     }
 
     // 3. Which aux fields the friend carries, and which counts to cross-check.
+    //    The first aux file decides; the others need only what it takes.
+    const auto &auxTypes = auxFileTypes.front();
     std::vector<std::pair<std::string, std::string>> selected; // name, aux type
     for (const auto &[name, type] : auxTypes) {
         if (IsReserved(name) || type.empty() || name.rfind("_", 0) == 0)
@@ -306,6 +303,26 @@ BuildReport BuildFriend(const BuildOptions &options) {
             continue;
         checkedCounts.push_back(count);
     }
+    // Every aux file must hold the keys, the carried fields and the checked
+    // counts with the first file's types.  Other fields may differ: in data
+    // the L1_*/HLT_* set follows the trigger menu of the runs a file holds.
+    // A trigger bit the central file lacks is carried, hence required too.
+    std::vector<std::string> required{"run", "luminosityBlock", "event"};
+    for (const auto &[name, type] : selected)
+        required.push_back(name);
+    required.insert(required.end(), checkedCounts.begin(), checkedCounts.end());
+    for (std::uint32_t a = 1; a < options.aux.size(); ++a)
+        for (const auto &name : required) {
+            const auto found = auxFileTypes[a].find(name);
+            if (found == auxFileTypes[a].end())
+                throw std::runtime_error("aux file " + options.aux[a] + " lacks field " + name +
+                                         ", which the friend needs (" + auxTypes.at(name) +
+                                         " in " + options.aux[0] + ")");
+            if (found->second != auxTypes.at(name))
+                throw std::runtime_error("aux file " + options.aux[a] + " has field " + name +
+                                         " as " + found->second + ", which the friend needs as " +
+                                         auxTypes.at(name) + " (" + options.aux[0] + ")");
+        }
     for (const auto &[name, type] : selected)
         report.fields.push_back(name);
     report.checkedCounts = checkedCounts;
