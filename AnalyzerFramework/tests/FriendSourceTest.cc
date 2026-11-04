@@ -324,6 +324,7 @@ TEST_F(FriendSourceTest, PrefetchSkipModeReadsOnlyActivePages) {
     EXPECT_GE(skipA, a);
     EXPECT_LT(skipA, a + 1024);
     EXPECT_EQ(PrefetchBytes(path, true, projection, projection), skipA);
+    EXPECT_GE(PrefetchBytes(path, false, projection, projection), a); // default too
 }
 
 } // namespace

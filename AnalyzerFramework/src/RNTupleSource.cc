@@ -422,22 +422,20 @@ private:
 // per file: for every cluster, the pages of every top-level field (all of its
 // columns, sub-fields included) and the whole-cluster extent.
 InputPrefetcher::Layout
-BuildPrefetchLayout(const ROOT::RNTupleDescriptor &descriptor,
-                    bool withProjections) {
+BuildPrefetchLayout(const ROOT::RNTupleDescriptor &descriptor) {
     InputPrefetcher::Layout layout;
     // physical column id -> top-level field index
     std::unordered_map<ROOT::DescriptorId_t, std::size_t> columnField;
     // A projected field (CustomNanoAOD `Jet_pt` onto `_collectionN`, 1033 of
     // 2398 top-level fields) reads another field's physical columns through
     // alias columns, and `columnField` credits a column to its first field
-    // only, so an active projection has no pages of its own.
-    // withProjections (skip mode) credits them to every field that reads them.
+    // only; the pages are credited to every other field that reads them too,
+    // or an active projection would have no pages of its own.
     std::vector<std::pair<ROOT::DescriptorId_t, std::size_t>> projections;
     std::function<void(const ROOT::RFieldDescriptor &, std::size_t)> collect =
         [&](const ROOT::RFieldDescriptor &field, std::size_t index) {
             for (const auto &column : descriptor.GetColumnIterable(field))
-                if (!columnField.emplace(column.GetPhysicalId(), index).second &&
-                    withProjections)
+                if (!columnField.emplace(column.GetPhysicalId(), index).second)
                     projections.emplace_back(column.GetPhysicalId(), index);
             for (const auto &child : descriptor.GetFieldIterable(field))
                 collect(child, index);
@@ -631,7 +629,7 @@ public:
                              "column pages only" << std::endl;
             });
         try {
-            auto layout = BuildPrefetchLayout(source.GetDescriptor(), skipInactive);
+            auto layout = BuildPrefetchLayout(source.GetDescriptor());
             if (layout.clusters.empty())
                 return nullptr;
             return std::make_unique<InputPrefetcher>(

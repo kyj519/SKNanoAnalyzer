@@ -60,25 +60,31 @@ switch readers at file boundaries while preserving lazy field state.
   cache. It follows the analyzer's lazy field activation: the loader hands the
   activated top-level fields over at each boundary and only their columns are
   read ahead (the whole cluster span while none is active yet, i.e. the first
-  cluster of the first file). It never hands data to ROOT, so it cannot change
-  a result. Default window `N = 2` clusters; `SKNANO_INPUT_PREFETCH=0` turns it
+  cluster of the first file). Active pages up to 1 MiB apart are read as one
+  range. A physical column belongs to every top-level field that reads it:
+  CustomNanoAOD RNTuples store each collection once (`_collectionN`) and expose
+  the flat names (`Jet_pt`) as projected fields through alias columns, 1033 of
+  the 2398 top-level fields of the TTLJ smoke file. It never hands data to
+  ROOT, so it cannot change a result. Default window `N = 2` clusters; `SKNANO_INPUT_PREFETCH=0` turns it
   off, `N > 1` sets the window. Remote (`root://`, `http://`) inputs are left
   alone. Measured on one CustomBPH data file at idle storage: ROOT's own
   read-wait time went from 7.9 s to 1.4 s (data) and 4.2 s to 0.5 s (MC, 60k
   events); under a loaded mount the same read of 262 columns took 138 s cold
   against 38 s page-cache-warm.
-- `SKNANO_INPUT_PREFETCH_SKIP_INACTIVE=1` (off by default; the default path is
-  unchanged) makes the read-ahead read no page of an inactive column:
+- Until 2026-11-04 the page table gave a column only to the first field that
+  lists it, so an activated projection had no pages. The read-ahead then
+  covered 59 MB of the 2.11 GB of active pages per TTLJ file, for every flag
+  set, and ROOT read the rest itself. On the same TTLJ files (table below),
+  fixing it moved the default read-ahead from 0.755 GB / 25 ranges to
+  2.72-2.73 GB / 118 (production flags) and 1.84 GB / 137 (V0Only). ROOT's
+  read wait fell from 5.9 to 2.0 s and from 5.7 to 0.7 s. The bytes from
+  `/gv0` rose by 5 MB and 30 MB per file: the 1 MiB merging streams inactive
+  pages that ROOT does not read.
+- `SKNANO_INPUT_PREFETCH_SKIP_INACTIVE=1` (off by default) makes the read-ahead
+  read no page of an inactive column:
   - A range is a run of active pages in file order, and an inactive page ends
     it. The default merges active pages up to 1 MiB apart and streams the
     inactive pages between them.
-  - Pages of projected fields count for the projection. CustomNanoAOD RNTuples
-    store each collection once (`_collectionN`) and expose the flat names
-    (`Jet_pt`) as projected fields: 1033 of the 2398 top-level fields of the
-    TTLJ smoke file. The default layout gives a physical column to the first
-    field that lists it, so an activated projection has no pages. As a result
-    the default read-ahead covers 59 MB of the 2.11 GB of active pages per
-    TTLJ file, the same for every analyzer flag set.
   - When nothing is active at open (the first file of a job), the read-ahead
     waits until no field has been activated for 100 entries. The default reads
     the whole span of the first `N + 1` clusters instead. The loader opens the
@@ -96,15 +102,17 @@ switch readers at file boundaries while preserving lazy field state.
 
     | flags | mode | bytes from `/gv0` | read-ahead bytes / ranges | ROOT read wait |
     |---|---|---|---|---|
-    | production (417 fields) | default | 2.643 GB | 0.755 GB / 25 | 4.8–6.5 s |
-    | production | skip | 2.577 GB | 2.10–2.11 GB / 1226–1229 | 3.4–4.2 s |
-    | V0Only (343 fields) | default | 1.547 GB | 0.755 GB / 25 | 4.0–7.2 s |
-    | V0Only | skip | 1.363 GB | 1.108 GB / 1203–1207 | 1.8–4.6 s |
+    | production (417 fields) | default | 2.649 GB | 2.72–2.73 GB / 118 | 1.5–2.5 s |
+    | production | skip | 2.577 GB | 2.10–2.11 GB / 1226–1229 | 3.3–4.2 s |
+    | V0Only (343 fields) | default | 1.577 GB | 1.84 GB / 137 | 0.6–0.7 s |
+    | V0Only | skip | 1.363 GB | 1.108 GB / 1203–1207 | 1.7–4.6 s |
 
-    The bytes saved (66 MB and 184 MB) are inactive pages of the first three
-    clusters that ROOT does not read itself, so the saving applies once per
-    job and not once per file.
-    Analyzer outputs are bit-identical in the two modes.
+    Skip saves 72 MB and 215 MB per one-file job on the same file. Most of it
+    is the inactive pages of the first three clusters, which are read once per
+    job. The 1 MiB merging adds about 5 MB and 30 MB per file. Skip issues ten
+    times more ranges and its ROOT read wait was longer here, likely because
+    ROOT reads the start of the first file cold until the hold ends. Analyzer
+    outputs are bit-identical in the two modes.
 - Analyzer jobs do not inherit the submitting shell's environment, so
   `SKNano.py` writes every `SKNANO_INPUT_PREFETCH*` variable that is set at
   submission into the job's `run.sh`.
