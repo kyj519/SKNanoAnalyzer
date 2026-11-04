@@ -104,8 +104,17 @@ hadron_av6_prefilter:
   filter_note: "HLT(IsoMu24|Ele30_WPTight_Gsf) AND >=2 b-tag candidates"
   sources:
     - /gv0/DATA/SKNano/CustomNanoAODv15/hadron_av6_rntuple640/{era}/{PD}/**/*.root
+  exclude_files: data/av6_input_exclusions.txt   # builder only: pool files never read
   samples: [TTLL_powheg, Muon0, EGamma0]
 ```
+
+`exclude_files` (a list of paths, or a text file of paths relative to the
+`friends.yml`, `#` comments) removes files from what `sources` matches. Use it
+for pool files whose events another file also holds -- the output of a CRAB
+job that failed after it reached the SE and whose lumis another job redid, or
+a superseded task -- since the builder refuses a duplicate event. A filtered
+MC production's `norm` then counts only the files read. A full-copy sample
+json takes the same key (a list of absolute paths) on top of its `path_glob`.
 
 A pool produced partly with and partly without a filter is two productions.
 The submission (`SKNano.py`) and the builder read the same file, so a
@@ -158,7 +167,8 @@ own `eras` and `samples` are used. `--local` builds on this machine instead of
 condor.
 
 `build` caches a lumi → aux files index per (production, era, PD) under
-`<production>/_index/`, picks every aux file holding part of a lumi of the
+`<production>/_index/` (an index of the whole pool is reused, unchanged on
+disk, when `exclude_files` removes files from it), picks every aux file holding part of a lumi of the
 central file (a lumi may be spread over several files on either side; each
 central file is built on its own and only its events are joined), and
 runs the builder locally or as one condor job per central file
@@ -166,7 +176,10 @@ runs the builder locally or as one condor job per central file
 module ships). Everything one invocation builds goes into a single condor
 cluster, so `--nmax` bounds it as a whole. A central file no aux file covers
 is still built, with none of its events analysed, and listed at the end.
-Existing friends are skipped unless `--force`.
+Existing friends are skipped unless `--force`; `--central-files list.txt`
+builds only the central files listed (one path per line), e.g. the ones whose
+build failed, together with `--force` for friends built from a file that has
+since been excluded.
 
 Condor jobs stage under `<production>/_scratch/` on the shared friend root
 rather than on the worker: on the SNU workers `/tmp` and the condor scratch

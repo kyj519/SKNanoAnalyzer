@@ -87,6 +87,23 @@ class FriendConfigTest(unittest.TestCase):
         self.assertEqual(p.friend_path("/other/place/a.root"),
                          str(self.friend_root / "hadron_av6" / "other" / "place" / "a.root"))
 
+    def test_exclude_files_leave_the_sources_and_the_sample(self):
+        from python.sample_paths import resolve_sample_paths
+        pool = Path(self.tmp.name) / "pool" / "2024" / "PD" / "task"
+        pool.mkdir(parents=True)
+        for name in ("a", "b", "c"):
+            (pool / f"{name}.root").write_bytes(b"")
+        (self.module / "skip.txt").write_text(f"# CRAB failed\n{pool}/b.root  # redone by c\n",
+                                              encoding="utf-8")
+        (self.module / fc.FRIENDS_FILENAME).write_text(
+            f"p:\n  analyzers: [A]\n  sources: ['{self.tmp.name}/pool/{{era}}/{{PD}}/**/*.root']\n"
+            "  exclude_files: skip.txt\n", encoding="utf-8")
+        p = fc.load_module_friends(str(self.module))[0]
+        self.assertEqual(p.exclude_files, [str(pool / "b.root")])
+        self.assertEqual(p.source_files("2024", "PD"), [str(pool / "a.root"), str(pool / "c.root")])
+        spec = {"isMC": 1, "path_glob": f"{pool}/*.root", "exclude_files": [str(pool / "b.root")]}
+        self.assertEqual(resolve_sample_paths(spec, "2024"), [str(pool / "a.root"), str(pool / "c.root")])
+
     def _publish(self, p, paths, missing_sumw=0.0):
         for path in paths:
             Path(path).parent.mkdir(parents=True, exist_ok=True)

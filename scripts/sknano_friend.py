@@ -3,6 +3,7 @@
 friends.yml (docs/FriendInput.md).
 
     sknano_friend.py build    -f hadron_av6 [-e 2024] [-i TTLJ_powheg,Muon0] [-p C] [--local]
+                              [--central-files list.txt]
     sknano_friend.py validate -f hadron_av6 [-e 2024] [-i ...] [-p ...]
     sknano_friend.py status   -f hadron_av6 [-e 2024] [-i ...] [-p ...]
 
@@ -110,8 +111,17 @@ def aux_index(production: fc.FriendProduction, era: str, pd: str) -> tuple[list[
     if os.path.isfile(path):
         with open(path, encoding="utf-8") as handle:
             cached = json.load(handle)
-        if cached.get("version") == INDEX_VERSION and cached.get("files") == files:
-            return files, {tuple(map(int, k.split(":"))): v for k, v in cached["lumis"].items()}
+        if cached.get("version") == INDEX_VERSION and set(files) <= set(cached["files"]):
+            # The indexed pool, or that pool minus files since excluded
+            # (friends.yml exclude_files): renumber the owners, drop the rest.
+            position = {file: i for i, file in enumerate(files)}
+            remap = [position.get(file) for file in cached["files"]]
+            lumis = {}
+            for key, owners in cached["lumis"].items():
+                kept = [remap[i] for i in owners if remap[i] is not None]
+                if kept:
+                    lumis[tuple(map(int, key.split(":")))] = kept
+            return files, lumis
     print(f"indexing {len(files)} aux files for {era}/{pd} ...", flush=True)
     lumis: dict[tuple[int, int], list[int]] = {}
     for index, file in enumerate(files):
@@ -161,6 +171,8 @@ def plan_sample(production, era, sample, registry, args):
         out = production.friend_path(central)
         if os.path.isfile(out) and not args.force:
             done.append(out)
+            continue
+        if args.central_files is not None and central not in args.central_files:
             continue
         aux = sorted({aux_files[i] for key in lumi_table(central) for i in index.get(key, ())})
         if not aux:
@@ -232,9 +244,13 @@ queue args from {job_dir}/jobs.txt
 
 def cmd_build(args):
     production = production_by_name(args.friend)
-    pending, uncovered = [], []
+    pending, uncovered, listed = [], [], set()
+    if args.central_files is not None:
+        with open(args.central_files, encoding="utf-8") as handle:
+            args.central_files = {line.strip() for line in handle if line.strip()}
     for era, registry, sample in targets(args, production):
         central_files, jobs, done, missed = plan_sample(production, era, sample, registry, args)
+        listed.update(central_files)
         uncovered += missed
         print(f"{era}/{sample}: {len(central_files)} central files, "
               f"{len(done)} friends present, {len(jobs)} to build"
@@ -250,6 +266,9 @@ def cmd_build(args):
         for i, command in enumerate(jobs, 1):
             print(f"  [{i}/{len(jobs)}] {command[3]}", flush=True)
             subprocess.run(command, check=True, stdout=subprocess.DEVNULL)
+    if args.central_files is not None and args.central_files - listed:
+        raise SystemExit(f"{len(args.central_files - listed)} files of --central-files are not "
+                         f"central files of the selected samples, e.g. {sorted(args.central_files - listed)[0]}")
     if uncovered:
         print(f"{len(uncovered)} central files are not covered by '{production.name}' at all, "
               f"e.g. {uncovered[0]}")
@@ -441,6 +460,8 @@ def main():
                         help="stage directory for --local (condor jobs stage under <production>/_scratch)")
     parser.add_argument("--chunk", type=int, default=5000, help="aux entries buffered per stage file")
     parser.add_argument("--force", action="store_true", help="rebuild friends that already exist")
+    parser.add_argument("--central-files", default=None,
+                        help="build only these central files (a .txt, one path per line)")
     args = parser.parse_args()
     if args.command == "build" and not os.path.isfile(BINARY):
         raise SystemExit(f"{BINARY} not found; build the framework first")

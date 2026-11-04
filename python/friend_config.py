@@ -12,6 +12,8 @@ A module that needs custom columns next to the central NanoAOD ships one
       filter_note: "HLT prefilter"    # what that filter was
       sources:                        # builder only: aux file globs, {PD}/{era}
         - /gv0/DATA/SKNano/CustomNanoAODv15/hadron_av6_rntuple640/{era}/{PD}/**/*.root
+      exclude_files: data/x.txt       # builder only: aux files never read (list, or a
+                                      # file of paths relative to the friends.yml)
       samples: [TTLJ_powheg, Muon0]   # optional allowlist of registry names
       on_missing: error               # or run_without, when a sample has no friend
       root: null                      # optional, else $SKNANO_FRIEND_ROOT
@@ -41,7 +43,7 @@ SUMMARY_FILENAME = "friend_summary.json"
 PRODUCTION_FILENAME = "friend_production.json"
 
 _KNOWN_KEYS = {"analyzers", "eras", "overrides", "exclude_prefixes", "filtered",
-               "filter_note", "sources", "samples", "on_missing", "root"}
+               "filter_note", "sources", "exclude_files", "samples", "on_missing", "root"}
 
 
 def friend_root() -> str:
@@ -63,6 +65,16 @@ def _as_list(value: Any, key: str, production: str) -> list[str]:
     return list(value)
 
 
+def _exclude_files(value: Any, module_dir: str, production: str) -> list[str]:
+    """A list of aux paths, or the name of a text file (relative to the
+    friends.yml) holding one path per line; '#' starts a comment."""
+    if not isinstance(value, str):
+        return _as_list(value, "exclude_files", production)
+    with open(os.path.join(module_dir, value), encoding="utf-8") as handle:
+        lines = (line.split("#", 1)[0].strip() for line in handle)
+        return [line for line in lines if line]
+
+
 def _as_bool(value: Any, key: str, production: str) -> bool:
     if not isinstance(value, bool):
         raise ValueError(f"friend '{production}': '{key}' must be true or false")
@@ -79,6 +91,7 @@ class FriendProduction:
     exclude_prefixes: list[str] = field(default_factory=list)
     filter_note: str = ""
     sources: list[str] = field(default_factory=list)
+    exclude_files: list[str] = field(default_factory=list)
     samples: list[str] = field(default_factory=list)
     on_missing: str = "error"
     filtered: bool = False
@@ -131,7 +144,10 @@ class FriendProduction:
             files.extend(p for p in glob.glob(pattern, recursive=True)
                          if os.path.isfile(p) and p.endswith(".root")
                          and not os.path.basename(p).startswith("."))
-        return sorted(set(files))
+        # Files the pool holds but the production must not read, e.g. the
+        # output of a CRAB job that failed after its file reached the SE and
+        # whose lumis another job redid: reading both is a duplicate event.
+        return sorted(set(files) - set(self.exclude_files))
 
 
 def load_module_friends(module_dir: str) -> list[FriendProduction]:
@@ -161,6 +177,7 @@ def load_module_friends(module_dir: str) -> list[FriendProduction]:
             exclude_prefixes=_as_list(spec.get("exclude_prefixes"), "exclude_prefixes", name),
             filter_note=str(spec.get("filter_note") or ""),
             sources=_as_list(spec.get("sources"), "sources", name),
+            exclude_files=_exclude_files(spec.get("exclude_files"), module_dir, name),
             samples=_as_list(spec.get("samples"), "samples", name),
             on_missing=on_missing,
             filtered=_as_bool(spec.get("filtered", False), "filtered", name),
