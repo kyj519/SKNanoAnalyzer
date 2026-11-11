@@ -119,7 +119,7 @@ json takes the same key (a list of absolute paths) on top of its `path_glob`.
 
 `schema` names a json, relative to the `friends.yml`, whose `collections`
 object lists the collections the production declares (Hadron:
-`schema/CustomBPHBranches.json`, 13 collections). The builder then carries
+`schema/CustomBPHBranches.json`, 15 collections since PrivateNano addon 7: `GenPtclJet` and `GenPtclHadron` were added). The builder then carries
 only their fields that the central file lacks -- whole new collections, and
 the extension columns of one the central file also has, such as `Jet_pullY` --
 plus the overrides. Every other field the aux files have and the central file
@@ -130,6 +130,24 @@ share them, and the central data has no `L1_*_pPAT` at all; carried, they made
 a data friend's fields depend on its first aux file and failed every build
 whose later aux file lacked one. Without `schema` every aux-only field is
 carried, minus `exclude_prefixes` (collections to leave out).
+
+**Provenance columns.** The producer's per-event `PrivateNano_addonVersion` and
+`PrivateNano_gitHash` (addon 7, friend productions only) belong to no schema
+collection, so with `schema` the builder skips them
+(`tools/sknano_friend/FriendBuilder.cc`, field selection: a field is carried only
+if its collection is declared or in `overrides`). They reach the friend only if
+the production lists `PrivateNano` in `overrides`; the reader accepts the
+fields either way, since a friend field absent from the central file needs no
+declaration (`AnalyzerFramework/src/RNTupleSource.cc`, friend field loop).
+
+**Lambda-mode friends.** An addon 7 `reco_mode: lambda` production has no
+`D0ToKPi`, `DstarToD0Pi`, `LambdaCToPKPi`, `ChargedTrack`,
+`GenChargedParticle` or jet-pull columns, and no `Jet` main table. The builder
+simply carries what the aux files have of the 15 declared collections; the
+analyzer reads the missing ones as legal `absent_ok` collections (PrivateNano
+`docs/cross_repo_contract.md`, section `absent_ok`). `friends.yml` has no `hadron_av7*` entry yet; add one
+(`overrides: [GenPart]`, plus `PrivateNano` for provenance) when the production
+is submitted.
 
 A pool produced partly with and partly without a filter is two productions.
 The submission (`SKNano.py`) and the builder read the same file, so a
