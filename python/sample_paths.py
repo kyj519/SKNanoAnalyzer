@@ -18,6 +18,11 @@ Two escape hatches remain, in precedence order:
     Use it when a production does not follow the layout -- a private
     reprocessing, a directory that has to be pinned to one CRAB submission.
 
+``exclude_files``
+    Files the glob matches but the sample must not read (absolute paths),
+    e.g. the output of a CRAB job that failed after it reached the SE and
+    whose lumis another job redid. Its normalisation must come from the rest.
+
 ``path``
     An explicit list of absolute files. Reproducible but unportable: it names
     one mount on one cluster and goes stale as soon as a production is
@@ -111,6 +116,7 @@ def resolve_sample_paths(sample_info: Mapping[str, Any],
             "resolving a sample without an explicit 'path' needs its era")
 
     pattern = sample_glob(sample_info, era, period)
+    excluded = set(sample_info.get("exclude_files") or [])
     if not os.path.isabs(pattern):
         pattern = os.path.join(input_root(), pattern)
 
@@ -121,6 +127,7 @@ def resolve_sample_paths(sample_info: Mapping[str, Any],
         # behind; feeding one to a job silently truncates the sample. glob
         # already skips leading dots, this is the belt to that pair of braces.
         and not os.path.basename(path).startswith(".")
+        and path not in excluded
     )
     if not sample_info.get("isMC") and not sample_info.get("path_glob"):
         dataset = sample_info.get("PD") or sample_info.get("name")

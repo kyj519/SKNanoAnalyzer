@@ -5,3 +5,12 @@
 [submodule "external/jsonpog-integration"]
 	path = external/jsonpog-integration
 	url = ssh://git@gitlab.cern.ch:7999/cms-nanoAOD/jsonpog-integration.git
+[submodule "Vcb_Analyzers"]
+	path = Vcb_Analyzers
+	url = git@github.com:kyj519/Vcb_Analyzers.git
+[submodule "Hadron_Analyzers"]
+	path = Hadron_Analyzers
+	url = git@github.com:kyj519/Hadron_Analyzers.git
+[submodule "Calibration_Analyzers"]
+	path = Calibration_Analyzers
+	url = git@github.com:kyj519/Calibration_Analyzers.git
